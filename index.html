@@ -1,0 +1,3694 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Gen-Z – Web3 Airdrop Node</title>
+    <meta name="description" content="Gen-Z – Tap, earn, and win crypto airdrops on Telegram." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap"
+        rel="stylesheet" />
+
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Decentralized P2P Mesh DB -->
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <!-- Adsgram Rewarded Ads SDK -->
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #04050f;
+            --bg2: #080c1a;
+            --card: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
+            --gold: #f5c842;
+            --gold2: #fde98a;
+            --sky: #38bdf8;
+            --sky2: #7dd3fc;
+            --green: #4ade80;
+            --pink: #f472b6;
+            --purple: #a78bfa;
+            --red: #f87171;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --nav-h: 70px;
+            --r: 18px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', -apple-system, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 60% 40% at 20% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 40% at 80% 80%, rgba(167, 139, 250, 0.10) 0%, transparent 70%),
+                radial-gradient(ellipse 40% 30% at 50% 50%, rgba(245, 200, 66, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* HEADER */
+        .header {
+            position: relative;
+            z-index: 10;
+            background: rgba(8, 12, 26, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            border: 2px solid rgba(56, 189, 248, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 900;
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.3);
+        }
+
+        .user-name {
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: var(--sky2);
+        }
+
+        .user-rank {
+            font-size: 0.65rem;
+            color: var(--muted);
+            margin-top: 1px;
+        }
+
+        .balance-badge {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .bal-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .token-val {
+            font-size: 0.9rem;
+            font-weight: 900;
+            color: var(--gold);
+        }
+
+        .diamond-val {
+            font-size: 0.9rem;
+            font-weight: 900;
+            color: var(--sky);
+        }
+
+        .bal-sep {
+            width: 1px;
+            height: 16px;
+            background: var(--border);
+        }
+
+        /* TAB CONTENT */
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px 14px calc(var(--nav-h) + 16px) 14px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tab-content.active-content {
+            display: flex;
+        }
+
+        .tab-content::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .tab-content::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        /* TAP SCREEN */
+        .tap-wrap {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+            padding-top: 10px;
+        }
+
+        .tap-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .coin-wrap {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .coin-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(245, 200, 66, 0.22);
+            animation: ringPulse 2.5s ease-in-out infinite;
+        }
+
+        .coin-ring.r1 {
+            inset: -18px;
+        }
+
+        .coin-ring.r2 {
+            inset: -34px;
+            opacity: .5;
+            animation-delay: .5s;
+        }
+
+        .coin-ring.r3 {
+            inset: -50px;
+            opacity: .2;
+            animation-delay: 1s;
+        }
+
+        @keyframes ringPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: .5;
+            }
+
+            50% {
+                transform: scale(1.06);
+                opacity: 1;
+            }
+        }
+
+        .coin-box {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #b45309, #fde047, #eab308, #fef08a, #ca8a04, #fde047, #b45309);
+            border: 5px solid rgba(254, 240, 138, 0.5);
+            box-shadow:
+                0 0 0 3px rgba(234, 179, 8, 0.2),
+                0 0 50px rgba(234, 179, 8, 0.45),
+                0 0 100px rgba(234, 179, 8, 0.15),
+                inset 0 -10px 30px rgba(0, 0, 0, 0.4),
+                inset 0 8px 20px rgba(255, 255, 255, 0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+            position: relative;
+            overflow: hidden;
+            animation: coinFloat 3.8s ease-in-out infinite;
+        }
+
+        .coin-box::before {
+            content: '';
+            position: absolute;
+            top: -60%;
+            left: -60%;
+            width: 55%;
+            height: 220%;
+            background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.4) 50%, transparent 70%);
+            animation: coinShine 3s ease-in-out infinite;
+            pointer-events: none;
+            border-radius: 50%;
+        }
+
+        .coin-box::after {
+            content: '';
+            position: absolute;
+            inset: 6px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        @keyframes coinFloat {
+
+            0%,
+            100% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-10px)
+            }
+        }
+
+        @keyframes coinShine {
+            0% {
+                left: -60%
+            }
+
+            65% {
+                left: 130%
+            }
+
+            100% {
+                left: 130%
+            }
+        }
+
+        .coin-box:active {
+            transform: scale(0.9) !important;
+            animation-play-state: paused;
+            box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.5), 0 0 25px rgba(234, 179, 8, 0.8), inset 0 -10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .coin-letter {
+            font-size: 6rem;
+            font-weight: 900;
+            color: transparent;
+            -webkit-text-stroke: 3px #fef08a;
+            text-shadow: 0 3px 0 #92400e, 0 6px 16px rgba(0, 0, 0, 0.6);
+            letter-spacing: -3px;
+            line-height: 1;
+            filter: drop-shadow(0 0 14px rgba(254, 240, 138, 0.7));
+            z-index: 1;
+            position: relative;
+        }
+
+        .tap-hint {
+            font-size: .72rem;
+            color: var(--muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            animation: hintBlink 2s ease-in-out infinite;
+        }
+
+        @keyframes hintBlink {
+
+            0%,
+            100% {
+                opacity: .4
+            }
+
+            50% {
+                opacity: 1
+            }
+        }
+
+        .energy-card {
+            width: 100%;
+            max-width: 300px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 14px 16px;
+            backdrop-filter: blur(12px);
+        }
+
+        .energy-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: .78rem;
+            color: var(--muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .energy-bar {
+            width: 100%;
+            height: 7px;
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #energyFill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #4ade80);
+            border-radius: 10px;
+            transition: width .3s ease;
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+        }
+
+        .float-num {
+            position: fixed;
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--gold);
+            pointer-events: none;
+            animation: floatUp .75s ease-out forwards;
+            text-shadow: 0 0 10px rgba(245, 200, 66, 0.7);
+            z-index: 999;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1)
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-80px) scale(0.7)
+            }
+        }
+
+        /* TAP LEVEL CARD */
+        .tap-level-card {
+            width: 100%;
+            max-width: 310px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(167, 139, 250, 0.08));
+            border: 1px solid rgba(56, 189, 248, 0.22);
+            border-radius: var(--r);
+            padding: 12px 16px;
+            cursor: pointer;
+            backdrop-filter: blur(14px);
+            transition: transform .15s ease, border-color .2s ease, box-shadow .2s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .tap-level-card:hover,
+        .tap-level-card:active {
+            border-color: rgba(56, 189, 248, 0.5);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+            transform: scale(0.99);
+        }
+
+        .tap-level-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .tap-level-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .level-badge-pill {
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            color: #030712;
+            font-size: .72rem;
+            font-weight: 900;
+            padding: 3px 8px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        .level-tier-name {
+            font-size: .84rem;
+            font-weight: 800;
+            color: #f1f5f9;
+        }
+
+        .tap-level-rate {
+            font-size: .88rem;
+            font-weight: 900;
+            color: var(--gold);
+            text-shadow: 0 0 10px rgba(245, 200, 66, 0.3);
+        }
+
+        .level-progress-track {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .level-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #a78bfa, #f5c842);
+            border-radius: 6px;
+            transition: width .4s ease;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+        }
+
+        .level-info-sub {
+            display: flex;
+            justify-content: space-between;
+            font-size: .68rem;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .level-modal-link {
+            color: var(--sky2);
+            font-weight: 700;
+        }
+
+        /* LEVELS MODAL */
+        #levelsModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(4, 5, 15, 0.92);
+            backdrop-filter: blur(14px);
+            z-index: 150;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .levels-box {
+            width: 100%;
+            max-width: 360px;
+            background: rgba(8, 12, 26, 0.98);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 24px;
+            padding: 20px 18px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.1);
+            animation: winCardIn .3s ease-out both;
+        }
+
+        .levels-header {
+            text-align: center;
+            margin-bottom: 14px;
+        }
+
+        .levels-title {
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: var(--sky);
+        }
+
+        .levels-desc {
+            font-size: .74rem;
+            color: var(--muted);
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .levels-tier-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        .tier-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .tier-item.active {
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.18);
+        }
+
+        .tier-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tier-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .8rem;
+            font-weight: 900;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--sky2);
+        }
+
+        .tier-item.active .tier-badge {
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            color: #fff;
+        }
+
+        .tier-name-row {
+            font-size: .82rem;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tier-req {
+            font-size: .7rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .tier-reward {
+            font-size: .88rem;
+            font-weight: 900;
+            color: var(--gold);
+        }
+
+        .tier-active-pill {
+            font-size: .58rem;
+            background: var(--sky);
+            color: #030712;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-weight: 900;
+        }
+
+        /* TASKS */
+        .section-title {
+            width: 100%;
+            font-size: .68rem;
+            font-weight: 800;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 10px;
+            padding-left: 2px;
+        }
+
+        .task-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .task-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            backdrop-filter: blur(12px);
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        .task-card:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.07);
+        }
+
+        .task-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .task-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .icon-yt {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .icon-tg {
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+
+        .icon-ig {
+            background: rgba(244, 114, 182, 0.12);
+            border: 1px solid rgba(244, 114, 182, 0.25);
+        }
+
+        .icon-sub {
+            background: rgba(167, 139, 250, 0.12);
+            border: 1px solid rgba(167, 139, 250, 0.25);
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-title {
+            font-size: .88rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        .task-sub {
+            font-size: .72rem;
+            color: var(--muted);
+        }
+
+        .task-reward {
+            font-size: .75rem;
+            font-weight: 800;
+            color: var(--green);
+            margin-top: 4px;
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, #0ea5e9, #2563eb);
+            color: #fff;
+            border: none;
+            padding: 9px 18px;
+            border-radius: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: .8rem;
+            white-space: nowrap;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
+            transition: transform .1s;
+        }
+
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+
+        .btn-action:disabled {
+            background: rgba(255, 255, 255, 0.07);
+            color: var(--muted);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .otp-input-wrap {
+            display: flex;
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .otp-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 9px 12px;
+            color: var(--gold);
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+            transition: border-color .2s;
+        }
+
+        .otp-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .btn-claim {
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            color: #fff;
+            border: none;
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: .8rem;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+            transition: transform .1s;
+        }
+
+        .btn-claim:active {
+            transform: scale(0.95);
+        }
+
+        /* PUZZLE */
+        .puzzle-container {
+            width: 100%;
+            max-width: 340px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 14px;
+        }
+
+        .puzzle-hero-card {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(99, 102, 241, 0.12));
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: var(--r);
+            padding: 18px;
+            backdrop-filter: blur(12px);
+        }
+
+        .p-title {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--gold);
+        }
+
+        .p-sub {
+            font-size: .73rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .p-reward {
+            display: inline-block;
+            background: rgba(74, 222, 128, 0.12);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            color: var(--green);
+            font-size: .75rem;
+            font-weight: 800;
+            padding: 5px 14px;
+            border-radius: 20px;
+            margin-top: 8px;
+        }
+
+        .timer-box {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: .82rem;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .timer-digits {
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: var(--sky);
+        }
+
+        .timer-danger {
+            color: var(--red) !important;
+            animation: blink .5s infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: .4
+            }
+        }
+
+        .puzzle-grid {
+            width: 270px;
+            height: 270px;
+            background: rgba(2, 6, 23, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5px;
+            padding: 5px;
+        }
+
+        .puzzle-tile {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(99, 102, 241, 0.25));
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #fff;
+            cursor: pointer;
+            transition: transform .1s, background .15s;
+        }
+
+        .puzzle-tile:active {
+            transform: scale(0.93);
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.4), rgba(99, 102, 241, 0.4));
+        }
+
+        .tile-empty {
+            background: transparent;
+            border: none;
+            cursor: default;
+        }
+
+        .btn-puzzle-start {
+            background: linear-gradient(135deg, #eab308, #f59e0b);
+            color: #000;
+            border: none;
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 900;
+            cursor: pointer;
+            width: 100%;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 6px 24px rgba(234, 179, 8, 0.4);
+            transition: transform .1s;
+        }
+
+        .btn-puzzle-start:active {
+            transform: scale(0.97);
+        }
+
+        .btn-puzzle-start:disabled {
+            background: rgba(255, 255, 255, 0.07);
+            color: var(--muted);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .lock-msg {
+            font-size: .8rem;
+            color: var(--red);
+            background: rgba(248, 113, 113, 0.08);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* FRIENDS */
+        .refer-hero {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(99, 102, 241, 0.20));
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: var(--r);
+            padding: 26px 20px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .refer-hero::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%);
+        }
+
+        .diamond-icon {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.6));
+        }
+
+        .refer-title {
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: var(--text);
+        }
+
+        .refer-sub {
+            font-size: .82rem;
+            color: var(--sky2);
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        .ref-stat-row {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 14px 0;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+        }
+
+        .stat-val {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--sky);
+        }
+
+        .stat-lbl {
+            font-size: .68rem;
+            color: var(--muted);
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .btn-share {
+            width: 100%;
+            background: linear-gradient(135deg, #0ea5e9, #2563eb);
+            color: #fff;
+            border: none;
+            padding: 15px;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 900;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 6px 24px rgba(14, 165, 233, 0.4);
+            transition: transform .1s;
+        }
+
+        .btn-share:active {
+            transform: scale(0.97);
+        }
+
+        /* TIERED REFERRAL TABLE */
+        .ref-tier-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            transition: border-color .2s, background .2s;
+        }
+
+        .ref-tier-row.done {
+            background: rgba(74, 222, 128, 0.05);
+            border-color: rgba(74, 222, 128, 0.2);
+        }
+
+        .ref-tier-row.done .ref-tier-num {
+            opacity: .5;
+            text-decoration: line-through;
+        }
+
+        .ref-tier-row.done .ref-tier-val::after {
+            content: ' ✓';
+            color: var(--green);
+            font-size: .7rem;
+        }
+
+        .ref-tier-row.current {
+            background: rgba(245, 200, 66, 0.08);
+            border-color: rgba(245, 200, 66, 0.45);
+            box-shadow: 0 0 14px rgba(245, 200, 66, 0.12);
+        }
+
+        .ref-tier-num {
+            font-size: .78rem;
+            font-weight: 900;
+            color: var(--muted);
+            min-width: 46px;
+        }
+
+        .ref-tier-name {
+            flex: 1;
+            font-size: .8rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .ref-tier-val {
+            font-size: .88rem;
+            font-weight: 900;
+        }
+
+        .ref-tier-val.diamond {
+            color: var(--sky);
+        }
+
+        .ref-tier-val.token {
+            color: var(--gold);
+        }
+
+        .ref-tier-val.muted {
+            color: var(--muted);
+        }
+
+        /* WALLET */
+        .wallet-hero {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(167, 139, 250, 0.15));
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: var(--r);
+            padding: 26px 20px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            margin-bottom: 14px;
+        }
+
+        .wallet-planet {
+            font-size: 3rem;
+            filter: drop-shadow(0 0 14px rgba(99, 102, 241, 0.5));
+            margin-bottom: 10px;
+        }
+
+        .wallet-h3 {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        .wallet-p {
+            font-size: .75rem;
+            color: #c7d2fe;
+            line-height: 1.5;
+        }
+
+        .wallet-card {
+            width: 100%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            backdrop-filter: blur(12px);
+        }
+
+        .wallet-label {
+            font-size: .72rem;
+            font-weight: 800;
+            color: var(--muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .wallet-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            color: var(--sky);
+            font-size: .82rem;
+            font-family: 'Outfit', monospace;
+            transition: border-color .2s;
+        }
+
+        .wallet-input:focus {
+            outline: none;
+            border-color: rgba(99, 102, 241, 0.6);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-wallet {
+            background: linear-gradient(135deg, #6366f1, #7c3aed);
+            color: #fff;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            font-size: .95rem;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+            transition: transform .1s;
+        }
+
+        .btn-wallet:active {
+            transform: scale(0.97);
+        }
+
+        .wallet-note {
+            font-size: .7rem;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* NAV */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: var(--nav-h);
+            background: rgba(8, 12, 26, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--muted);
+            font-size: .65rem;
+            font-weight: 700;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 12px;
+            transition: color .2s, background .2s;
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: .5px;
+        }
+
+        .nav-icon {
+            font-size: 1.3rem;
+            line-height: 1;
+        }
+
+        .nav-active {
+            color: var(--sky) !important;
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        /* VIDEO MODAL */
+        #videoModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(4, 5, 15, 0.95);
+            backdrop-filter: blur(12px);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-box {
+            width: 100%;
+            max-width: 450px;
+            background: rgba(8, 12, 26, 0.98);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 22px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.05);
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: var(--sky);
+        }
+
+        .modal-sub {
+            font-size: .73rem;
+            color: var(--muted);
+            margin-top: 3px;
+            text-align: center;
+        }
+
+        .modal-player-wrap {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: 14px;
+            overflow: hidden;
+            margin: 14px 0;
+            border: 1px solid var(--border);
+        }
+
+        #modalPlayer {
+            width: 100%;
+            height: 100%;
+        }
+
+        .modal-status {
+            font-size: .78rem;
+            color: var(--muted);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .modal-warn {
+            font-size: .75rem;
+            color: var(--red);
+            font-weight: 800;
+            display: none;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        #modalRewardBox {
+            display: none;
+            width: 100%;
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px dashed rgba(34, 197, 94, 0.4);
+            border-radius: 14px;
+            padding: 16px;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .modal-otp-label {
+            font-size: .78rem;
+            color: var(--green);
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .modal-otp {
+            font-size: 2.4rem;
+            font-weight: 900;
+            letter-spacing: 8px;
+            color: var(--gold);
+            font-family: monospace;
+        }
+
+        .btn-modal-claim {
+            width: 100%;
+            margin-top: 10px;
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            font-size: .9rem;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .btn-modal-close {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--muted);
+            border: 1px solid var(--border);
+            padding: 9px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: .8rem;
+            margin-top: 10px;
+            font-family: 'Outfit', sans-serif;
+            transition: background .2s;
+        }
+
+        .btn-modal-close:hover {
+            background: rgba(255, 255, 255, 0.10);
+        }
+
+        /* WIN MODAL */
+        #winModal {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(4, 5, 15, 0.90);
+            backdrop-filter: blur(14px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        #winCard {
+            background: linear-gradient(135deg, #0a0f20, #111827);
+            border: 2px solid var(--gold);
+            border-radius: 26px;
+            padding: 34px 28px;
+            text-align: center;
+            max-width: 310px;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 0 80px rgba(250, 204, 21, 0.3), 0 20px 60px rgba(0, 0, 0, 0.8);
+            animation: winCardIn .5s cubic-bezier(.175, .885, .32, 1.275) both;
+        }
+
+        @keyframes winCardIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.4) rotate(-8deg)
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg)
+            }
+        }
+
+        @keyframes trophySpin {
+            0% {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0
+            }
+
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1
+            }
+        }
+
+        @keyframes rewardPop {
+            0% {
+                transform: scale(0.6);
+                opacity: 0
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1
+            }
+        }
+
+        .win-trophy {
+            font-size: 4.5rem;
+            animation: trophySpin .8s ease-out .3s both;
+            display: inline-block;
+        }
+
+        .win-h2 {
+            color: var(--gold);
+            font-size: 1.7rem;
+            font-weight: 900;
+            margin: 10px 0 4px;
+            letter-spacing: 1px;
+        }
+
+        .win-p {
+            color: var(--sky2);
+            font-size: .88rem;
+        }
+
+        .win-reward-box {
+            background: rgba(74, 222, 128, 0.10);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 14px;
+            padding: 14px 20px;
+            margin: 18px 0;
+            animation: rewardPop .4s ease-out .6s both;
+        }
+
+        .win-amount {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--green);
+        }
+
+        .win-label {
+            font-size: .75rem;
+            color: rgba(134, 239, 172, 0.8);
+            margin-top: 2px;
+        }
+
+        .btn-win-close {
+            background: linear-gradient(135deg, #eab308, #ca8a04);
+            color: #000;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 900;
+            cursor: pointer;
+            width: 100%;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 6px 24px rgba(234, 179, 8, 0.4);
+        }
+
+        /* TOAST */
+        #_toast {
+            position: fixed;
+            bottom: calc(var(--nav-h) + 14px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(8, 12, 26, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 10px 20px;
+            font-size: .82rem;
+            font-weight: 700;
+            z-index: 999;
+            white-space: nowrap;
+            backdrop-filter: blur(14px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+            transition: opacity .4s ease;
+            display: none;
+        }
+
+        /* DAILY BONUS TAB */
+        .daily-hero {
+            text-align: center;
+            padding: 18px 0 10px;
+        }
+
+        .daily-hero-icon {
+            font-size: 3rem;
+            animation: pulse 2s infinite;
+        }
+
+        .daily-hero-title {
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: var(--text);
+            margin-top: 6px;
+        }
+
+        .daily-hero-sub {
+            font-size: .78rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .daily-streak-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, rgba(245, 200, 66, 0.15), rgba(167, 139, 250, 0.15));
+            border: 1px solid rgba(245, 200, 66, 0.35);
+            border-radius: 20px;
+            padding: 6px 16px;
+            margin-top: 10px;
+            font-size: .82rem;
+            font-weight: 800;
+            color: var(--gold);
+        }
+
+        .daily-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .daily-list-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+            margin-bottom: 2px;
+            padding: 0 4px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .daily-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 10px 14px;
+            transition: transform .2s, box-shadow .2s, border-color .2s;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        .daily-row-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .daily-row-icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            transition: transform .2s;
+        }
+
+        .daily-row-icon-box.diamond-icon-box {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(167, 139, 250, 0.2));
+            border-color: rgba(56, 189, 248, 0.45);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+        }
+
+        .daily-row-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .daily-row-day {
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .daily-tag-special {
+            font-size: 0.6rem;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(167, 139, 250, 0.25));
+            color: var(--sky);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .daily-row-desc {
+            font-size: 0.7rem;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .daily-row-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+
+        .daily-row-val {
+            font-size: 0.88rem;
+            font-weight: 900;
+            color: var(--gold);
+        }
+
+        .daily-row-val.diamond {
+            color: var(--sky);
+            text-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+        }
+
+        .daily-row-badge {
+            font-size: 0.64rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+        }
+
+        .daily-row-badge.status-done {
+            background: rgba(74, 222, 128, 0.12);
+            color: var(--green);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+
+        .daily-row-badge.status-active {
+            background: linear-gradient(135deg, rgba(245, 200, 66, 0.25), rgba(167, 139, 250, 0.25));
+            color: var(--gold);
+            border: 1px solid rgba(245, 200, 66, 0.5);
+            animation: pulseBadge 1.5s infinite;
+        }
+
+        .daily-row-badge.status-locked {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--muted);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        @keyframes pulseBadge {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(245, 200, 66, 0.4);
+            }
+
+            50% {
+                transform: scale(1.04);
+                box-shadow: 0 0 8px 1px rgba(245, 200, 66, 0.3);
+            }
+        }
+
+        /* Done row state */
+        .daily-row.done {
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.06), rgba(56, 189, 248, 0.04));
+            border-color: rgba(74, 222, 128, 0.25);
+            opacity: 0.85;
+        }
+
+        .daily-row.done .daily-row-val {
+            color: var(--green);
+        }
+
+        /* Active row state */
+        .daily-row.active {
+            background: linear-gradient(135deg, rgba(245, 200, 66, 0.16), rgba(167, 139, 250, 0.14));
+            border-color: rgba(245, 200, 66, 0.55);
+            box-shadow: 0 0 16px rgba(245, 200, 66, 0.2);
+            transform: scale(1.01);
+        }
+
+        /* Diamond row state */
+        .daily-row.diamond-day {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(167, 139, 250, 0.12));
+            border-color: rgba(56, 189, 248, 0.35);
+        }
+
+        .daily-row.diamond-day.active {
+            border-color: rgba(56, 189, 248, 0.65);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+        }
+
+        .btn-daily-claim {
+            width: 100%;
+            margin-top: 14px;
+            background: linear-gradient(135deg, #f5c842, #a78bfa);
+            color: #0a0a18;
+            border: none;
+            border-radius: 16px;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 900;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 6px 24px rgba(245, 200, 66, 0.35);
+            transition: opacity .2s, transform .15s;
+        }
+
+        .btn-daily-claim:active {
+            transform: scale(.97);
+        }
+
+        .btn-daily-claim:disabled {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--muted);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .daily-next-timer {
+            text-align: center;
+            font-size: .76rem;
+            color: var(--muted);
+            margin-top: 8px;
+            font-weight: 700;
+        }
+
+        /* DAILY BONUS CONGRATS POPUP */
+        #dailyPopup {
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: rgba(4, 5, 15, 0.88);
+            backdrop-filter: blur(16px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        #dailyPopupCard {
+            background: linear-gradient(145deg, #0d1225, #111827);
+            border-radius: 28px;
+            padding: 36px 28px;
+            text-align: center;
+            max-width: 320px;
+            width: 90%;
+            position: relative;
+            overflow: hidden;
+            animation: dailyCardIn .5s cubic-bezier(.175, .885, .32, 1.275) both;
+        }
+
+        @keyframes dailyCardIn {
+            from {
+                opacity: 0;
+                transform: scale(.7) translateY(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        #dailyPopupCard::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245, 200, 66, 0.18) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .dp-border-gold {
+            border: 2px solid rgba(245, 200, 66, 0.5);
+            box-shadow: 0 0 60px rgba(245, 200, 66, 0.25), 0 20px 60px rgba(0, 0, 0, 0.8);
+        }
+
+        .dp-border-sky {
+            border: 2px solid rgba(56, 189, 248, 0.5);
+            box-shadow: 0 0 60px rgba(56, 189, 248, 0.30), 0 20px 60px rgba(0, 0, 0, 0.8);
+        }
+
+        .dp-stars {
+            font-size: 2.4rem;
+            animation: starSpin 1s ease-out both;
+        }
+
+        @keyframes starSpin {
+            from {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        .dp-congrats {
+            font-size: .78rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        .dp-day-label {
+            font-size: 1.05rem;
+            font-weight: 900;
+            color: var(--text);
+            margin-top: 6px;
+        }
+
+        .dp-reward-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 18px;
+            padding: 18px 24px;
+            margin: 18px 0;
+            animation: rewardPop .4s ease-out .3s both;
+        }
+
+        @keyframes rewardPop {
+            from {
+                opacity: 0;
+                transform: scale(.8) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .dp-reward-amount {
+            font-size: 2.4rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .dp-reward-amount.gold {
+            color: var(--gold);
+            text-shadow: 0 0 20px rgba(245, 200, 66, 0.6);
+        }
+
+        .dp-reward-amount.sky {
+            color: var(--sky);
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+        }
+
+        .dp-reward-label {
+            font-size: .75rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .dp-streak-info {
+            font-size: .72rem;
+            color: var(--muted);
+            margin-bottom: 14px;
+            font-weight: 700;
+        }
+
+        /* 2X Multiplier Badge & Button */
+        .dp-multiplier-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 900;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            box-shadow: 0 3px 12px rgba(239, 68, 68, 0.45);
+            animation: badgePop 0.4s cubic-bezier(.175, .885, .32, 1.275) both;
+        }
+
+        @keyframes badgePop {
+            0% {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .btn-dp-double {
+            width: 100%;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, #059669, #0284c7, #6366f1);
+            background-size: 200% 200%;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 14px;
+            font-size: 0.98rem;
+            font-weight: 900;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 6px 24px rgba(5, 150, 105, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            transition: all .2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            animation: adGlowShine 3s ease infinite;
+        }
+
+        @keyframes adGlowShine {
+            0% {
+                background-position: 0% 50%;
+                box-shadow: 0 4px 18px rgba(5, 150, 105, 0.4);
+            }
+
+            50% {
+                background-position: 100% 50%;
+                box-shadow: 0 6px 26px rgba(2, 132, 199, 0.6);
+            }
+
+            100% {
+                background-position: 0% 50%;
+                box-shadow: 0 4px 18px rgba(5, 150, 105, 0.4);
+            }
+        }
+
+        .btn-dp-double:active {
+            transform: scale(0.97);
+        }
+
+        .btn-dp-double.claimed {
+            background: rgba(255, 255, 255, 0.06) !important;
+            color: #4ade80 !important;
+            border: 1px solid rgba(74, 222, 128, 0.35) !important;
+            box-shadow: none !important;
+            cursor: default !important;
+            animation: none !important;
+            pointer-events: none;
+        }
+
+        .btn-dp-double.loading {
+            opacity: 0.8;
+            pointer-events: none;
+            animation: none;
+        }
+
+        .btn-dp-close {
+            width: 100%;
+            padding: 13px;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--muted);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            font-size: 0.92rem;
+            font-weight: 800;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            transition: all .15s;
+        }
+
+        .btn-dp-close:hover {
+            background: rgba(255, 255, 255, 0.14);
+            color: var(--text);
+        }
+
+        .btn-dp-close.sky {
+            border-color: rgba(56, 189, 248, 0.35);
+        }
+
+        .btn-dp-close:active {
+            transform: scale(.97);
+        }
+
+        /* ENERGY REFILL BUTTON */
+        .btn-energy-refill {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(167, 139, 250, 0.15));
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 12px;
+            color: var(--sky);
+            font-size: 0.82rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .btn-energy-refill:hover {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(167, 139, 250, 0.25));
+            border-color: rgba(56, 189, 248, 0.6);
+            transform: translateY(-1px);
+        }
+
+        .btn-energy-refill:active {
+            transform: scale(0.98);
+        }
+
+        /* Confetti canvas inside popup */
+        #dailyConfetti {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border-radius: 28px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="user-info">
+            <div class="avatar" id="txtAvatar">U</div>
+            <div>
+                <div class="user-name" id="txtUserName">Operative</div>
+                <div class="user-rank" id="txtUserRank">⚡ Lv.1 (1 🪙/Tap)</div>
+            </div>
+        </div>
+        <div class="balance-badge">
+            <div class="bal-item"><span>🪙</span><span class="token-val" id="txtToken">0</span></div>
+            <div class="bal-sep"></div>
+            <div class="bal-item"><span>💎</span><span class="diamond-val" id="txtDiamond">0</span></div>
+        </div>
+    </div>
+
+    <!-- TAB 1: TAP -->
+    <div class="tab-content active-content" id="tabTap">
+        <div class="tap-wrap">
+            <div class="tap-title">⚡ Gen-Z</div>
+
+            <!-- TAP LEVEL CARD -->
+            <div class="tap-level-card" onclick="openLevelsModal()" title="View all Tap to Earn levels">
+                <div class="tap-level-header">
+                    <div class="tap-level-left">
+                        <span class="level-badge-pill" id="badgeLevelPill">Lv. 1</span>
+                        <span class="level-tier-name" id="txtLevelTier">Novice Tap</span>
+                    </div>
+                    <div class="tap-level-rate" id="txtCoinsPerTap">+1 / tap</div>
+                </div>
+                <div class="level-progress-track">
+                    <div class="level-progress-bar" id="levelProgressFill" style="width: 0%;"></div>
+                </div>
+                <div class="level-info-sub">
+                    <span id="txtLevelDiamondsProgress">💎 0 / 10 (10 more for +5 🪙)</span>
+                    <span class="level-modal-link">Tiers Info ℹ️</span>
+                </div>
+            </div>
+
+            <div class="coin-wrap" onclick="handleTap(event)">
+                <div class="coin-ring r3"></div>
+                <div class="coin-ring r2"></div>
+                <div class="coin-ring r1"></div>
+                <div class="coin-box"><span class="coin-letter">G</span></div>
+            </div>
+            <div class="tap-hint" id="txtTapHint">👆 Tap coin to earn +1</div>
+            <div class="energy-card">
+                <div class="energy-header">
+                    <span>⚡ Energy</span>
+                    <span><b id="txtEnergy">1000</b> / 1000</span>
+                </div>
+                <div class="energy-bar">
+                    <div id="energyFill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: DAILY BONUS -->
+    <div class="tab-content" id="tabDaily">
+        <div class="daily-hero">
+            <div class="daily-hero-icon">🎁</div>
+            <div class="daily-hero-title">Daily Bonus</div>
+            <div class="daily-hero-sub">Claim every day to build your streak!</div>
+            <div class="daily-streak-badge">🔥 Streak: <span id="txtStreakCount">0</span> / 11 Days</div>
+        </div>
+
+        <!-- Claim Button & Timer (Placed prominently at top) -->
+        <button class="btn-daily-claim" id="btnDailyClaim" onclick="claimDailyBonus()">
+            🎁 Claim Today's Bonus
+        </button>
+        <div class="daily-next-timer" id="txtDailyTimer"></div>
+
+        <!-- Day Lines List -->
+        <div class="daily-list-header">
+            <span>📅 Bonus Roadmap</span>
+            <span>11 Days Cycle</span>
+        </div>
+        <div class="daily-list" id="dailyGrid"></div>
+    </div>
+
+    <!-- TAB 3: TASKS -->
+    <div class="tab-content" id="tabTasks">
+        <div class="section-title">🎯 Daily Missions</div>
+        <div class="task-list">
+            <!-- REWARDED ADS MISSION -->
+            <div class="task-card"
+                style="border: 1px solid rgba(56, 189, 248, 0.35); background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(99, 102, 241, 0.08));">
+                <div class="task-row">
+                    <div class="task-icon" style="background:linear-gradient(135deg,#0284c7,#6366f1);font-size:1.3rem;">
+                        📺</div>
+                    <div class="task-info">
+                        <div class="task-title" style="color:var(--sky2);">Watch Sponsored Ad</div>
+                        <div class="task-sub">Watch short ad &amp; earn tokens (Once per day)</div>
+                        <div class="task-reward">+2,500 🪙</div>
+                    </div>
+                    <button class="btn-action" id="btnAdTask" onclick="watchAdForTaskReward()"
+                        style="background:linear-gradient(135deg,#0284c7,#10b981);color:#fff;border:none;">▶
+                        Watch</button>
+                </div>
+            </div>
+            <div class="task-card">
+                <div class="task-row">
+                    <div class="task-icon icon-yt">🎬</div>
+                    <div class="task-info">
+                        <div class="task-title">Watch Daily Video</div>
+                        <div class="task-sub">Watch 100% without skipping to auto-claim</div>
+                        <div class="task-reward">+5,000 🪙</div>
+                    </div>
+                    <button class="btn-action" id="btnDailyVideoWatch" onclick="openInAppVideoModal()">▶ Watch</button>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-row">
+                    <div class="task-icon icon-sub">📺</div>
+                    <div class="task-info">
+                        <div class="task-title">Subscribe YouTube</div>
+                        <div class="task-sub">Subscribe &amp; ring the bell 🔔</div>
+                        <div class="task-reward">+3,000</div>
+                    </div>
+                    <button class="btn-action" id="btnYtSub"
+                        onclick="startSocialTask('yt','https://www.youtube.com/@Gen-Z-l1c')">Join</button>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-row">
+                    <div class="task-icon icon-tg">📢</div>
+                    <div class="task-info">
+                        <div class="task-title">Join Official Telegram</div>
+                        <div class="task-sub">Daily updates &amp; puzzle clues</div>
+                        <div class="task-reward">+2,500</div>
+                    </div>
+                    <button class="btn-action" id="btnTgSub"
+                        onclick="startSocialTask('tg','https://t.me/genzairdrop1')">Join</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TAB 3: PUZZLE -->
+    <div class="tab-content" id="tabPuzzle">
+        <div class="puzzle-container">
+            <div class="puzzle-hero-card">
+                <div class="p-title">🧩 60-Second Puzzle</div>
+                <div class="p-sub">Slide tiles 1–8 in order within 60 seconds</div>
+                <div class="p-reward">🏆 +10,000 REWARD</div>
+            </div>
+            <div class="timer-box" style="width:100%;">
+                <span>⏱️ Time Remaining</span>
+                <span id="txtPuzzleTimer" class="timer-digits">60s</span>
+            </div>
+            <div class="puzzle-grid" id="puzzleBoard"></div>
+            <button class="btn-puzzle-start" id="btnStartPuzzle" onclick="startPuzzleGame()">▶ START PUZZLE</button>
+            <div id="puzzleLockMsg" class="lock-msg" style="display:none;">
+                🇮🇳 Next puzzle unlocks at <b>7:00 AM IST</b><br>
+                ⏳ Time remaining: <b id="txtCooldownTimer">00:00:00</b>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: FRIENDS -->
+    <div class="tab-content" id="tabInvite">
+        <div class="refer-hero">
+            <div class="diamond-icon">🤝</div>
+            <div class="refer-title">Invite Friends &amp; Earn</div>
+            <div class="refer-sub">Every friend who joins earns you a reward!<br><b>Every Invite = 💎 1 Diamond — No
+                    Limit!</b></div>
+        </div>
+
+        <div class="ref-stat-row">
+            <div class="stat-card">
+                <div class="stat-val" id="txtFriendsCount">0</div>
+                <div class="stat-lbl">Friends Invited</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="txtDiamondReward">0</div>
+                <div class="stat-lbl">Diamonds Earned</div>
+            </div>
+        </div>
+
+        <!-- Diamond Reward Info Box -->
+        <div id="nextRewardPreview"
+            style="width:100%;background:linear-gradient(135deg,rgba(56,189,248,0.10),rgba(167,139,250,0.10));border:1px solid rgba(56,189,248,0.30);border-radius:14px;padding:16px;text-align:center;">
+            <div style="font-size:1.6rem;margin-bottom:4px;">💎</div>
+            <div style="font-size:1rem;font-weight:900;color:var(--sky);">Every Invite = 1 Diamond</div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:4px;">Invite as many friends as you want — earn
+                unlimited diamonds!</div>
+        </div>
+
+        <!-- Simple Diamond Reward Display -->
+        <div class="section-title" style="margin-top:14px;">💎 Reward Structure</div>
+        <div style="width:100%;display:flex;flex-direction:column;gap:6px;">
+            <div class="ref-tier-row"
+                style="background:linear-gradient(135deg,rgba(56,189,248,0.08),rgba(167,139,250,0.08));border-color:rgba(56,189,248,0.25);">
+                <div class="ref-tier-num">💎</div>
+                <div class="ref-tier-name">Per Invite</div>
+                <div class="ref-tier-val diamond">1 Diamond</div>
+            </div>
+            <div class="ref-tier-row"
+                style="background:linear-gradient(135deg,rgba(245,200,66,0.08),rgba(167,139,250,0.08));border-color:rgba(245,200,66,0.25);">
+                <div class="ref-tier-num">⚡</div>
+                <div class="ref-tier-name">Diamonds boost Tap Power</div>
+                <div class="ref-tier-val diamond">Level UP!</div>
+            </div>
+            <div class="ref-tier-row"
+                style="background:linear-gradient(135deg,rgba(74,222,128,0.08),rgba(56,189,248,0.08));border-color:rgba(74,222,128,0.25);">
+                <div class="ref-tier-num">♾️</div>
+                <div class="ref-tier-name">Invite Limit</div>
+                <div class="ref-tier-val diamond">Unlimited!</div>
+            </div>
+        </div>
+
+        <button class="btn-share" onclick="shareReferralLink()" style="margin-top:6px;">🔗 Share &amp; Earn
+            Rewards</button>
+    </div>
+
+
+    <!-- TAB 5: WALLET -->
+    <div class="tab-content" id="tabWallet">
+        <div class="wallet-hero">
+            <div class="wallet-planet">🪐</div>
+            <div class="wallet-h3">Airdrop Allocation</div>
+            <div class="wallet-p">Your tokens and diamonds determine your on-chain crypto distribution at launch.</div>
+        </div>
+        <div class="wallet-card">
+            <div class="wallet-label">Solana / TON Wallet Address</div>
+            <input type="text" id="inputWallet" class="wallet-input" placeholder="Paste your wallet address here..." />
+            <button class="btn-wallet" onclick="saveWalletAddress()">💾 Save Wallet for Airdrop</button>
+            <div class="wallet-note">Supported: Phantom · Tonkeeper · Trust Wallet · Bitget</div>
+        </div>
+    </div>
+
+    <!-- WIN MODAL -->
+    <div id="winModal">
+        <canvas id="confettiCanvas"
+            style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>
+        <div id="winCard">
+            <div class="win-trophy">🏆</div>
+            <div class="win-h2">Congratulations!</div>
+            <div class="win-p">You solved the puzzle! 🎉</div>
+            <div class="win-reward-box">
+                <div class="dp-multiplier-badge" id="winMultBadge" style="display:none;">⚡ 2X MULTIPLIER ACTIVE!</div>
+                <div class="win-amount" id="winAmountTxt">+10,000</div>
+                <div class="win-label" id="winLabelTxt">Credited ✅</div>
+            </div>
+            <!-- Puzzle 2X Watch Ad Button -->
+            <button class="btn-dp-double" id="btnPuzzleDouble" onclick="watchAdToDoublePuzzle()">
+                <span>🎬</span>
+                <span id="btnPuzzleDoubleText">Watch Ad for 2X (+10,000 🪙)</span>
+            </button>
+            <button class="btn-win-close" id="btnWinClose" onclick="closeWinModal()">🚀 Collect &amp; Close</button>
+        </div>
+    </div>
+
+    <!-- VIDEO MODAL -->
+    <div id="videoModal">
+        <div class="modal-box">
+            <div class="modal-title">🎬 Watch Daily Video</div>
+            <div class="modal-sub">Watch 100% without skipping to auto-claim your reward.</div>
+            <div class="modal-player-wrap">
+                <div id="modalPlayer"></div>
+            </div>
+            <div class="modal-status" id="txtModalStatus">⏳ Play video and watch until the end...</div>
+            <div class="modal-warn" id="txtModalWarn">⚠️ Skipping not allowed! Video rewound.</div>
+            <button class="btn-modal-close" onclick="closeInAppVideoModal()">✕ Close Window</button>
+        </div>
+    </div>
+
+    <!-- TAP LEVELS MODAL -->
+    <div id="levelsModal" onclick="if(event.target===this) closeLevelsModal()">
+        <div class="levels-box">
+            <div class="levels-header">
+                <div class="levels-title">⚡ Tap to Earn Levels</div>
+                <div class="levels-desc">Earn 💎 Diamonds by inviting friends to increase your Coins per Tap!</div>
+            </div>
+            <div class="levels-tier-list" id="levelsTierList"></div>
+            <button class="btn-modal-close" style="width:100%;margin-top:14px;" onclick="closeLevelsModal()">✓ Got
+                it</button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="_toast"></div>
+
+    <!-- DAILY BONUS CONGRATS POPUP -->
+    <div id="dailyPopup" onclick="if(event.target===this) closeDailyPopup()">
+        <div id="dailyPopupCard" class="dp-border-gold">
+            <canvas id="dailyConfetti"></canvas>
+            <div class="dp-stars" id="dpStars">🎉</div>
+            <div class="dp-congrats">Congratulations!</div>
+            <div class="dp-day-label" id="dpDayLabel">Day 1 Reward</div>
+            <div class="dp-reward-box">
+                <div class="dp-multiplier-badge" id="dpMultBadge" style="display:none;">⚡ 2X MULTIPLIER ACTIVE!</div>
+                <div class="dp-reward-amount gold" id="dpAmount">+1,000</div>
+                <div class="dp-reward-label" id="dpLabel">Tokens Credited</div>
+            </div>
+            <div class="dp-streak-info" id="dpStreakInfo">🔥 Streak: 1 / 11 Days</div>
+
+            <!-- Adsgram 2X Rewarded Ad Button -->
+            <button class="btn-dp-double" id="dpDoubleBtn" onclick="watchAdToDouble()">
+                <span>🎬</span>
+                <span id="dpDoubleBtnText">Watch Ad for 2X (+1,000 🪙)</span>
+            </button>
+
+            <button class="btn-dp-close" id="dpCloseBtn" onclick="closeDailyPopup()">🚀 Claim & Close</button>
+        </div>
+    </div>
+
+    <!-- Nav Bar -->
+    <div class="nav-bar">
+        <button class="nav-item nav-active" id="navTap" onclick="switchTab('tabTap',this)">
+            <span class="nav-icon">🪙</span><span>Tap</span></button>
+        <button class="nav-item" id="navDaily" onclick="switchTab('tabDaily',this)">
+            <span class="nav-icon">🎁</span><span>Bonus</span></button>
+        <button class="nav-item" id="navTasks" onclick="switchTab('tabTasks',this)">
+            <span class="nav-icon">📋</span><span>Tasks</span></button>
+        <button class="nav-item" id="navPuzzle" onclick="switchTab('tabPuzzle',this)">
+            <span class="nav-icon">🧩</span><span>Puzzle</span></button>
+        <button class="nav-item" id="navFriends" onclick="switchTab('tabInvite',this)">
+            <span class="nav-icon">💎</span><span>Friends</span></button>
+        <button class="nav-item" id="navWallet" onclick="switchTab('tabWallet',this)">
+            <span class="nav-icon">👛</span><span>Airdrop</span></button>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURATION — apne values daalo
+        // ==========================================
+        const MASTER_ADMIN_ID = 0;             // apna Telegram numeric user ID
+        // ── Daily Rotating YouTube Videos ──
+        // Har din ek alag video play hoga — date ke basis pe auto-rotate
+        // Apne YouTube video IDs yahan daalo (11-char ID jo URL mein hota hai)
+        // Example: youtube.com/watch?v=XXXXXXXXXXX  →  'XXXXXXXXXXX'
+        const DAILY_VIDEO_IDS = [
+            'M7lc1UVf-VE',   // Video 1
+            'dQw4w9WgXcQ',   // Video 2
+            'jNQXAC9IVRw',   // Video 3
+            '9bZkp7q19f0',   // Video 4
+            'kJQP7kiw5Fk',   // Video 5
+            'JGwWNGJdvx8',   // Video 6
+            'RgKAFK5djSk',   // Video 7
+            'OPf0YbXqDm0',   // Video 8
+            'CevxZvSJLk8',   // Video 9
+            'hT_nvWreIhg',   // Video 10
+            'fJ9rUzIMcZQ',   // Video 11
+            'YQHsXMglC9A',   // Video 12
+            '60ItHLz5WEA',   // Video 13
+            'kXYiU_JCYtU',   // Video 14
+            'FTQbiNvZqaY',   // Video 15
+            'pRpeEdMmmQ0',   // Video 16
+            'lp-EO5I60KA',   // Video 17
+            'e-ORhEE9VVg',   // Video 18
+            'SlPhMPnQ58k',   // Video 19
+            'HP-MbfHFUqs',   // Video 20
+            'PT2_F-1esPk',   // Video 21
+            'nfs8NYg7yQM',   // Video 22
+            'DyDfgMOUjCI',   // Video 23
+            'JRfuAukYTKg',   // Video 24
+            'QYh6mYIJG2Y',   // Video 25
+            'bo_efYhYU2A',   // Video 26
+            'papuvlVeZg8',   // Video 27
+            'ru0K8uYEZWw',   // Video 28
+            'PMivT7MJ41M',   // Video 29
+            'lWA2pjMjpBs',   // Video 30
+            'aJOTlE1K90k',   // Video 31
+            'Zi_XLOBDo_Y',   // Video 32
+            'PIh2xe4jnpk',   // Video 33
+            'IcrbM1l_BoI',   // Video 34
+            'txqiwrbYGrs',   // Video 35
+            'iPUmE-tne5U',   // Video 36
+            '09R8_2nJtjg',   // Video 37
+            'YVkUvmDQ3HY',   // Video 38
+            'JGhoLcsr8GA',   // Video 39
+            'iS1g8G_njx8',   // Video 40
+            'Pkh8UtuejGw',   // Video 41
+            '2Vv-BfVoq4g',   // Video 42
+            'KQ6zr6kCPj8',   // Video 43
+            'LsoLEjrDogU',   // Video 44
+            'E07s5ZYadZg',   // Video 45
+            'weeI1G46q0o',   // Video 46
+            'hHW1oY26kxQ',   // Video 47
+            'AJtDXIazrMo',   // Video 48
+            'xpVfcZ0ZcFM',   // Video 49
+            'YykjpeuMNEk',   // Video 50
+        ];
+        // Aaj ka video ID — har din midnight pe change hoga
+        function getDailyVideoId() {
+            const today = new Date();
+            const dayIndex = Math.floor(today.getTime() / 86400000) % DAILY_VIDEO_IDS.length;
+            return DAILY_VIDEO_IDS[dayIndex];
+        }
+        // Adsgram Rewarded Video Ad Block ID (dashboard https://adsgram.ai se)
+        const ADSGRAM_BLOCK_ID = 'YOUR_ADSGRAM_BLOCK_ID'; // e.g. '1234'
+        const ADSGRAM_TEST_MODE = true;        // Test mode: true hone par bina real Block ID ke bhi 2x simulation test kar sakte hain
+
+        // ==========================================
+        // TELEGRAM SDK
+        // ==========================================
+        let tgUser = { id: 12345678, first_name: 'Operative' };
+        try {
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.ready(); tg.expand();
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) tgUser = tg.initDataUnsafe.user;
+            }
+        } catch (e) { }
+
+        document.getElementById('txtUserName').innerText = tgUser.first_name || 'Operative';
+        document.getElementById('txtAvatar').innerText = (tgUser.first_name || 'O').charAt(0).toUpperCase();
+
+        let myReferrerId = null;
+        try {
+            const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param || '';
+            if (sp.startsWith('ref_')) myReferrerId = sp.replace('ref_', '');
+        } catch (e) { }
+
+        // ==========================================
+        // STATE & TAP LEVEL SYSTEM (Based on Diamonds)
+        // 10 💎 -> 5 coins | 20 💎 -> 10 coins | 40 💎 -> 20 coins
+        // 80 💎 -> 40 coins | 160 💎 -> 80 coins
+        // ==========================================
+        const TAP_LEVELS = [
+            { level: 1, minDiamonds: 0, coinsPerTap: 1, name: 'Novice Tap', nextDiamonds: 10, nextCoins: 5 },
+            { level: 2, minDiamonds: 10, coinsPerTap: 5, name: 'Silver Operative', nextDiamonds: 20, nextCoins: 10 },
+            { level: 3, minDiamonds: 20, coinsPerTap: 10, name: 'Gold Commander', nextDiamonds: 40, nextCoins: 20 },
+            { level: 4, minDiamonds: 40, coinsPerTap: 20, name: 'Platinum Elite', nextDiamonds: 80, nextCoins: 40 },
+            { level: 5, minDiamonds: 80, coinsPerTap: 40, name: 'Diamond Master', nextDiamonds: 160, nextCoins: 80 },
+            { level: 6, minDiamonds: 160, coinsPerTap: 80, name: 'Apex Titan', nextDiamonds: null, nextCoins: null }
+        ];
+
+        function getTapLevelInfo(d) {
+            const dm = parseInt(d || 0);
+            let active = TAP_LEVELS[0];
+            for (let i = TAP_LEVELS.length - 1; i >= 0; i--) {
+                if (dm >= TAP_LEVELS[i].minDiamonds) {
+                    active = TAP_LEVELS[i];
+                    break;
+                }
+            }
+            let progress = 100;
+            if (active.nextDiamonds) {
+                const range = active.nextDiamonds - active.minDiamonds;
+                const current = dm - active.minDiamonds;
+                progress = Math.min(100, Math.max(0, Math.floor((current / range) * 100)));
+            }
+            return { ...active, progress, diamonds: dm };
+        }
+
+        // ── Encrypted state load ──────────────────────────────────────────
+        // Cipher key pehle define karo — load ke waqt zaroorat padegi
+        // (Full cipher definition neeche hai, yahan sirf load ke liye inline use)
+        const _LOAD_KEY = 'ApexEmpire_v1_' + (tgUser.id || 'guest');
+        function _loadDecrypt(b64) {
+            try {
+                const raw = decodeURIComponent(escape(atob(b64)));
+                let out = '';
+                for (let i = 0; i < raw.length; i++)
+                    out += String.fromCharCode(raw.charCodeAt(i) ^ _LOAD_KEY.charCodeAt(i % _LOAD_KEY.length));
+                return JSON.parse(out);
+            } catch (e) { return null; }
+        }
+
+        // Encrypted snapshot se load karo (anti-cheat)
+        // Agar koi enc_snapshot ko manually edit kare → decrypt fail → data 0 se shuru
+        const _raw = localStorage.getItem('enc_snapshot');
+        const _snap = _raw ? _loadDecrypt(_raw) : null;
+
+        let tokens = (_snap && Number.isFinite(_snap.tokens) && _snap.tokens >= 0) ? _snap.tokens : 0;
+        let diamonds = (_snap && Number.isFinite(_snap.diamonds) && _snap.diamonds >= 0) ? _snap.diamonds : 0;
+        let energy = (_snap && Number.isFinite(_snap.energy) && _snap.energy >= 0 && _snap.energy <= 1000) ? _snap.energy : 1000;
+        let friends = (_snap && Number.isFinite(_snap.friends) && _snap.friends >= 0) ? _snap.friends : 0;
+        let walletAddr = (_snap && _snap.wallet) ? _snap.wallet : '';
+
+        // Purani plaintext keys clean karo (agar pehle ki bachi hui hain)
+        ['user_tokens', 'user_diamonds', 'user_energy', 'user_friends', 'user_wallet'].forEach(k => localStorage.removeItem(k));
+
+        const alreadyReferred = localStorage.getItem('referral_registered') === 'true';
+
+        if (walletAddr) document.getElementById('inputWallet').value = walletAddr;
+
+        // ==========================================
+        // TIERED REFERRAL REWARDS
+        // (Yahan define karo taaki updateHUD mein available ho)
+        // 1st  → 💎 1 Diamond
+        // 2nd  → 9,000 | 3rd → 8,000 | 4th → 7,000 | 5th → 6,000
+        // 6th  → 5,000 | 7th → 4,000 | 8th → 3,000 | 9th → 2,000
+        // 10th → 1,000 | 11th+ → koi reward nahi
+        // ==========================================
+        // Har invite pe sirf 1 Diamond — no limit, no tiers
+        function getRefTierReward(n) {
+            return { slot: n, type: 'diamond', amount: 1, label: '💎 1 Diamond' };
+        }
+
+        function updateHUD() {
+            const lvl = getTapLevelInfo(diamonds);
+
+            document.getElementById('txtToken').innerText = tokens.toLocaleString();
+            document.getElementById('txtDiamond').innerText = diamonds;
+            document.getElementById('txtEnergy').innerText = energy;
+            document.getElementById('energyFill').style.width = (energy / 1000 * 100) + '%';
+            document.getElementById('txtFriendsCount').innerText = friends;
+            document.getElementById('txtDiamondReward').innerText = diamonds;
+
+            // Tap Level UI update
+            const rankEl = document.getElementById('txtUserRank');
+            if (rankEl) rankEl.innerText = `⚡ Lv.${lvl.level} (${lvl.coinsPerTap} 🪙/Tap)`;
+
+            const badgePill = document.getElementById('badgeLevelPill');
+            if (badgePill) badgePill.innerText = `Lv. ${lvl.level}`;
+
+            const tierNameEl = document.getElementById('txtLevelTier');
+            if (tierNameEl) tierNameEl.innerText = lvl.name;
+
+            const coinsRateEl = document.getElementById('txtCoinsPerTap');
+            if (coinsRateEl) coinsRateEl.innerText = `+${lvl.coinsPerTap} / tap`;
+
+            const progFill = document.getElementById('levelProgressFill');
+            if (progFill) progFill.style.width = lvl.progress + '%';
+
+            const progTxt = document.getElementById('txtLevelDiamondsProgress');
+            if (progTxt) {
+                if (lvl.nextDiamonds) {
+                    progTxt.innerHTML = `💎 <b>${diamonds}</b> / ${lvl.nextDiamonds} (${lvl.nextDiamonds - diamonds} more for +${lvl.nextCoins} 🪙)`;
+                } else {
+                    progTxt.innerHTML = `💎 <b>${diamonds}</b> Diamonds · MAX LEVEL ⭐`;
+                }
+            }
+
+            const tapHint = document.getElementById('txtTapHint');
+            if (tapHint) tapHint.innerText = `👆 Tap coin to earn +${lvl.coinsPerTap}`;
+
+            // No tier table rows to highlight (simple diamond system)
+        }
+
+        // ==========================================
+        // OFFLINE-FIRST SYNC ENGINE
+        // Data: LocalStorage (XOR Encrypted) → GunDB (app close only)
+        // GunDB sync SIRF tab hoga jab user app band kare
+        // 10,000 users = 99% less network traffic ✅
+        // ==========================================
+        const _CIPHER_KEY = _LOAD_KEY; // already defined above for initial load
+        let _pendingSync = false;
+        let _lastSyncTime = 0;
+        // NOTE: Koi automatic interval nahi — sirf app close par sync hoga
+
+        function _xorEncrypt(str) {
+            try {
+                let out = '';
+                for (let i = 0; i < str.length; i++)
+                    out += String.fromCharCode(str.charCodeAt(i) ^ _CIPHER_KEY.charCodeAt(i % _CIPHER_KEY.length));
+                return btoa(unescape(encodeURIComponent(out)));
+            } catch (e) { return str; }
+        }
+
+        function _xorDecrypt(b64) {
+            try {
+                const raw = decodeURIComponent(escape(atob(b64)));
+                let out = '';
+                for (let i = 0; i < raw.length; i++)
+                    out += String.fromCharCode(raw.charCodeAt(i) ^ _CIPHER_KEY.charCodeAt(i % _CIPHER_KEY.length));
+                return out;
+            } catch (e) { return b64; }
+        }
+
+        function saveState() {
+            // SIRF encrypted snapshot save hoga — koi plaintext nahi!
+            const snap = JSON.stringify({
+                tokens, diamonds, energy, friends,
+                wallet: walletAddr,
+                uid: tgUser.id,
+                ts: Date.now()
+            });
+            localStorage.setItem('enc_snapshot', _xorEncrypt(snap));
+
+            // Mark dirty — GunDB sync sirf app close par hoga
+            _pendingSync = true;
+            localStorage.setItem('_sync_pending', '1'); // crash/peer-down ke baad bhi yaad rahe
+            updateHUD();
+        }
+        updateHUD();
+
+        // ==========================================
+        // GunDB P2P SYNC — Distributed Mesh Network
+        // Har mobile ek node hai — data sab mein bata hua hai
+        // ==========================================
+        const gun = Gun({
+            peers: [
+                // USA Peers
+                'https://gun-manhattan.herokuapp.com/gun',
+                'https://gun-us.herokuapp.com/gun',
+                'https://gunjs.herokuapp.com/gun',
+                'https://gun-sjc1.herokuapp.com/gun',
+                // Europe Peers
+                'https://gun-eu.herokuapp.com/gun',
+                'https://gun-ams1.herokuapp.com/gun',
+                // Community Peers
+                'https://peer.wallie.io/gun',
+                'https://www.raygun.live/gun'
+            ],
+            localStorage: true  // har device locally bhi store karta hai = mini node
+        });
+        const userRegistry = gun.get('apex_airdrop_ledger_v1');
+        const referralRegistry = gun.get('apex_referrals_v1');
+
+        function broadcastState() {
+            const lvl = getTapLevelInfo(diamonds);
+            try {
+                userRegistry.get('usr_' + tgUser.id).put({
+                    id: tgUser.id, name: tgUser.first_name,
+                    tokens, diamonds,
+                    level: lvl.level,
+                    coinsPerTap: lvl.coinsPerTap,
+                    wallet: walletAddr || 'Not Linked',
+                    lastActive: Date.now()
+                });
+                _pendingSync = false;
+                _lastSyncTime = Date.now();
+                localStorage.removeItem('_sync_pending'); // successfully synced
+            } catch (e) {
+                // Peer down — _sync_pending flag rahega, next open pe retry hoga
+            }
+        }
+
+        // Sync only if dirty AND forced (app close event)
+        function syncIfNeeded(force, silent) {
+            if (!_pendingSync && !force) return;
+            broadcastState();
+            if (!silent) showSyncIndicator(); // silent = true on beforeunload (user nahi dekhega)
+        }
+
+        // Visual indicator when GunDB sync happens
+        function showSyncIndicator() {
+            showToast('🔄 Synced to network!', '#38bdf8');
+        }
+
+        // ── Trigger 1: App goes to background — toast dikhao (user dekh sakta hai) ──
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') syncIfNeeded(true, false);
+        });
+
+        // ── Trigger 2: Browser closes — silent sync (user tab band kar raha hai) ──
+        window.addEventListener('beforeunload', () => syncIfNeeded(true, true));
+        window.addEventListener('pagehide', () => syncIfNeeded(true, true));
+
+        // ── Startup: pichli baar ka pending sync retry karo ──
+        // Agar pehle peers down the, to ab try karo
+        const _hadPending = localStorage.getItem('_sync_pending') === '1';
+        if (_hadPending) {
+            _pendingSync = true; // ensure flag set hai
+            setTimeout(() => syncIfNeeded(true, true), 3000); // 3s baad retry (peers load hone do)
+        }
+
+        // ── Initial load: sirf NEW user ko register karo GunDB pe ─
+        // Pehli baar hi register hoga, baaki sync app close par
+        const _alreadyInGun = localStorage.getItem('gun_registered') === 'true';
+        if (!_alreadyInGun) {
+            broadcastState();
+            localStorage.setItem('gun_registered', 'true');
+        }
+
+        if (myReferrerId && !alreadyReferred && String(myReferrerId) !== String(tgUser.id)) {
+            referralRegistry.get('ref_' + myReferrerId).get('joined_' + tgUser.id)
+                .put({ newUserId: tgUser.id, newUserName: tgUser.first_name, joinedAt: Date.now(), rewarded: false });
+            localStorage.setItem('referral_registered', 'true');
+        }
+
+        // ==========================================
+        // TIERED REFERRAL REWARDS — defined above near updateHUD
+        // ==========================================
+        // (REF_TIER_REWARDS & getRefTierReward already declared above)
+
+        // ==========================================
+        // MLM DIAMOND REWARD — Har invite pe 1 💎, No Limit
+        // ==========================================
+        const seenReferrals = JSON.parse(localStorage.getItem('seen_referrals') || '{}');
+        referralRegistry.get('ref_' + tgUser.id).map().on((data, key) => {
+            if (!data || !data.newUserId || seenReferrals[key]) return;
+            seenReferrals[key] = true;
+            localStorage.setItem('seen_referrals', JSON.stringify(seenReferrals));
+
+            friends += 1;
+            const oldLvl = getTapLevelInfo(diamonds).level;
+
+            // Har invite pe sirf 1 Diamond — unlimited
+            diamonds += 1;
+            const newLvl = getTapLevelInfo(diamonds).level;
+            saveState();
+            triggerHaptic('rigid');
+
+            if (newLvl > oldLvl) {
+                const info = getTapLevelInfo(diamonds);
+                showToast(`🎉 LEVEL UP! Lv.${info.level} — ${data.newUserName || 'Dost'} joined!`, '#f5c842');
+            } else {
+                showToast(`💎 +1 Diamond! ${data.newUserName || 'Dost'} joined your network!`, '#38bdf8');
+            }
+
+            referralRegistry.get('ref_' + tgUser.id).get(key).get('rewarded').put(true);
+        });
+
+        // ==========================================
+        // TAP ENGINE (Diamond Level Multiplier)
+        // ==========================================
+        function handleTap(event) {
+            if (energy < 1) {
+                triggerHaptic('heavy');
+                showToast('⚡ Energy 0! Tap "Instant Refill" below to watch an ad!', '#f87171');
+                return;
+            }
+            const lvl = getTapLevelInfo(diamonds);
+            const reward = lvl.coinsPerTap;
+
+            energy--;
+            tokens += reward;
+            triggerHaptic('light');
+
+            const num = document.createElement('div');
+            num.className = 'float-num';
+            num.innerText = `+${reward}`;
+            num.style.left = (event.clientX || window.innerWidth / 2) + 'px';
+            num.style.top = (event.clientY || window.innerHeight / 2) + 'px';
+            document.body.appendChild(num);
+            setTimeout(() => num.remove(), 750);
+            saveState();
+        }
+
+        // ==========================================
+        // TAP LEVELS MODAL
+        // ==========================================
+        function openLevelsModal() {
+            const currentLvl = getTapLevelInfo(diamonds);
+            const container = document.getElementById('levelsTierList');
+            if (!container) return;
+
+            let html = '';
+            TAP_LEVELS.forEach(t => {
+                const isActive = t.level === currentLvl.level;
+                const reqText = t.minDiamonds === 0 ? 'Starting tier (0 Diamonds)' : `Requires <b>${t.minDiamonds}+ 💎</b> Diamonds`;
+                html += `
+                    <div class="tier-item ${isActive ? 'active' : ''}">
+                        <div class="tier-left">
+                            <div class="tier-badge">Lv.${t.level}</div>
+                            <div>
+                                <div class="tier-name-row">
+                                    <span>${t.name}</span>
+                                    ${isActive ? '<span class="tier-active-pill">ACTIVE</span>' : ''}
+                                </div>
+                                <div class="tier-req">${reqText}</div>
+                            </div>
+                        </div>
+                        <div class="tier-reward">+${t.coinsPerTap} / tap</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            document.getElementById('levelsModal').style.display = 'flex';
+        }
+
+        function closeLevelsModal() {
+            document.getElementById('levelsModal').style.display = 'none';
+        }
+
+        setInterval(() => {
+            if (energy < 1000) { energy = Math.min(1000, energy + 1); updateHUD(); localStorage.setItem('user_energy', energy); }
+        }, 3000);
+
+        // ==========================================
+        // YOUTUBE VIDEO ENGINE
+        // ==========================================
+        let ytPlayer = null, maxWatchedSeconds = 0, antiSkipInterval = null;
+        // var use kiya hai taaki YouTube API early callback pe TDZ error na aaye
+        var generatedUserOtp = '', ytApiReady = false, pendingModalOpen = false;
+
+        function getCurrentHourlySlot() { return Math.floor(Date.now() / 3600000); }
+
+        function onYouTubeIframeAPIReady() {
+            ytApiReady = true;
+            if (pendingModalOpen) { pendingModalOpen = false; initYTPlayer(); }
+        }
+
+        function openInAppVideoModal() {
+            const lastClaim = parseInt(localStorage.getItem('yt_last_secret_claim') || '0');
+            const diff = Date.now() - lastClaim;
+            if (diff < 3600000) {
+                const minsLeft = Math.ceil((3600000 - diff) / 60000);
+                showToast(`⏳ Video already completed! Next video in ${minsLeft}m.`, '#f87171');
+                return;
+            }
+            document.getElementById('videoModal').style.display = 'flex';
+            maxWatchedSeconds = 0;
+            document.getElementById('txtModalWarn').style.display = 'none';
+            document.getElementById('txtModalStatus').innerText = '⏳ Play video and watch until the end to auto-claim...';
+            if (!ytApiReady) { pendingModalOpen = true; document.getElementById('txtModalStatus').innerText = '⏳ Loading YouTube player...'; return; }
+            if (!ytPlayer) initYTPlayer();
+            else { ytPlayer.loadVideoById(getDailyVideoId()); startAntiSkip(); }
+        }
+
+        function initYTPlayer() {
+            document.getElementById('modalPlayer').innerHTML = '';
+            ytPlayer = new YT.Player('modalPlayer', {
+                videoId: getDailyVideoId(),
+                playerVars: { playsinline: 1, controls: 1, rel: 0, modestbranding: 1, origin: window.location.origin || 'https://telegram.org' },
+                events: {
+                    onReady: e => { document.getElementById('txtModalStatus').innerText = '▶️ Press play to start.'; startAntiSkip(); },
+                    onError: e => {
+                        const c = { 2: 'Invalid video ID', 5: 'HTML5 error', 100: 'Video not found', 101: 'Embedding not allowed', 150: 'Embedding not allowed' };
+                        document.getElementById('txtModalStatus').innerText = '❌ Error: ' + (c[e.data] || 'Code ' + e.data);
+                    },
+                    onStateChange: onPlayerStateChange
+                }
+            });
+        }
+
+        function startAntiSkip() {
+            clearInterval(antiSkipInterval);
+            antiSkipInterval = setInterval(() => {
+                try {
+                    if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+                        const cur = ytPlayer.getCurrentTime();
+                        if (cur > maxWatchedSeconds + 2) {
+                            ytPlayer.seekTo(maxWatchedSeconds, true);
+                            document.getElementById('txtModalWarn').style.display = 'block';
+                            setTimeout(() => { document.getElementById('txtModalWarn').style.display = 'none'; }, 3000);
+                        } else { maxWatchedSeconds = Math.max(maxWatchedSeconds, cur); }
+                    }
+                } catch (e) { }
+            }, 250);
+        }
+
+        function onPlayerStateChange(event) {
+            const s = document.getElementById('txtModalStatus');
+            if (event.data === YT.PlayerState.PLAYING) s.innerText = '▶️ Playing... Stay until the end!';
+            else if (event.data === YT.PlayerState.PAUSED) s.innerText = '⏸️ Paused. Resume to complete.';
+            else if (event.data === YT.PlayerState.ENDED) {
+                s.innerText = '✅ Video completed! Auto-claiming...';
+                triggerHaptic('rigid');
+                // Automatically claim reward!
+                autoClaimVideoReward();
+            }
+        }
+
+        function autoClaimVideoReward() {
+            closeInAppVideoModal();
+            const lastClaim = parseInt(localStorage.getItem('yt_last_secret_claim') || '0');
+            if (Date.now() - lastClaim < 3600000) {
+                return showToast('❌ Already claimed! Re-watch after 1 hour.', '#f87171');
+            }
+            const baseRew = 5000;
+            tokens += baseRew;
+            localStorage.setItem('yt_last_secret_claim', Date.now().toString());
+            saveState();
+            triggerHaptic('success');
+            const btn = document.getElementById('btnDailyVideoWatch');
+            if (btn) btn.innerText = '✓ Done';
+            // Open 2X popup so user can easily 2X double the reward with an ad!
+            showDailyPopup({ day: 'Daily Video', type: 'token', amount: baseRew, label: '5,000 🪙' }, 'Video');
+        }
+
+        function closeInAppVideoModal() {
+            if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+            clearInterval(antiSkipInterval);
+            document.getElementById('videoModal').style.display = 'none';
+        }
+
+        function claimDirectFromModal() { autoClaimVideoReward(); }
+        function claimVideoReward() { autoClaimVideoReward(); }
+
+        function startSocialTask(key, link) {
+            const ids = { yt: 'btnYtSub', tg: 'btnTgSub', ig: 'btnIgSub' };
+            const rewards = { yt: 3000, tg: 2500, ig: 2000 };
+            const btn = document.getElementById(ids[key]);
+            if (localStorage.getItem('task_' + key + '_done')) return showToast('✅ Task already completed!', '#4ade80');
+            if (window.Telegram?.WebApp) window.Telegram.WebApp.openLink(link);
+            else window.open(link, '_blank');
+            btn.innerText = 'Checking...'; btn.disabled = true;
+            setTimeout(() => {
+                btn.innerText = 'Claim'; btn.disabled = false;
+                btn.onclick = () => {
+                    const taskRew = rewards[key];
+                    tokens += taskRew;
+                    localStorage.setItem('task_' + key + '_done', 'true');
+                    btn.innerText = '✓ Done'; btn.disabled = true;
+                    triggerHaptic('rigid');
+                    saveState();
+                    // Open 2X popup so user can double it!
+                    showDailyPopup({ day: key.toUpperCase(), type: 'token', amount: taskRew, label: taskRew.toLocaleString() + ' 🪙' }, 'Mission');
+                };
+            }, 10000);
+        }
+
+        // ==========================================
+        // 60s PUZZLE — Daily Reset at 7 AM IST
+        // ==========================================
+
+        // IST = UTC + 5h30m = 330 minutes
+        // 7 AM IST = 01:30 UTC
+
+        /**
+         * Returns the timestamp (ms) of the most recent 7 AM IST
+         * (the start of the current puzzle window)
+         */
+        function getCurrent7AMIST() {
+            const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // 5h30m
+            const nowUTC = Date.now();
+            const nowIST = new Date(nowUTC + IST_OFFSET_MS);
+
+            // Build today's 7 AM IST as a UTC timestamp
+            const today7amIST = Date.UTC(
+                nowIST.getUTCFullYear(),
+                nowIST.getUTCMonth(),
+                nowIST.getUTCDate(),
+                1, 30, 0, 0   // 7 AM IST = 01:30 UTC
+            );
+
+            // If it's before 7 AM IST today, the current window started yesterday's 7 AM IST
+            return nowUTC >= today7amIST ? today7amIST : today7amIST - 86400000;
+        }
+
+        /**
+         * Returns the timestamp (ms) of the NEXT 7 AM IST
+         * (when the puzzle unlocks again)
+         */
+        function getNext7AMIST() {
+            return getCurrent7AMIST() + 86400000;
+        }
+
+        /**
+         * Returns true if the user has already claimed/attempted the puzzle
+         * in the current window (since last 7 AM IST).
+         */
+        function isPuzzleClaimedToday() {
+            const claimedAt = parseInt(localStorage.getItem('puzzle_claimed_at') || '0');
+            return claimedAt >= getCurrent7AMIST();
+        }
+
+        const solvedState = [1, 2, 3, 4, 5, 6, 7, 8, null];
+        let currentGrid = [...solvedState];
+        let puzzleTimer = null, secondsLeft = 60, isPlaying = false;
+
+        function renderPuzzleBoard() {
+            const board = document.getElementById('puzzleBoard');
+            board.innerHTML = '';
+            currentGrid.forEach((val, idx) => {
+                const t = document.createElement('div');
+                if (val === null) { t.className = 'puzzle-tile tile-empty'; }
+                else { t.className = 'puzzle-tile'; t.innerText = val; t.onclick = () => moveTile(idx); }
+                board.appendChild(t);
+            });
+        }
+
+        function moveTile(idx) {
+            if (!isPlaying) return;
+            const e = currentGrid.indexOf(null);
+            const v = [idx % 3 !== 0 ? idx - 1 : null, idx % 3 !== 2 ? idx + 1 : null, idx - 3 >= 0 ? idx - 3 : null, idx + 3 < 9 ? idx + 3 : null];
+            if (v.includes(e)) {
+                currentGrid[e] = currentGrid[idx]; currentGrid[idx] = null;
+                renderPuzzleBoard(); triggerHaptic('light'); checkWinCondition();
+            }
+        }
+
+        function shufflePuzzle() {
+            currentGrid = [...solvedState];
+            for (let i = 0; i < 30; i++) {
+                const e = currentGrid.indexOf(null), n = [];
+                if (e % 3 !== 0) n.push(e - 1); if (e % 3 !== 2) n.push(e + 1);
+                if (e - 3 >= 0) n.push(e - 3); if (e + 3 < 9) n.push(e + 3);
+                const r = n[Math.floor(Math.random() * n.length)];
+                currentGrid[e] = currentGrid[r]; currentGrid[r] = null;
+            }
+            renderPuzzleBoard();
+        }
+
+        function startPuzzleGame() {
+            if (checkDailyLock()) return;
+            isPlaying = true; secondsLeft = 60;
+            document.getElementById('btnStartPuzzle').disabled = true;
+            document.getElementById('txtPuzzleTimer').classList.remove('timer-danger');
+            shufflePuzzle();
+            clearInterval(puzzleTimer);
+            puzzleTimer = setInterval(() => {
+                secondsLeft--;
+                document.getElementById('txtPuzzleTimer').innerText = secondsLeft + 's';
+                if (secondsLeft <= 5) document.getElementById('txtPuzzleTimer').classList.add('timer-danger');
+                if (secondsLeft <= 0) { clearInterval(puzzleTimer); handlePuzzleFailure(); }
+            }, 1000);
+        }
+
+        function handlePuzzleFailure() {
+            isPlaying = false; triggerHaptic('heavy');
+            // Mark as attempted for today — lock until next 7 AM IST
+            localStorage.setItem('puzzle_claimed_at', Date.now().toString());
+            showToast('⌛ Time expired! Puzzle resets tomorrow at 7 AM IST.', '#f87171');
+            document.getElementById('btnStartPuzzle').disabled = false;
+            checkDailyLock();
+        }
+
+        function checkWinCondition() {
+            if (currentGrid.every((v, i) => v === solvedState[i]) && isPlaying) {
+                clearInterval(puzzleTimer); isPlaying = false;
+                tokens += 10000; saveState(); triggerHaptic('rigid'); showWinModal();
+                // Mark as claimed for today — lock until next 7 AM IST
+                localStorage.setItem('puzzle_claimed_at', Date.now().toString());
+                document.getElementById('btnStartPuzzle').innerText = 'COMPLETED ✓';
+                document.getElementById('btnStartPuzzle').disabled = true;
+            }
+        }
+
+        function checkDailyLock() {
+            if (!isPuzzleClaimedToday()) {
+                // Puzzle available — show button, hide lock
+                document.getElementById('btnStartPuzzle').style.display = 'block';
+                document.getElementById('puzzleLockMsg').style.display = 'none';
+                // Reset button text if new day came
+                const btn = document.getElementById('btnStartPuzzle');
+                if (btn.innerText === 'COMPLETED ✓') {
+                    btn.innerText = '▶ START PUZZLE';
+                    btn.disabled = false;
+                }
+                return false;
+            }
+
+            // Puzzle already done today — show countdown to next 7 AM IST
+            isPlaying = false;
+            document.getElementById('btnStartPuzzle').style.display = 'none';
+            document.getElementById('puzzleLockMsg').style.display = 'block';
+
+            const msLeft = getNext7AMIST() - Date.now();
+            const totalSec = Math.max(0, Math.floor(msLeft / 1000));
+            const hh = Math.floor(totalSec / 3600);
+            const mm = Math.floor((totalSec % 3600) / 60);
+            const ss = totalSec % 60;
+            document.getElementById('txtCooldownTimer').innerText =
+                String(hh).padStart(2, '0') + ':' +
+                String(mm).padStart(2, '0') + ':' +
+                String(ss).padStart(2, '0');
+            return true;
+        }
+
+        // Run every second — updates countdown & auto-unlocks at 7 AM IST
+        setInterval(checkDailyLock, 1000);
+        renderPuzzleBoard();
+        checkDailyLock(); // run immediately on load
+
+        // ==========================================
+        // WIN MODAL + CONFETTI (60s Puzzle)
+        // ==========================================
+        let isPuzzleDoubled = false;
+
+        function showWinModal() {
+            isPuzzleDoubled = false;
+            const badge = document.getElementById('winMultBadge');
+            if (badge) badge.style.display = 'none';
+            const amt = document.getElementById('winAmountTxt');
+            if (amt) amt.innerText = '+10,000';
+            const lbl = document.getElementById('winLabelTxt');
+            if (lbl) lbl.innerText = 'Credited ✅';
+            const dBtn = document.getElementById('btnPuzzleDouble');
+            const dTxt = document.getElementById('btnPuzzleDoubleText');
+            if (dBtn) {
+                dBtn.disabled = false;
+                dBtn.classList.remove('claimed', 'loading');
+                if (dTxt) dTxt.innerText = 'Watch Ad for 2X (+10,000 🪙)';
+            }
+            document.getElementById('winModal').style.display = 'flex';
+            startConfetti();
+        }
+
+        function closeWinModal() {
+            document.getElementById('winModal').style.display = 'none';
+            stopConfetti();
+        }
+
+        function watchAdToDoublePuzzle() {
+            if (isPuzzleDoubled) return;
+            const dBtn = document.getElementById('btnPuzzleDouble');
+            const dTxt = document.getElementById('btnPuzzleDoubleText');
+            if (dBtn) { dBtn.classList.add('loading'); if (dTxt) dTxt.innerText = '⏳ Loading Ad...'; }
+
+            playRewardedAd(
+                () => {
+                    isPuzzleDoubled = true;
+                    tokens += 10000; // Extra 1X reward to make total 2X
+                    saveState();
+                    triggerHaptic('success');
+                    startConfetti();
+                    const badge = document.getElementById('winMultBadge');
+                    if (badge) badge.style.display = 'inline-block';
+                    const amt = document.getElementById('winAmountTxt');
+                    if (amt) amt.innerText = '+20,000';
+                    const lbl = document.getElementById('winLabelTxt');
+                    if (lbl) lbl.innerHTML = '🔥 <b>2X Doubled!</b>';
+                    if (dBtn) {
+                        dBtn.classList.remove('loading');
+                        dBtn.classList.add('claimed');
+                        dBtn.disabled = true;
+                        if (dTxt) dTxt.innerText = '✅ 2X Doubled!';
+                    }
+                    showToast('🎉 PUZZLE 2X! +10,000 Extra Tokens Credited!', '#4ade80');
+                },
+                () => {
+                    if (dBtn) {
+                        dBtn.classList.remove('loading');
+                        dBtn.disabled = false;
+                        if (dTxt) dTxt.innerText = 'Watch Ad for 2X (+10,000 🪙)';
+                    }
+                }
+            );
+        }
+
+        let confettiAnim = null;
+        const colors = ['#f5c842', '#38bdf8', '#4ade80', '#f472b6', '#fb923c', '#a78bfa'];
+        let particles = [];
+
+        function startConfetti() {
+            const cv = document.getElementById('confettiCanvas'), ctx = cv.getContext('2d');
+            cv.width = window.innerWidth; cv.height = window.innerHeight; particles = [];
+            for (let i = 0; i < 130; i++) particles.push({
+                x: Math.random() * cv.width, y: Math.random() * cv.height - cv.height,
+                r: Math.random() * 7 + 3, d: Math.random() * 2 + 1,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                tilt: Math.random() * 10 - 5, tiltAngle: 0, tiltSpeed: Math.random() * 0.1 + 0.04
+            });
+            (function draw() {
+                ctx.clearRect(0, 0, cv.width, cv.height);
+                particles.forEach(p => {
+                    ctx.beginPath(); ctx.lineWidth = p.r; ctx.strokeStyle = p.color;
+                    ctx.moveTo(p.x + p.tilt + p.r / 2, p.y); ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2); ctx.stroke();
+                    p.y += p.d + Math.sin(p.tiltAngle) * 1.2; p.tiltAngle += p.tiltSpeed; p.tilt = Math.sin(p.tiltAngle) * 12;
+                    if (p.y > cv.height) { p.y = -10; p.x = Math.random() * cv.width; }
+                });
+                confettiAnim = requestAnimationFrame(draw);
+            })();
+        }
+        function stopConfetti() {
+            if (confettiAnim) cancelAnimationFrame(confettiAnim);
+            const c = document.getElementById('confettiCanvas');
+            c.getContext('2d').clearRect(0, 0, c.width, c.height);
+        }
+
+        // ==========================================
+        // REFERRAL
+        // ==========================================
+        function shareReferralLink() {
+            const BOT = 'YOUR_BOT_USERNAME';
+            const link = 'https://t.me/' + BOT + '?start=ref_' + tgUser.id;
+            const msg = '🔥 Join Gen-Z! Complete daily quests and earn crypto airdrops!';
+            const url = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(msg);
+            if (window.Telegram?.WebApp) window.Telegram.WebApp.openTelegramLink(url);
+            else window.open(url, '_blank');
+            showToast('🔗 Link shared! You\'ll earn 💎 when your friend joins.', '#94a3b8');
+        }
+
+        // ==========================================
+        // WALLET
+        // ==========================================
+        function saveWalletAddress() {
+            const val = document.getElementById('inputWallet').value.trim();
+            if (val.length < 20) return showToast('⚠️ Enter a valid Solana/TON wallet address!', '#f87171');
+            walletAddr = val;
+            localStorage.setItem('user_wallet', walletAddr);
+            broadcastState(); // Wallet is critical — sync immediately (not deferred)
+            showToast('✅ Wallet linked for Airdrop distribution!', '#4ade80');
+        }
+
+        // ==========================================
+        // TAB SWITCHER
+        // ==========================================
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active-content'));
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('nav-active'));
+            document.getElementById(tabId).classList.add('active-content');
+            el.classList.add('nav-active');
+            triggerHaptic('light');
+        }
+
+        // ==========================================
+        // UTILITIES
+        // ==========================================
+        function triggerHaptic(type) {
+            try { if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred(type); } catch (e) { }
+        }
+
+        function showToast(msg, color) {
+            const t = document.getElementById('_toast');
+            t.style.color = color || '#f1f5f9'; t.style.display = 'block'; t.style.opacity = '1'; t.innerText = msg;
+            clearTimeout(t._hide);
+            t._hide = setTimeout(() => { t.style.opacity = '0'; setTimeout(() => { t.style.display = 'none'; }, 400); }, 3000);
+        }
+
+        // ==========================================
+        // DAILY BONUS SYSTEM
+        // Day 1→1,000  Day 2→2,000 ... Day 10→10,000  Day 11→💎1 Diamond → Reset
+        // ==========================================
+        const DAILY_REWARDS = [
+            { day: 1, type: 'token', amount: 1000, label: '1,000 🪙', icon: '🪙' },
+            { day: 2, type: 'token', amount: 2000, label: '2,000 🪙', icon: '🪙' },
+            { day: 3, type: 'token', amount: 3000, label: '3,000 🪙', icon: '🪙' },
+            { day: 4, type: 'token', amount: 4000, label: '4,000 🪙', icon: '🪙' },
+            { day: 5, type: 'token', amount: 5000, label: '5,000 🪙', icon: '🪙' },
+            { day: 6, type: 'token', amount: 6000, label: '6,000 🪙', icon: '🪙' },
+            { day: 7, type: 'token', amount: 7000, label: '7,000 🪙', icon: '🪙' },
+            { day: 8, type: 'token', amount: 8000, label: '8,000 🪙', icon: '🪙' },
+            { day: 9, type: 'token', amount: 9000, label: '9,000 🪙', icon: '🪙' },
+            { day: 10, type: 'token', amount: 10000, label: '10,000 🪙', icon: '🪙' },
+            { day: 11, type: 'diamond', amount: 1, label: '1 💎', icon: '💎' },
+        ];
+
+        // Load streak data
+        let dailyStreak = parseInt(localStorage.getItem('daily_streak') || '0');
+        let dailyLastClaim = parseInt(localStorage.getItem('daily_last_claim') || '0');
+        let dailyTimerInterval = null;
+
+        function getTodayKey() {
+            const d = new Date();
+            return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        }
+
+        function hasClaimedToday() {
+            return localStorage.getItem('daily_claimed_date') === getTodayKey();
+        }
+
+        function msUntilNextDay() {
+            const now = new Date();
+            const next = new Date(now);
+            next.setDate(next.getDate() + 1);
+            next.setHours(0, 0, 0, 0);
+            return next - now;
+        }
+
+        function formatCountdown(ms) {
+            const totalSec = Math.floor(ms / 1000);
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = totalSec % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function renderDailyGrid() {
+            const grid = document.getElementById('dailyGrid');
+            if (!grid) return;
+
+            let completedDaysInCycle = dailyStreak % 11;
+            if (completedDaysInCycle === 0 && dailyStreak > 0 && hasClaimedToday()) {
+                completedDaysInCycle = 11;
+            }
+
+            let html = '';
+            DAILY_REWARDS.forEach((r, i) => {
+                const isDiamond = r.type === 'diamond';
+                const isDone = i < completedDaysInCycle;
+                const isActive = !hasClaimedToday() && i === completedDaysInCycle;
+
+                let rowCls = 'daily-row';
+                if (isDiamond) rowCls += ' diamond-day';
+
+                let statusBadge = '';
+                if (isDone) {
+                    rowCls += ' done';
+                    statusBadge = '<span class="daily-row-badge status-done">✓ Claimed</span>';
+                } else if (isActive) {
+                    rowCls += ' active';
+                    statusBadge = '<span class="daily-row-badge status-active">⚡ Ready</span>';
+                } else {
+                    statusBadge = '<span class="daily-row-badge status-locked">🔒 Locked</span>';
+                }
+
+                const subDesc = isDiamond ? 'Rare Diamond Reward' : `Claim ${r.amount.toLocaleString()} Coins`;
+
+                html += `
+                    <div class="${rowCls}">
+                        <div class="daily-row-left">
+                            <div class="daily-row-icon-box ${isDiamond ? 'diamond-icon-box' : ''}">
+                                ${r.icon}
+                            </div>
+                            <div class="daily-row-info">
+                                <div class="daily-row-day">Day ${r.day}${isDiamond ? ' <span class="daily-tag-special">Grand</span>' : ''}</div>
+                                <div class="daily-row-desc">${subDesc}</div>
+                            </div>
+                        </div>
+                        <div class="daily-row-right">
+                            <div class="daily-row-val ${isDiamond ? 'diamond' : ''}">${r.label}</div>
+                            ${statusBadge}
+                        </div>
+                    </div>`;
+            });
+            grid.innerHTML = html;
+
+            // Streak badge
+            const sc = document.getElementById('txtStreakCount');
+            if (sc) sc.innerText = dailyStreak % 11 === 0 && dailyStreak > 0 ? 11 : dailyStreak % 11;
+
+            // Button & timer
+            const btn = document.getElementById('btnDailyClaim');
+            const timer = document.getElementById('txtDailyTimer');
+            if (!btn || !timer) return;
+
+            if (hasClaimedToday()) {
+                btn.disabled = true;
+                btn.innerText = '✅ Claimed! Come back tomorrow';
+                // Countdown
+                clearInterval(dailyTimerInterval);
+                dailyTimerInterval = setInterval(() => {
+                    const ms = msUntilNextDay();
+                    if (ms <= 0) { clearInterval(dailyTimerInterval); renderDailyGrid(); return; }
+                    if (document.getElementById('txtDailyTimer'))
+                        document.getElementById('txtDailyTimer').innerText = '⏳ Next bonus in: ' + formatCountdown(ms);
+                }, 1000);
+                timer.innerText = '⏳ Next bonus in: ' + formatCountdown(msUntilNextDay());
+            } else {
+                btn.disabled = false;
+                const nextReward = DAILY_REWARDS[dailyStreak % 11];
+                btn.innerText = `🎁 Claim Day ${(dailyStreak % 11) + 1} — ${nextReward.label}`;
+                timer.innerText = '';
+                clearInterval(dailyTimerInterval);
+            }
+        }
+
+        let currentDailyReward = null;
+        let isDailyRewardDoubled = false;
+
+        function showDailyPopup(reward, streakNum) {
+            currentDailyReward = reward;
+            isDailyRewardDoubled = false;
+
+            const isDiamond = reward.type === 'diamond';
+            const card = document.getElementById('dailyPopupCard');
+            const popup = document.getElementById('dailyPopup');
+            // Style
+            card.className = isDiamond ? 'dp-border-sky' : 'dp-border-gold';
+            // Reset animation
+            card.style.animation = 'none';
+            card.offsetHeight; // reflow
+            card.style.animation = '';
+            // Stars
+            document.getElementById('dpStars').innerText = isDiamond ? '💎✨' : '🎉';
+            document.getElementById('dpDayLabel').innerText = `Day ${streakNum} Reward`;
+            document.getElementById('dpAmount').innerText = isDiamond ? '+1 💎' : `+${reward.amount.toLocaleString()}`;
+            document.getElementById('dpAmount').className = isDiamond ? 'dp-reward-amount sky' : 'dp-reward-amount gold';
+            document.getElementById('dpLabel').innerText = isDiamond ? '💎 Diamond Credited ✨' : 'Tokens Credited';
+            document.getElementById('dpStreakInfo').innerText = `🔥 Streak: ${streakNum} / 11 Days`;
+
+            // Reset 2X Multiplier Badge & Button
+            const badge = document.getElementById('dpMultBadge');
+            if (badge) badge.style.display = 'none';
+
+            const doubleBtn = document.getElementById('dpDoubleBtn');
+            const doubleText = document.getElementById('dpDoubleBtnText');
+            if (doubleBtn) {
+                doubleBtn.disabled = false;
+                doubleBtn.className = 'btn-dp-double';
+                doubleBtn.style.display = 'flex';
+                if (isDiamond) {
+                    doubleText.innerText = 'Watch Ad for 2X (+1 💎)';
+                } else {
+                    doubleText.innerText = `Watch Ad for 2X (+${reward.amount.toLocaleString()} 🪙)`;
+                }
+            }
+
+            const closeBtn = document.getElementById('dpCloseBtn');
+            closeBtn.className = isDiamond ? 'btn-dp-close sky' : 'btn-dp-close';
+            closeBtn.innerText = '🚀 Collect 1X & Close';
+
+            // Show
+            popup.style.display = 'flex';
+            // Confetti
+            startDailyConfetti(isDiamond);
+        }
+
+        function closeDailyPopup() {
+            document.getElementById('dailyPopup').style.display = 'none';
+            stopDailyConfetti();
+        }
+
+        // ==========================================
+        // UNIFIED ADSGRAM REWARDED ADS ENGINE
+        // ==========================================
+        function playRewardedAd(onSuccess, onFail) {
+            if (window.Adsgram && ADSGRAM_BLOCK_ID && ADSGRAM_BLOCK_ID !== 'YOUR_ADSGRAM_BLOCK_ID') {
+                try {
+                    const AdController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
+                    AdController.show()
+                        .then((result) => {
+                            if (typeof onSuccess === 'function') onSuccess(result);
+                        })
+                        .catch((result) => {
+                            console.warn('Adsgram Ad was skipped or failed:', result);
+                            showToast('⚠️ ' + (result?.description || 'Ad skipped or closed early'), '#f87171');
+                            if (typeof onFail === 'function') onFail(result);
+                        });
+                } catch (err) {
+                    console.error('Adsgram Init Error:', err);
+                    showToast('⚠️ Adsgram Error: ' + (err.message || 'Failed to load ad'), '#f87171');
+                    if (typeof onFail === 'function') onFail(err);
+                }
+            } else if (ADSGRAM_TEST_MODE || ADSGRAM_BLOCK_ID === 'YOUR_ADSGRAM_BLOCK_ID') {
+                // Test mode simulation
+                showToast('🎬 [Test Mode] Playing Ad (3s)...', '#38bdf8');
+                setTimeout(() => {
+                    if (typeof onSuccess === 'function') onSuccess({ done: true });
+                }, 3000);
+            } else {
+                showToast('⚠️ Adsgram SDK not loaded or Block ID missing!', '#f87171');
+                if (typeof onFail === 'function') onFail(new Error('SDK not loaded'));
+            }
+        }
+
+        // Adsgram 2X Rewarded Ad Handler (Daily Bonus & Missions)
+        function watchAdToDouble() {
+            if (isDailyRewardDoubled || !currentDailyReward) return;
+
+            const doubleBtn = document.getElementById('dpDoubleBtn');
+            const doubleText = document.getElementById('dpDoubleBtnText');
+            if (doubleBtn) {
+                doubleBtn.classList.add('loading');
+                if (doubleText) doubleText.innerText = '⏳ Loading Ad...';
+            }
+
+            playRewardedAd(
+                () => {
+                    apply2XReward();
+                },
+                () => {
+                    resetDoubleBtn();
+                }
+            );
+        }
+
+        // Energy Instant 100% Refill with Ad
+        function refillEnergyWithAd() {
+            if (energy >= 1000) {
+                showToast('⚡ Energy is already full (1000/1000)!', '#f5c842');
+                return;
+            }
+            const btn = document.getElementById('btnEnergyRefill');
+            if (btn) btn.innerText = '⏳ Loading Ad...';
+
+            playRewardedAd(
+                () => {
+                    energy = 1000;
+                    tokens += 1000; // Extra coin bonus
+                    saveState();
+                    triggerHaptic('success');
+                    if (btn) btn.innerHTML = '<span>⚡ Instant 100% Refill (Watch Ad)</span>';
+                    showToast('⚡ Full 1000 Energy Restored + 1,000 Coins Bonus! 🚀', '#4ade80');
+                },
+                () => {
+                    if (btn) btn.innerHTML = '<span>⚡ Instant 100% Refill (Watch Ad)</span>';
+                }
+            );
+        }
+
+        // Tasks Tab: Watch Sponsored Ad (+2,500 Coins) — Once per day (7 AM IST reset)
+        function isAdTaskClaimedToday() {
+            const claimedAt = parseInt(localStorage.getItem('ad_task_claimed_at') || '0');
+            return claimedAt >= getCurrent7AMIST();
+        }
+
+        function updateAdTaskButton() {
+            const btn = document.getElementById('btnAdTask');
+            if (!btn) return;
+            if (isAdTaskClaimedToday()) {
+                btn.innerText = '✓ Done';
+                btn.disabled = true;
+                btn.style.background = 'rgba(255,255,255,0.07)';
+                btn.style.color = 'var(--muted)';
+                btn.style.boxShadow = 'none';
+            } else {
+                btn.innerText = '▶ Watch';
+                btn.disabled = false;
+                btn.style.background = 'linear-gradient(135deg,#0284c7,#10b981)';
+                btn.style.color = '#fff';
+                btn.style.boxShadow = '';
+            }
+        }
+
+        function watchAdForTaskReward() {
+            const btn = document.getElementById('btnAdTask');
+            if (isAdTaskClaimedToday()) {
+                showToast('✅ Already claimed today! Resets at 7 AM IST.', '#94a3b8');
+                return;
+            }
+            if (btn) { btn.innerText = '⏳ Loading...'; btn.disabled = true; }
+
+            playRewardedAd(
+                () => {
+                    tokens += 2500;
+                    localStorage.setItem('ad_task_claimed_at', Date.now().toString());
+                    saveState();
+                    triggerHaptic('success');
+                    startDailyConfetti(false);
+                    updateAdTaskButton();
+                    showToast('🎉 +2,500 🪙 Ad Reward Credited!', '#4ade80');
+                },
+                () => {
+                    if (btn) { btn.innerText = '▶ Watch'; btn.disabled = false; }
+                }
+            );
+        }
+
+        // Init: restore button state on page load
+        updateAdTaskButton();
+
+        function apply2XReward() {
+            if (isDailyRewardDoubled || !currentDailyReward) return;
+            isDailyRewardDoubled = true;
+
+            const isDiamond = currentDailyReward.type === 'diamond';
+
+            // Credit the additional 1X reward to make total 2X
+            if (isDiamond) {
+                diamonds += currentDailyReward.amount;
+                document.getElementById('dpAmount').innerText = `+${currentDailyReward.amount * 2} 💎`;
+                document.getElementById('dpLabel').innerHTML = '🔥 <b>2X Doubled Diamonds Credited!</b>';
+            } else {
+                tokens += currentDailyReward.amount;
+                document.getElementById('dpAmount').innerText = `+${(currentDailyReward.amount * 2).toLocaleString()}`;
+                document.getElementById('dpLabel').innerHTML = '🔥 <b>2X Doubled Tokens Credited!</b>';
+            }
+
+            // Update UI & badge
+            const badge = document.getElementById('dpMultBadge');
+            if (badge) badge.style.display = 'inline-block';
+
+            const doubleBtn = document.getElementById('dpDoubleBtn');
+            const doubleText = document.getElementById('dpDoubleBtnText');
+            if (doubleBtn) {
+                doubleBtn.classList.remove('loading');
+                doubleBtn.classList.add('claimed');
+                doubleBtn.disabled = true;
+                doubleText.innerText = '✅ 2X Doubled!';
+            }
+
+            const closeBtn = document.getElementById('dpCloseBtn');
+            if (closeBtn) closeBtn.innerText = '🚀 Done & Close';
+
+            // Save state & effects
+            saveState();
+            triggerHaptic('success');
+            startDailyConfetti(isDiamond);
+            showToast(`🎉 2X REWARD! +${currentDailyReward.amount.toLocaleString()} Extra Credited!`, '#4ade80');
+        }
+
+        function resetDoubleBtn() {
+            const doubleBtn = document.getElementById('dpDoubleBtn');
+            const doubleText = document.getElementById('dpDoubleBtnText');
+            if (!doubleBtn || !currentDailyReward) return;
+
+            doubleBtn.classList.remove('loading');
+            doubleBtn.disabled = false;
+            if (currentDailyReward.type === 'diamond') {
+                doubleText.innerText = 'Watch Ad for 2X (+1 💎)';
+            } else {
+                doubleText.innerText = `Watch Ad for 2X (+${currentDailyReward.amount.toLocaleString()} 🪙)`;
+            }
+        }
+
+        let _dcAnim = null;
+        function startDailyConfetti(isDiamond) {
+            const cv = document.getElementById('dailyConfetti');
+            const ctx = cv.getContext('2d');
+            cv.width = cv.offsetWidth || 320;
+            cv.height = cv.offsetHeight || 420;
+            const colors = isDiamond
+                ? ['#38bdf8', '#a78bfa', '#ffffff', '#7dd3fc', '#c4b5fd']
+                : ['#f5c842', '#fde98a', '#4ade80', '#f472b6', '#a78bfa', '#ffffff'];
+            let pts = [];
+            for (let i = 0; i < 90; i++) pts.push({
+                x: Math.random() * cv.width,
+                y: Math.random() * cv.height - cv.height,
+                r: Math.random() * 6 + 3,
+                d: Math.random() * 2.5 + 1,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                tilt: Math.random() * 10 - 5,
+                tiltAngle: 0,
+                tiltSpeed: Math.random() * 0.12 + 0.04
+            });
+            cancelAnimationFrame(_dcAnim);
+            (function draw() {
+                ctx.clearRect(0, 0, cv.width, cv.height);
+                pts.forEach(p => {
+                    ctx.beginPath(); ctx.lineWidth = p.r; ctx.strokeStyle = p.color;
+                    ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+                    ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+                    ctx.stroke();
+                    p.y += p.d + Math.sin(p.tiltAngle) * 1.5;
+                    p.tiltAngle += p.tiltSpeed;
+                    p.tilt = Math.sin(p.tiltAngle) * 12;
+                    if (p.y > cv.height) { p.y = -10; p.x = Math.random() * cv.width; }
+                });
+                _dcAnim = requestAnimationFrame(draw);
+            })();
+        }
+
+        function stopDailyConfetti() {
+            cancelAnimationFrame(_dcAnim);
+            const cv = document.getElementById('dailyConfetti');
+            if (cv) cv.getContext('2d').clearRect(0, 0, cv.width, cv.height);
+        }
+
+        function claimDailyBonus() {
+            if (hasClaimedToday()) {
+                showToast('✅ Already claimed today! Come back tomorrow.', '#94a3b8');
+                return;
+            }
+            const reward = DAILY_REWARDS[dailyStreak % 11];
+            const oldLvl = getTapLevelInfo(diamonds).level;
+
+            if (reward.type === 'token') {
+                tokens += reward.amount;
+            } else {
+                diamonds += reward.amount;
+            }
+
+            dailyStreak += 1;
+            localStorage.setItem('daily_streak', dailyStreak);
+            localStorage.setItem('daily_last_claim', Date.now());
+            localStorage.setItem('daily_claimed_date', getTodayKey());
+
+            saveState();
+            triggerHaptic('rigid');
+
+            // Show popup
+            showDailyPopup(reward, dailyStreak);
+
+            // Level up check (toast as secondary notification)
+            if (reward.type === 'diamond') {
+                const newLvl = getTapLevelInfo(diamonds).level;
+                if (newLvl > oldLvl) {
+                    setTimeout(() => showToast(`🎉 LEVEL UP! Lv.${newLvl} — Diamond Day!`, '#f5c842'), 1200);
+                }
+            }
+
+            renderDailyGrid();
+        }
+
+        // Init on load
+        renderDailyGrid();
+    </script>
+</body>
+
+</html>
