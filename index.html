@@ -15,8 +15,8 @@
 
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Decentralized P2P Mesh DB -->
-    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- YouTube IFrame API -->
     <script src="https://www.youtube.com/iframe_api"></script>
     <!-- Adsgram Rewarded Ads SDK -->
@@ -1477,6 +1477,91 @@
             box-shadow: 0 6px 24px rgba(234, 179, 8, 0.4);
         }
 
+        /* PUZZLE FAIL MODAL */
+        #puzzleFailModal {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(4, 5, 15, 0.92);
+            backdrop-filter: blur(14px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .puzzle-fail-card {
+            background: linear-gradient(135deg, #0a0f20, #14101e);
+            border: 2px solid rgba(248, 113, 113, 0.5);
+            border-radius: 26px;
+            padding: 30px 24px;
+            text-align: center;
+            max-width: 320px;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 0 60px rgba(248, 113, 113, 0.25), 0 20px 60px rgba(0, 0, 0, 0.8);
+            animation: winCardIn .4s cubic-bezier(.175, .885, .32, 1.275) both;
+        }
+
+        .fail-hourglass {
+            font-size: 3.8rem;
+            display: inline-block;
+            animation: rewardPop .5s ease-out both;
+        }
+
+        .fail-h2 {
+            color: var(--red);
+            font-size: 1.6rem;
+            font-weight: 900;
+            margin: 8px 0 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .fail-p {
+            color: var(--muted);
+            font-size: .88rem;
+        }
+
+        .fail-msg-box {
+            background: rgba(248, 113, 113, 0.08);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            border-radius: 14px;
+            padding: 12px 16px;
+            margin: 16px 0 20px;
+        }
+
+        .fail-msg-title {
+            font-size: .95rem;
+            font-weight: 800;
+            color: var(--gold);
+        }
+
+        .fail-msg-sub {
+            font-size: .78rem;
+            color: #cbd5e1;
+            margin-top: 4px;
+            line-height: 1.35;
+        }
+
+        .btn-modal-cancel {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--muted);
+            border: 1px solid var(--border);
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-size: .88rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            font-family: 'Outfit', sans-serif;
+            transition: all .2s ease;
+        }
+
+        .btn-modal-cancel:active {
+            transform: scale(0.97);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
         /* TOAST */
         #_toast {
             position: fixed;
@@ -2306,6 +2391,25 @@
         </div>
     </div>
 
+    <!-- PUZZLE FAIL / RETRY MODAL -->
+    <div id="puzzleFailModal">
+        <div class="puzzle-fail-card">
+            <div class="fail-hourglass">⌛</div>
+            <div class="fail-h2">Time's Up!</div>
+            <div class="fail-p">Could not solve the puzzle in 60s.</div>
+            <div class="fail-msg-box">
+                <div class="fail-msg-title">Want another chance?</div>
+                <div class="fail-msg-sub">Watch a quick ad to get +60s and play again until you solve it!</div>
+            </div>
+            <!-- Watch Ad to Retry Button -->
+            <button class="btn-dp-double" id="btnPuzzleFailRetry" onclick="retryPuzzleWithAd()" style="margin-bottom:12px;width:100%;">
+                <span>🎬</span>
+                <span id="btnPuzzleFailRetryText">Watch Ad to Play Again (+60s)</span>
+            </button>
+            <button class="btn-modal-cancel" onclick="closePuzzleFailModal()">✕ Close</button>
+        </div>
+    </div>
+
     <!-- VIDEO MODAL -->
     <div id="videoModal">
         <div class="modal-box">
@@ -2587,15 +2691,17 @@
         }
 
         // ==========================================
-        // OFFLINE-FIRST SYNC ENGINE
-        // Data: LocalStorage (XOR Encrypted) → GunDB (app close only)
-        // GunDB sync SIRF tab hoga jab user app band kare
-        // 10,000 users = 99% less network traffic ✅
+        // SUPABASE SYNC ENGINE
+        // Data: LocalStorage (XOR Encrypted) → Supabase (exit + 30s interval)
+        // Tap UI: ZERO network latency — sirf local state update hoga
         // ==========================================
+        const SUPABASE_URL = 'https://fwkxjwsxdocryrlaumx.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_rQk-_aXNqtc4dmCQwrO_-A_yjOeJQBT'; // ← Yahan apna Anon/Publishable key paste karein
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         const _CIPHER_KEY = _LOAD_KEY; // already defined above for initial load
         let _pendingSync = false;
         let _lastSyncTime = 0;
-        // NOTE: Koi automatic interval nahi — sirf app close par sync hoga
 
         function _xorEncrypt(str) {
             try {
@@ -2626,130 +2732,113 @@
             });
             localStorage.setItem('enc_snapshot', _xorEncrypt(snap));
 
-            // Mark dirty — GunDB sync sirf app close par hoga
+            // Mark dirty — Supabase sync sirf exit/interval par hoga
             _pendingSync = true;
-            localStorage.setItem('_sync_pending', '1'); // crash/peer-down ke baad bhi yaad rahe
+            localStorage.setItem('_sync_pending', '1');
             updateHUD();
         }
         updateHUD();
 
         // ==========================================
-        // GunDB P2P SYNC — Distributed Mesh Network
-        // Har mobile ek node hai — data sab mein bata hua hai
+        // SUPABASE UPSERT — User data broadcast
         // ==========================================
-        const gun = Gun({
-            peers: [
-                // USA Peers
-                'https://gun-manhattan.herokuapp.com/gun',
-                'https://gun-us.herokuapp.com/gun',
-                'https://gunjs.herokuapp.com/gun',
-                'https://gun-sjc1.herokuapp.com/gun',
-                // Europe Peers
-                'https://gun-eu.herokuapp.com/gun',
-                'https://gun-ams1.herokuapp.com/gun',
-                // Community Peers
-                'https://peer.wallie.io/gun',
-                'https://www.raygun.live/gun'
-            ],
-            localStorage: true  // har device locally bhi store karta hai = mini node
-        });
-        const userRegistry = gun.get('apex_airdrop_ledger_v1');
-        const referralRegistry = gun.get('apex_referrals_v1');
-
-        function broadcastState() {
+        async function broadcastState() {
             const lvl = getTapLevelInfo(diamonds);
             try {
-                userRegistry.get('usr_' + tgUser.id).put({
-                    id: tgUser.id, name: tgUser.first_name,
-                    tokens, diamonds,
+                const { error } = await supabaseClient.from('users').upsert({
+                    id: String(tgUser.id),
+                    name: tgUser.first_name || 'User',
+                    tokens: tokens,
+                    diamonds: diamonds,
                     level: lvl.level,
-                    coinsPerTap: lvl.coinsPerTap,
+                    coins_per_tap: lvl.coinsPerTap,
                     wallet: walletAddr || 'Not Linked',
-                    lastActive: Date.now()
+                    last_active: new Date().toISOString()
                 });
-                _pendingSync = false;
-                _lastSyncTime = Date.now();
-                localStorage.removeItem('_sync_pending'); // successfully synced
+                if (!error) {
+                    _pendingSync = false;
+                    _lastSyncTime = Date.now();
+                    localStorage.removeItem('_sync_pending');
+                }
             } catch (e) {
-                // Peer down — _sync_pending flag rahega, next open pe retry hoga
+                // Network error — _sync_pending flag rahega, next sync pe retry hoga
             }
         }
 
-        // Sync only if dirty AND forced (app close event)
+        // Sync only if dirty OR forced (exit / interval)
         function syncIfNeeded(force, silent) {
             if (!_pendingSync && !force) return;
             broadcastState();
-            if (!silent) showSyncIndicator(); // silent = true on beforeunload (user nahi dekhega)
+            if (!silent) showSyncIndicator();
         }
 
-        // Visual indicator when GunDB sync happens
+        // Visual indicator when Supabase sync happens
         function showSyncIndicator() {
             showToast('🔄 Synced to network!', '#38bdf8');
         }
 
-        // ── Trigger 1: App goes to background — toast dikhao (user dekh sakta hai) ──
+        // ── Trigger 1: App goes to background ──
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') syncIfNeeded(true, false);
         });
 
-        // ── Trigger 2: Browser closes — silent sync (user tab band kar raha hai) ──
-        window.addEventListener('beforeunload', () => syncIfNeeded(true, true));
+        // ── Trigger 2: Tab / browser closes ──
         window.addEventListener('pagehide', () => syncIfNeeded(true, true));
 
+        // ── Trigger 3: Safety interval — har 30 seconds ──
+        setInterval(() => syncIfNeeded(false, true), 30000);
+
         // ── Startup: pichli baar ka pending sync retry karo ──
-        // Agar pehle peers down the, to ab try karo
         const _hadPending = localStorage.getItem('_sync_pending') === '1';
         if (_hadPending) {
-            _pendingSync = true; // ensure flag set hai
-            setTimeout(() => syncIfNeeded(true, true), 3000); // 3s baad retry (peers load hone do)
+            _pendingSync = true;
+            setTimeout(() => syncIfNeeded(true, true), 3000);
         }
 
-        // ── Initial load: sirf NEW user ko register karo GunDB pe ─
-        // Pehli baar hi register hoga, baaki sync app close par
-        const _alreadyInGun = localStorage.getItem('gun_registered') === 'true';
-        if (!_alreadyInGun) {
-            broadcastState();
-            localStorage.setItem('gun_registered', 'true');
-        }
+        // ── Initial load: Supabase se user data fetch karo ──
+        (async () => {
+            const { data: userData, error: userErr } = await supabaseClient
+                .from('users')
+                .select('*')
+                .eq('id', String(tgUser.id))
+                .single();
 
-        if (myReferrerId && !alreadyReferred && String(myReferrerId) !== String(tgUser.id)) {
-            referralRegistry.get('ref_' + myReferrerId).get('joined_' + tgUser.id)
-                .put({ newUserId: tgUser.id, newUserName: tgUser.first_name, joinedAt: Date.now(), rewarded: false });
-            localStorage.setItem('referral_registered', 'true');
-        }
+            if (!userErr && userData) {
+                // Remote ke saath local merge — max value lo (anti-cheat)
+                if (parseInt(userData.tokens || 0) > tokens) tokens = parseInt(userData.tokens);
+                if (parseInt(userData.diamonds || 0) > diamonds) diamonds = parseInt(userData.diamonds);
+                if (!walletAddr && userData.wallet && userData.wallet !== 'Not Linked') {
+                    walletAddr = userData.wallet;
+                    const wi = document.getElementById('inputWallet');
+                    if (wi) wi.value = walletAddr;
+                }
+                saveState();
+            } else if (userErr && userErr.code === 'PGRST116') {
+                // New user — pehli baar Supabase mein insert karo
+                broadcastState();
+            }
+        })();
 
+        // ── Referral reward: Referrer ko +1 Diamond do jab naya user join kare ──
         // ==========================================
         // TIERED REFERRAL REWARDS — defined above near updateHUD
         // ==========================================
-        // (REF_TIER_REWARDS & getRefTierReward already declared above)
-
-        // ==========================================
-        // MLM DIAMOND REWARD — Har invite pe 1 💎, No Limit
-        // ==========================================
-        const seenReferrals = JSON.parse(localStorage.getItem('seen_referrals') || '{}');
-        referralRegistry.get('ref_' + tgUser.id).map().on((data, key) => {
-            if (!data || !data.newUserId || seenReferrals[key]) return;
-            seenReferrals[key] = true;
-            localStorage.setItem('seen_referrals', JSON.stringify(seenReferrals));
-
-            friends += 1;
-            const oldLvl = getTapLevelInfo(diamonds).level;
-
-            // Har invite pe sirf 1 Diamond — unlimited
-            diamonds += 1;
-            const newLvl = getTapLevelInfo(diamonds).level;
-            saveState();
-            triggerHaptic('rigid');
-
-            if (newLvl > oldLvl) {
-                const info = getTapLevelInfo(diamonds);
-                showToast(`🎉 LEVEL UP! Lv.${info.level} — ${data.newUserName || 'Dost'} joined!`, '#f5c842');
-            } else {
-                showToast(`💎 +1 Diamond! ${data.newUserName || 'Dost'} joined your network!`, '#38bdf8');
-            }
-
-            referralRegistry.get('ref_' + tgUser.id).get(key).get('rewarded').put(true);
-        });
+        if (myReferrerId && !alreadyReferred && String(myReferrerId) !== String(tgUser.id)) {
+            (async () => {
+                const { data: refData } = await supabaseClient
+                    .from('users')
+                    .select('diamonds')
+                    .eq('id', String(myReferrerId))
+                    .single();
+                if (refData) {
+                    await supabaseClient.from('users').update({
+                        diamonds: (parseInt(refData.diamonds) || 0) + 1,
+                        last_active: new Date().toISOString()
+                    }).eq('id', String(myReferrerId));
+                }
+                localStorage.setItem('referral_registered', 'true');
+            })();
+        }
 
         // ==========================================
         // TAP ENGINE (Diamond Level Multiplier)
@@ -2986,6 +3075,11 @@
             return claimedAt >= getCurrent7AMIST();
         }
 
+        function isPuzzleAttemptedToday() {
+            const attemptedAt = parseInt(localStorage.getItem('puzzle_attempted_at') || '0');
+            return attemptedAt >= getCurrent7AMIST();
+        }
+
         const solvedState = [1, 2, 3, 4, 5, 6, 7, 8, null];
         let currentGrid = [...solvedState];
         let puzzleTimer = null, secondsLeft = 60, isPlaying = false;
@@ -3023,70 +3117,147 @@
             renderPuzzleBoard();
         }
 
-        function startPuzzleGame() {
+        function startPuzzleGame(fromAd = false) {
             if (checkDailyLock()) return;
-            isPlaying = true; secondsLeft = 60;
-            document.getElementById('btnStartPuzzle').disabled = true;
-            document.getElementById('txtPuzzleTimer').classList.remove('timer-danger');
+
+            // Agar aaj attempt kiya tha aur ad ke bina start dabaya, toh pehle Ad dikhao
+            if (isPuzzleAttemptedToday() && !fromAd) {
+                retryPuzzleWithAd();
+                return;
+            }
+
+            localStorage.setItem('puzzle_attempted_at', Date.now().toString());
+            isPlaying = true;
+            secondsLeft = 60;
+            const timerEl = document.getElementById('txtPuzzleTimer');
+            if (timerEl) {
+                timerEl.innerText = '60s';
+                timerEl.classList.remove('timer-danger');
+            }
+            const btn = document.getElementById('btnStartPuzzle');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = 'PLAYING... 🧩';
+            }
             shufflePuzzle();
             clearInterval(puzzleTimer);
             puzzleTimer = setInterval(() => {
                 secondsLeft--;
-                document.getElementById('txtPuzzleTimer').innerText = secondsLeft + 's';
-                if (secondsLeft <= 5) document.getElementById('txtPuzzleTimer').classList.add('timer-danger');
-                if (secondsLeft <= 0) { clearInterval(puzzleTimer); handlePuzzleFailure(); }
+                if (timerEl) timerEl.innerText = secondsLeft + 's';
+                if (secondsLeft <= 5 && timerEl) timerEl.classList.add('timer-danger');
+                if (secondsLeft <= 0) {
+                    clearInterval(puzzleTimer);
+                    handlePuzzleFailure();
+                }
             }, 1000);
         }
 
         function handlePuzzleFailure() {
-            isPlaying = false; triggerHaptic('heavy');
-            // Mark as attempted for today — lock until next 7 AM IST
-            localStorage.setItem('puzzle_claimed_at', Date.now().toString());
-            showToast('⌛ Time expired! Puzzle resets tomorrow at 7 AM IST.', '#f87171');
-            document.getElementById('btnStartPuzzle').disabled = false;
-            checkDailyLock();
+            isPlaying = false;
+            clearInterval(puzzleTimer);
+            triggerHaptic('heavy');
+            // Puzzle claim nahi hua — sirf attempt mark hoga taaki agla try Ad se ho
+            localStorage.setItem('puzzle_attempted_at', Date.now().toString());
+            const timerEl = document.getElementById('txtPuzzleTimer');
+            if (timerEl) {
+                timerEl.innerText = '0s';
+                timerEl.classList.add('timer-danger');
+            }
+            const btn = document.getElementById('btnStartPuzzle');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = '🎬 WATCH AD TO PLAY AGAIN';
+            }
+            showToast('⌛ Time up! Watch an ad to play again until solved!', '#f87171');
+            showPuzzleFailModal();
+        }
+
+        function showPuzzleFailModal() {
+            const modal = document.getElementById('puzzleFailModal');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closePuzzleFailModal() {
+            const modal = document.getElementById('puzzleFailModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function retryPuzzleWithAd() {
+            const modalBtn = document.getElementById('btnPuzzleFailRetry');
+            const modalBtnText = document.getElementById('btnPuzzleFailRetryText');
+            const mainBtn = document.getElementById('btnStartPuzzle');
+
+            if (modalBtn) modalBtn.classList.add('loading');
+            if (modalBtnText) modalBtnText.innerText = '⏳ Loading Ad...';
+            if (mainBtn) mainBtn.innerText = '⏳ Loading Ad...';
+
+            playRewardedAd(
+                () => {
+                    if (modalBtn) modalBtn.classList.remove('loading');
+                    if (modalBtnText) modalBtnText.innerText = 'Watch Ad to Play Again (+60s)';
+                    closePuzzleFailModal();
+                    showToast('🎬 Ad completed! 60s timer started, solve the puzzle! 🧩', '#4ade80');
+                    startPuzzleGame(true);
+                },
+                () => {
+                    if (modalBtn) modalBtn.classList.remove('loading');
+                    if (modalBtnText) modalBtnText.innerText = 'Watch Ad to Play Again (+60s)';
+                    if (mainBtn) mainBtn.innerText = '🎬 WATCH AD TO PLAY AGAIN';
+                }
+            );
         }
 
         function checkWinCondition() {
             if (currentGrid.every((v, i) => v === solvedState[i]) && isPlaying) {
                 clearInterval(puzzleTimer); isPlaying = false;
-                tokens += 10000; saveState(); triggerHaptic('rigid'); showWinModal();
-                // Mark as claimed for today — lock until next 7 AM IST
+                tokens += 10000; saveState(); triggerHaptic('rigid');
+                closePuzzleFailModal();
+                showWinModal();
+                // Solved & Claimed for today — now locks until next 7 AM IST
                 localStorage.setItem('puzzle_claimed_at', Date.now().toString());
-                document.getElementById('btnStartPuzzle').innerText = 'COMPLETED ✓';
-                document.getElementById('btnStartPuzzle').disabled = true;
+                const btn = document.getElementById('btnStartPuzzle');
+                if (btn) {
+                    btn.innerText = 'COMPLETED ✓';
+                    btn.disabled = true;
+                }
             }
         }
 
         function checkDailyLock() {
-            if (!isPuzzleClaimedToday()) {
-                // Puzzle available — show button, hide lock
-                document.getElementById('btnStartPuzzle').style.display = 'block';
-                document.getElementById('puzzleLockMsg').style.display = 'none';
-                // Reset button text if new day came
-                const btn = document.getElementById('btnStartPuzzle');
-                if (btn.innerText === 'COMPLETED ✓') {
-                    btn.innerText = '▶ START PUZZLE';
-                    btn.disabled = false;
-                }
-                return false;
+            if (isPuzzleClaimedToday()) {
+                // Puzzle already solved & claimed today — show countdown to next 7 AM IST
+                isPlaying = false;
+                document.getElementById('btnStartPuzzle').style.display = 'none';
+                document.getElementById('puzzleLockMsg').style.display = 'block';
+
+                const msLeft = getNext7AMIST() - Date.now();
+                const totalSec = Math.max(0, Math.floor(msLeft / 1000));
+                const hh = Math.floor(totalSec / 3600);
+                const mm = Math.floor((totalSec % 3600) / 60);
+                const ss = totalSec % 60;
+                document.getElementById('txtCooldownTimer').innerText =
+                    String(hh).padStart(2, '0') + ':' +
+                    String(mm).padStart(2, '0') + ':' +
+                    String(ss).padStart(2, '0');
+                return true;
             }
 
-            // Puzzle already done today — show countdown to next 7 AM IST
-            isPlaying = false;
-            document.getElementById('btnStartPuzzle').style.display = 'none';
-            document.getElementById('puzzleLockMsg').style.display = 'block';
+            // Puzzle NOT claimed yet
+            document.getElementById('btnStartPuzzle').style.display = 'block';
+            document.getElementById('puzzleLockMsg').style.display = 'none';
 
-            const msLeft = getNext7AMIST() - Date.now();
-            const totalSec = Math.max(0, Math.floor(msLeft / 1000));
-            const hh = Math.floor(totalSec / 3600);
-            const mm = Math.floor((totalSec % 3600) / 60);
-            const ss = totalSec % 60;
-            document.getElementById('txtCooldownTimer').innerText =
-                String(hh).padStart(2, '0') + ':' +
-                String(mm).padStart(2, '0') + ':' +
-                String(ss).padStart(2, '0');
-            return true;
+            if (!isPlaying) {
+                const btn = document.getElementById('btnStartPuzzle');
+                if (btn) {
+                    btn.disabled = false;
+                    if (isPuzzleAttemptedToday()) {
+                        btn.innerText = '🎬 WATCH AD TO PLAY AGAIN';
+                    } else {
+                        btn.innerText = '▶ START PUZZLE';
+                    }
+                }
+            }
+            return false;
         }
 
         // Run every second — updates countdown & auto-unlocks at 7 AM IST
@@ -3194,7 +3365,7 @@
         // REFERRAL
         // ==========================================
         function shareReferralLink() {
-            const BOT = 'Genz20_bot';
+            const BOT = 'YOUR_BOT_USERNAME';
             const link = 'https://t.me/' + BOT + '?start=ref_' + tgUser.id;
             const msg = '🔥 Join Gen-Z! Complete daily quests and earn crypto airdrops!';
             const url = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(msg);
@@ -3210,8 +3381,8 @@
             const val = document.getElementById('inputWallet').value.trim();
             if (val.length < 20) return showToast('⚠️ Enter a valid Solana/TON wallet address!', '#f87171');
             walletAddr = val;
-            localStorage.setItem('user_wallet', walletAddr);
-            broadcastState(); // Wallet is critical — sync immediately (not deferred)
+            saveState();       // Encrypted snapshot update karo
+            broadcastState();  // Wallet is critical — Supabase mein turant sync karo
             showToast('✅ Wallet linked for Airdrop distribution!', '#4ade80');
         }
 
