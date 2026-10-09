@@ -9,7 +9,7 @@
      (token SIRF Supabase me jaata hai, is file me kabhi mat likho).
      Supabase -> SQL Editor -> paste -> Run.  (ek hi baar)
   2) Neeche script me "CONFIG" wali lines bharo:
-     SUPABASE_URL, SUPABASE_ANON_KEY, BOT_USERNAME, ADSGRAM_BLOCK_ID.
+     SUPABASE_URL, SUPABASE_ANON_KEY, BOT_USERNAME.
   3) Ye index.html GitHub repo me daalo -> Settings -> Pages -> Branch: main.
      Jo link mile wo BotFather (/newapp) me Mini App URL bana do.
   4) ADMIN: SQL me 'PASTE_ADMIN_ID' ki jagah apna Telegram numeric user ID
@@ -39,8 +39,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Ed25519 keypair (wallet) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tweetnacl/1.0.3/nacl-fast.min.js"></script>
-    <!-- Adsgram Rewarded Ads SDK -->
-    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 
     <style>
         :root {
@@ -1890,33 +1888,7 @@
             font-weight: 700;
         }
 
-        /* 2X Multiplier Badge & Button */
-        .dp-multiplier-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #f59e0b, #ef4444);
-            color: #ffffff;
-            font-size: 0.72rem;
-            font-weight: 900;
-            padding: 4px 12px;
-            border-radius: 20px;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-            box-shadow: 0 3px 12px rgba(239, 68, 68, 0.45);
-            animation: badgePop 0.4s cubic-bezier(.175, .885, .32, 1.275) both;
-        }
-
-        @keyframes badgePop {
-            0% {
-                transform: scale(0.3);
-                opacity: 0;
-            }
-
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
+        /* generic gradient button (puzzle retry) */
         .btn-dp-double {
             width: 100%;
             padding: 14px 16px;
@@ -1960,22 +1932,6 @@
             transform: scale(0.97);
         }
 
-        .btn-dp-double.claimed {
-            background: rgba(255, 255, 255, 0.06) !important;
-            color: #4ade80 !important;
-            border: 1px solid rgba(74, 222, 128, 0.35) !important;
-            box-shadow: none !important;
-            cursor: default !important;
-            animation: none !important;
-            pointer-events: none;
-        }
-
-        .btn-dp-double.loading {
-            opacity: 0.8;
-            pointer-events: none;
-            animation: none;
-        }
-
         .btn-dp-close {
             width: 100%;
             padding: 13px;
@@ -2001,36 +1957,6 @@
 
         .btn-dp-close:active {
             transform: scale(.97);
-        }
-
-        /* ENERGY REFILL BUTTON */
-        .btn-energy-refill {
-            width: 100%;
-            margin-top: 10px;
-            padding: 10px 14px;
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(167, 139, 250, 0.15));
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            border-radius: 12px;
-            color: var(--sky);
-            font-size: 0.82rem;
-            font-weight: 800;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            font-family: 'Outfit', sans-serif;
-            transition: all 0.2s ease;
-        }
-
-        .btn-energy-refill:hover {
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(167, 139, 250, 0.25));
-            border-color: rgba(56, 189, 248, 0.6);
-            transform: translateY(-1px);
-        }
-
-        .btn-energy-refill:active {
-            transform: scale(0.98);
         }
 
         /* Confetti canvas inside popup */
@@ -2397,7 +2323,7 @@
                 <div class="chips" id="fdLevChips"></div>
                 <div class="kx-quote" id="fdQuote"></div>
                 <button class="kx-go" id="fdGo" onclick="openPos()">Open Long</button>
-                <div class="kx-note" style="text-align:left;">Entry aur exit bonding curve pe hote hain, isliye badi position khud price hilaati hai. Liquidation tab jab margin ka 90% loss ho <b>aur</b> <b style="color:var(--gold);">Mark price</b> (15 min average) bhi utna ulta chale. Commission: position size ka 0.5% kholte aur 0.5% band karte waqt.</div>
+                <div class="kx-note" style="text-align:left;">Entry aur exit bonding curve pe hote hain, isliye badi position khud price hilaati hai. Liquidation tab jab margin ka 90% loss ho <b>aur</b> <b style="color:var(--gold);">Mark price</b> (15 min average) bhi utna ulta chale. Commission: position size ka 0.1% (1,000 pe 1) kholte aur 0.1% band karte waqt.</div>
             </div>
             <div class="kx-card">
                 <div class="kx-lbl">Aapki positions</div>
@@ -2413,7 +2339,10 @@
     <!-- TAB: MY WALLET -->
     <div class="tab-content" id="tabMyWallet">
         <div class="kx-wrap">
-            <div class="kx-card">
+            <!-- Gen-Z address card: users se chhupa hai. Keypair background me banta aur
+                 server pe register hota rehta hai (aage DAG chain ke kaam aayega).
+                 Dikhana ho to neeche wala style="display:none;" hata do. -->
+            <div class="kx-card" id="wlAddrCard" style="display:none;">
                 <div class="kx-lbl">🔑 Your Gen-Z address</div>
                 <div class="kx-addr" id="wlAddr">Generating…</div>
                 <div style="display:flex;gap:8px;margin-top:10px;">
@@ -2452,7 +2381,7 @@
             <div class="kx-card">
                 <div class="kx-lbl">💰 Admin wallet (commission)</div>
                 <div class="kx-big" id="adWallet" style="color:var(--gold);">0</div>
-                <div class="kx-note" style="text-align:left;margin:4px 0 10px;">Har futures open aur close pe position size ka 0.5% yahan aata hai. <b>Futures pool</b> me points honge tabhi jeetne walon ko poora profit milega.</div>
+                <div class="kx-note" style="text-align:left;margin:4px 0 10px;">Har futures open aur close pe position size ka 0.1% yahan aata hai (1,000 pe 1). <b>Futures pool</b> me points honge tabhi jeetne walon ko poora profit milega.</div>
                 <div style="display:flex;gap:8px;">
                     <input class="kx-input" id="adAmt" type="number" inputmode="numeric" placeholder="Amount" style="padding:10px;">
                     <button class="kx-btn2 green" onclick="adWallet('a_withdraw')">Mere G-Points me</button>
@@ -2503,15 +2432,9 @@
             <div class="win-h2">Congratulations!</div>
             <div class="win-p">You solved the puzzle! 🎉</div>
             <div class="win-reward-box">
-                <div class="dp-multiplier-badge" id="winMultBadge" style="display:none;">⚡ 2X MULTIPLIER ACTIVE!</div>
                 <div class="win-amount" id="winAmountTxt">+10,000</div>
                 <div class="win-label" id="winLabelTxt">Credited ✅</div>
             </div>
-            <!-- Puzzle 2X Watch Ad Button -->
-            <button class="btn-dp-double" id="btnPuzzleDouble" onclick="watchAdToDoublePuzzle()">
-                <span>🎬</span>
-                <span id="btnPuzzleDoubleText">Watch Ad for 2X (+10,000 🪙)</span>
-            </button>
             <button class="btn-win-close" id="btnWinClose" onclick="closeWinModal()">🚀 Collect &amp; Close</button>
         </div>
     </div>
@@ -2524,10 +2447,10 @@
             <div class="fail-p">Could not solve the puzzle in 60s.</div>
             <div class="fail-msg-box">
                 <div class="fail-msg-title">Want another chance?</div>
-                <div class="fail-msg-sub">Try again with a fresh 60s timer — free, no ad needed!</div>
+                <div class="fail-msg-sub">Try again with a fresh 60s timer — free!</div>
             </div>
             <!-- Free Retry Button -->
-            <button class="btn-dp-double" id="btnPuzzleFailRetry" onclick="retryPuzzleWithAd()" style="margin-bottom:12px;width:100%;">
+            <button class="btn-dp-double" id="btnPuzzleFailRetry" onclick="retryPuzzle()" style="margin-bottom:12px;width:100%;">
                 <span>🔄</span>
                 <span id="btnPuzzleFailRetryText">Play Again (+60s)</span>
             </button>
@@ -2559,17 +2482,10 @@
             <div class="dp-congrats">Congratulations!</div>
             <div class="dp-day-label" id="dpDayLabel">Day 1 Reward</div>
             <div class="dp-reward-box">
-                <div class="dp-multiplier-badge" id="dpMultBadge" style="display:none;">⚡ 2X MULTIPLIER ACTIVE!</div>
                 <div class="dp-reward-amount gold" id="dpAmount">+1,000</div>
                 <div class="dp-reward-label" id="dpLabel">Tokens Credited</div>
             </div>
             <div class="dp-streak-info" id="dpStreakInfo">🔥 Streak: 1 / 11 Days</div>
-
-            <!-- Adsgram 2X Rewarded Ad Button -->
-            <button class="btn-dp-double" id="dpDoubleBtn" onclick="watchAdToDouble()">
-                <span>🎬</span>
-                <span id="dpDoubleBtnText">Watch Ad for 2X (+1,000 🪙)</span>
-            </button>
 
             <button class="btn-dp-close" id="dpCloseBtn" onclick="closeDailyPopup()">🚀 Claim & Close</button>
         </div>
@@ -2596,12 +2512,9 @@
         // CONFIGURATION — apne values daalo
         // ==========================================
         const MASTER_ADMIN_ID = 5678080775;             // apna Telegram numeric user ID
-        // Adsgram Rewarded Video Ad Block ID (dashboard https://adsgram.ai se)
-        const ADSGRAM_BLOCK_ID = '52114'; // e.g. '1234'
         // >>> LAUNCH SE PEHLE ZAROOR BADLO <<<
         const BOT_USERNAME = 'Genz20_bot';      // bina @ ke, e.g. 'GenZAirdropBot'
         const BOT_APP_SHORTNAME = 'play';                  // agar BotFather me Mini App ka short name hai to likho, warna khali chhodo
-        const ADSGRAM_TEST_MODE = false;       // sirf local testing ke liye true karo (nakli 3s ad). LIVE par false.
 
         // ==========================================
         // TELEGRAM SDK
@@ -2658,7 +2571,7 @@
 
         // Server hi source of truth hai. Ye variables sirf display ke liye hain.
         let tokens = 0, diamonds = 0, energy = 1000, friends = 0;
-        let serverState = { claimedToday: false, puzzleDone: false, puzzleTried: false, adTaskDone: false, tasks: {}, streak: 0, nextReset: 0 };
+        let serverState = { claimedToday: false, puzzleDone: false, puzzleTried: false, tasks: {}, streak: 0, nextReset: 0 };
         // Purani (cheatable) local keys saaf karo
         ['enc_snapshot', '_sync_pending', 'user_tokens', 'user_diamonds', 'user_energy', 'user_friends', 'user_wallet',
             'referral_registered', 'yt_last_secret_claim', 'daily_streak', 'daily_last_claim', 'daily_claimed_date',
@@ -2735,13 +2648,10 @@
             not_telegram: '📱 Ye game Telegram bot ke andar kholo',
             setup: '⚠️ Server setup baaki hai (setup.sql chalao)',
             already_claimed: '✅ Ye pehle hi claim ho chuka hai',
-            ad_required: '🎬 Pehle ad dekho',
             puzzle_done_today: '✅ Aaj ka puzzle ho chuka hai',
             invalid_puzzle: '⚠️ Puzzle valid nahi mana gaya',
             too_fast: '⏳ Thoda ruko, phir Claim karo',
             not_joined: '⚠️ Pehle Telegram channel join karo',
-            no_double: '⚠️ 2X ab available nahi hai',
-            refill_limit: '⚠️ Aaj ke refill khatam',
             network: '⚠️ Server tak nahi pahunch paaye: internet ya SUPABASE_URL check karo',
             db: '⚠️ Server error, thodi der baad try karo'
         };
@@ -2781,7 +2691,6 @@
             }
             updateHUD();
             try { renderDailyGrid(); } catch (e) { }
-            try { updateAdTaskButton(); } catch (e) { }
             try { syncSocialButtons(); } catch (e) { }
             try { checkDailyLock(); } catch (e) { }
         }
@@ -3006,18 +2915,18 @@
             renderPuzzleBoard();
         }
 
-        async function startPuzzleGame(fromAd = false) {
+        async function startPuzzleGame(isRetry = false) {
             if (checkDailyLock()) return;
 
-            // Aaj attempt ho chuka hai to dobara khelne ke liye ad zaroori
-            if (isPuzzleAttemptedToday() && !fromAd) {
-                retryPuzzleWithAd();
+            // Aaj attempt ho chuka hai to "Play Again" popup se dobara (free)
+            if (isPuzzleAttemptedToday() && !isRetry) {
+                retryPuzzle();
                 return;
             }
 
-            const j = await api('puzzle_start', { adWatched: !!fromAd });
+            const j = await api('puzzle_start', { retry: !!isRetry });
             if (j.error) {
-                if (j.error === 'ad_required') return retryPuzzleWithAd();
+                if (j.error === 'retry_needed') return retryPuzzle();
                 return apiErr(j);
             }
             isPlaying = true;
@@ -3074,8 +2983,8 @@
             if (modal) modal.style.display = 'none';
         }
 
-        // Adsgram policy: koi bhi kaam ad ke bina bhi ho sake. Puzzle retry ab FREE hai.
-        function retryPuzzleWithAd() {
+        // Puzzle retry FREE hai (60s ka naya timer)
+        function retryPuzzle() {
             const modalBtnText = document.getElementById('btnPuzzleFailRetryText');
             if (modalBtnText) modalBtnText.innerText = '🔄 Play Again (+60s)';
             closePuzzleFailModal();
@@ -3147,23 +3056,11 @@
         // ==========================================
         // WIN MODAL + CONFETTI (60s Puzzle)
         // ==========================================
-        let isPuzzleDoubled = false;
-
         function showWinModal() {
-            isPuzzleDoubled = false;
-            const badge = document.getElementById('winMultBadge');
-            if (badge) badge.style.display = 'none';
             const amt = document.getElementById('winAmountTxt');
             if (amt) amt.innerText = '+10,000';
             const lbl = document.getElementById('winLabelTxt');
             if (lbl) lbl.innerText = 'Credited ✅';
-            const dBtn = document.getElementById('btnPuzzleDouble');
-            const dTxt = document.getElementById('btnPuzzleDoubleText');
-            if (dBtn) {
-                dBtn.disabled = false;
-                dBtn.classList.remove('claimed', 'loading');
-                if (dTxt) dTxt.innerText = 'Watch Ad for 2X (+10,000 🪙)';
-            }
             document.getElementById('winModal').style.display = 'flex';
             startConfetti();
         }
@@ -3171,41 +3068,6 @@
         function closeWinModal() {
             document.getElementById('winModal').style.display = 'none';
             stopConfetti();
-        }
-
-        function watchAdToDoublePuzzle() {
-            if (isPuzzleDoubled) return;
-            const dBtn = document.getElementById('btnPuzzleDouble');
-            const dTxt = document.getElementById('btnPuzzleDoubleText');
-            const resetBtn = () => {
-                if (dBtn) { dBtn.classList.remove('loading'); dBtn.disabled = false; }
-                if (dTxt) dTxt.innerText = 'Watch Ad for 2X (+10,000 🪙)';
-            };
-            if (dBtn) { dBtn.classList.add('loading'); if (dTxt) dTxt.innerText = '⏳ Loading Ad...'; }
-
-            playRewardedAd(
-                async () => {
-                    const j = await api('double');
-                    if (j.error) { resetBtn(); return apiErr(j); }
-                    isPuzzleDoubled = true;
-                    triggerHaptic('success');
-                    startConfetti();
-                    const badge = document.getElementById('winMultBadge');
-                    if (badge) badge.style.display = 'inline-block';
-                    const amt = document.getElementById('winAmountTxt');
-                    if (amt) amt.innerText = '+20,000';
-                    const lbl = document.getElementById('winLabelTxt');
-                    if (lbl) lbl.innerHTML = '🔥 <b>2X Doubled!</b>';
-                    if (dBtn) {
-                        dBtn.classList.remove('loading');
-                        dBtn.classList.add('claimed');
-                        dBtn.disabled = true;
-                        if (dTxt) dTxt.innerText = '✅ 2X Doubled!';
-                    }
-                    showToast('🎉 PUZZLE 2X! +10,000 Extra Tokens Credited!', '#4ade80');
-                },
-                resetBtn
-            );
         }
 
         let confettiAnim = null;
@@ -3450,12 +3312,7 @@
             }
         }
 
-        let currentDailyReward = null;
-        let isDailyRewardDoubled = false;
-
         function showDailyPopup(reward, streakNum) {
-            currentDailyReward = reward;
-            isDailyRewardDoubled = false;
 
             const isDiamond = reward.type === 'diamond';
             const card = document.getElementById('dailyPopupCard');
@@ -3478,26 +3335,9 @@
             _si.style.display = isStreak ? 'block' : 'none';
             _si.innerText = isStreak ? `🔥 Streak: ${dispDay} / 11 Days` : '';
 
-            // Reset 2X Multiplier Badge & Button
-            const badge = document.getElementById('dpMultBadge');
-            if (badge) badge.style.display = 'none';
-
-            const doubleBtn = document.getElementById('dpDoubleBtn');
-            const doubleText = document.getElementById('dpDoubleBtnText');
-            if (doubleBtn) {
-                doubleBtn.disabled = false;
-                doubleBtn.className = 'btn-dp-double';
-                doubleBtn.style.display = 'flex';
-                if (isDiamond) {
-                    doubleText.innerText = 'Watch Ad for 2X (+1 💎)';
-                } else {
-                    doubleText.innerText = `Watch Ad for 2X (+${reward.amount.toLocaleString()} 🪙)`;
-                }
-            }
-
             const closeBtn = document.getElementById('dpCloseBtn');
             closeBtn.className = isDiamond ? 'btn-dp-close sky' : 'btn-dp-close';
-            closeBtn.innerText = '🚀 Collect 1X & Close';
+            closeBtn.innerText = '🚀 Collect & Close';
 
             // Show
             popup.style.display = 'flex';
@@ -3508,175 +3348,6 @@
         function closeDailyPopup() {
             document.getElementById('dailyPopup').style.display = 'none';
             stopDailyConfetti();
-        }
-
-        // ==========================================
-        // UNIFIED ADSGRAM REWARDED ADS ENGINE
-        // ==========================================
-        function playRewardedAd(onSuccess, onFail) {
-            if (window.Adsgram && ADSGRAM_BLOCK_ID && ADSGRAM_BLOCK_ID !== 'YOUR_ADSGRAM_BLOCK_ID') {
-                try {
-                    const AdController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
-                    AdController.show()
-                        .then((result) => {
-                            if (typeof onSuccess === 'function') onSuccess(result);
-                        })
-                        .catch((result) => {
-                            console.warn('Adsgram Ad was skipped or failed:', result);
-                            showToast('⚠️ ' + (result?.description || 'Ad skipped or closed early'), '#f87171');
-                            if (typeof onFail === 'function') onFail(result);
-                        });
-                } catch (err) {
-                    console.error('Adsgram Init Error:', err);
-                    showToast('⚠️ Adsgram Error: ' + (err.message || 'Failed to load ad'), '#f87171');
-                    if (typeof onFail === 'function') onFail(err);
-                }
-            } else if (ADSGRAM_TEST_MODE) {
-                // Test mode simulation
-                showToast('🎬 [Test Mode] Playing Ad (3s)...', '#38bdf8');
-                setTimeout(() => {
-                    if (typeof onSuccess === 'function') onSuccess({ done: true });
-                }, 3000);
-            } else {
-                showToast('⚠️ Adsgram SDK not loaded or Block ID missing!', '#f87171');
-                if (typeof onFail === 'function') onFail(new Error('SDK not loaded'));
-            }
-        }
-
-        // Adsgram 2X Rewarded Ad Handler (Daily Bonus & Missions)
-        function watchAdToDouble() {
-            if (isDailyRewardDoubled || !currentDailyReward) return;
-
-            const doubleBtn = document.getElementById('dpDoubleBtn');
-            const doubleText = document.getElementById('dpDoubleBtnText');
-            if (doubleBtn) {
-                doubleBtn.classList.add('loading');
-                if (doubleText) doubleText.innerText = '⏳ Loading Ad...';
-            }
-
-            playRewardedAd(
-                () => {
-                    apply2XReward();
-                },
-                () => {
-                    resetDoubleBtn();
-                }
-            );
-        }
-
-        // Energy Instant 100% Refill with Ad
-        function refillEnergyWithAd() {
-            if (energy >= 1000) {
-                showToast('⚡ Energy is already full (1000/1000)!', '#f5c842');
-                return;
-            }
-            const btn = document.getElementById('btnEnergyRefill');
-            const label = '<span>⚡ Instant 100% Refill (Watch Ad)</span>';
-            if (btn) btn.innerText = '⏳ Loading Ad...';
-
-            playRewardedAd(
-                async () => {
-                    const j = await api('energy_refill');
-                    if (btn) btn.innerHTML = label;
-                    if (j.error) return apiErr(j);
-                    triggerHaptic('success');
-                    showToast('⚡ Full 1000 Energy Restored + 1,000 Coins Bonus! 🚀', '#4ade80');
-                },
-                () => { if (btn) btn.innerHTML = label; }
-            );
-        }
-
-        // Tasks Tab: Watch Sponsored Ad (+2,500 Coins) — Once per day (7 AM IST reset)
-        function isAdTaskClaimedToday() { return !!serverState.adTaskDone; }
-
-        function updateAdTaskButton() {
-            const btn = document.getElementById('btnAdTask');
-            if (!btn) return;
-            if (isAdTaskClaimedToday()) {
-                btn.innerText = '✓ Done';
-                btn.disabled = true;
-                btn.style.background = 'rgba(255,255,255,0.07)';
-                btn.style.color = 'var(--muted)';
-                btn.style.boxShadow = 'none';
-            } else {
-                btn.innerText = '▶ Watch';
-                btn.disabled = false;
-                btn.style.background = 'linear-gradient(135deg,#0284c7,#10b981)';
-                btn.style.color = '#fff';
-                btn.style.boxShadow = '';
-            }
-        }
-
-        function watchAdForTaskReward() {
-            const btn = document.getElementById('btnAdTask');
-            if (isAdTaskClaimedToday()) {
-                showToast('✅ Already claimed today! Resets at 7 AM IST.', '#94a3b8');
-                return;
-            }
-            if (btn) { btn.innerText = '⏳ Loading...'; btn.disabled = true; }
-
-            playRewardedAd(
-                async () => {
-                    const j = await api('ad_task');
-                    if (j.error) { updateAdTaskButton(); return apiErr(j); }
-                    triggerHaptic('success');
-                    startDailyConfetti(false);
-                    showToast('🎉 +2,500 🪙 Ad Reward Credited!', '#4ade80');
-                },
-                () => {
-                    if (btn) { btn.innerText = '▶ Watch'; btn.disabled = false; }
-                }
-            );
-        }
-
-        // Init: restore button state on page load
-        updateAdTaskButton();
-
-        async function apply2XReward() {
-            if (isDailyRewardDoubled || !currentDailyReward) return;
-            const j = await api('double');
-            if (j.error) { resetDoubleBtn(); return apiErr(j); }
-            isDailyRewardDoubled = true;
-
-            const isDiamond = j.type === 'diamond';
-            if (isDiamond) {
-                document.getElementById('dpAmount').innerText = `+${j.amount * 2} 💎`;
-                document.getElementById('dpLabel').innerHTML = '🔥 <b>2X Doubled Diamonds Credited!</b>';
-            } else {
-                document.getElementById('dpAmount').innerText = `+${(j.amount * 2).toLocaleString()}`;
-                document.getElementById('dpLabel').innerHTML = '🔥 <b>2X Doubled Tokens Credited!</b>';
-            }
-            const badge = document.getElementById('dpMultBadge');
-            if (badge) badge.style.display = 'inline-block';
-
-            const doubleBtn = document.getElementById('dpDoubleBtn');
-            const doubleText = document.getElementById('dpDoubleBtnText');
-            if (doubleBtn) {
-                doubleBtn.classList.remove('loading');
-                doubleBtn.classList.add('claimed');
-                doubleBtn.disabled = true;
-                doubleText.innerText = '✅ 2X Doubled!';
-            }
-            const closeBtn = document.getElementById('dpCloseBtn');
-            if (closeBtn) closeBtn.innerText = '🚀 Done & Close';
-
-            triggerHaptic('success');
-            startDailyConfetti(isDiamond);
-            showToast(`🎉 2X REWARD! +${j.amount.toLocaleString()} Extra Credited!`, '#4ade80');
-        }
-
-        function resetDoubleBtn() {
-            const doubleBtn = document.getElementById('dpDoubleBtn');
-            const doubleText = document.getElementById('dpDoubleBtnText');
-            if (!doubleBtn || !currentDailyReward) return;
-
-            doubleBtn.classList.remove('loading');
-            doubleBtn.disabled = false;
-            if (currentDailyReward.type === 'diamond') {
-                doubleText.innerText = 'Watch Ad for 2X (+1 💎)';
-            } else {
-                doubleText.innerText = `Watch Ad for 2X (+${currentDailyReward.amount.toLocaleString()} 🪙)`;
-            }
         }
 
         let _dcAnim = null;
@@ -3752,7 +3423,7 @@
     <script>
         // Server: Supabase function public.kx (neeche SETUP SQL me). Saara price/balance ka hisaab server karta hai.
         const KX_API = SUPABASE_URL + '/rest/v1/rpc/kx';
-        const KX_ADMIN_FEE = 0.005;                // 0.5% admin commission (position size par)
+        const KX_ADMIN_FEE = 0.001;                // 0.1% admin commission (1000 ki position pe 1)
         let kxKeys = [], kxCur = null, kxIv = 300000, kxTrades = [], kxPositions = [];
         let fSide = 'long', kxMark = 0, kxPool = 0;
         let kxIsAdmin = false, kxBusy = false, kxMePub = '', myAddr = '', mySeed = null;
@@ -3923,9 +3594,9 @@
                 row('Price', `${fmtP(kxCur.price)} → ${fmtP(m > 0 ? r.np : kxCur.price)}`) +
                 row('Entry (average)', fmtP(m > 0 ? r.entry : kxCur.price)) +
                 row('Liquidation', `<span style="color:#fb923c">${m > 0 ? fmtP(r.liq) : '-'}</span>`) +
-                row('Open fee (0.5% of size)', fmtN(r.fee, 0) + ' 🪙') + row('Close fee (approx)', fmtN(r.fee, 0) + ' 🪙') +
+                row('Open fee (0.1% of size)', fmtN(r.fee, 0) + ' 🪙') + row('Close fee (approx)', fmtN(r.fee, 0) + ' 🪙') +
                 row('Total abhi katega', fmtN(r.total, 0) + ' 🪙') +
-                (m > 0 && lev >= 20 ? `<div class="kx-warn">${lev}x pe open + close fee milake margin ka ~${Math.round(lev)}% kat jaata hai, aur price ~${(90 / lev).toFixed(2)}% ulta chalte hi liquidation ka khatra.</div>` : '');
+                (m > 0 && lev >= 20 ? `<div class="kx-warn">${lev}x pe open + close fee milake margin ka ~${+(2 * KX_ADMIN_FEE * lev * 100).toFixed(1)}% kat jaata hai, aur price ~${(90 / lev).toFixed(2)}% ulta chalte hi liquidation ka khatra.</div>` : '');
             const maxShort = Math.floor((Number(kxCur.price) - 0.000001) * Number(kxCur.step));
             go.disabled = kxBusy || kxCur.paused || m < 100 || m > 100000 || r.total > tokens || kxPositions.length >= 5 || r.toZero;
             go.innerText = m <= 0 ? 'Margin daalo' : m < 100 ? 'Min 100 margin' : m > 100000 ? 'Max 1,00,000 margin'
@@ -4332,10 +4003,8 @@ create table if not exists public.users (
   last_daily       text,
   puzzle_at        timestamptz,
   puzzle_try_at    timestamptz,
-  ad_task_at       timestamptz,
   tasks_done       jsonb   not null default '{}'::jsonb,
   referred_by      text,
-  pending_double   jsonb,
   created_at       timestamptz not null default now(),
   last_active      timestamptz not null default now()
 );
@@ -4347,13 +4016,16 @@ alter table public.users add column if not exists streak int not null default 0;
 alter table public.users add column if not exists last_daily text;
 alter table public.users add column if not exists puzzle_at timestamptz;
 alter table public.users add column if not exists puzzle_try_at timestamptz;
-alter table public.users add column if not exists ad_task_at timestamptz;
+-- saare ads hata diye: ad task ka column bhi
+alter table public.users drop column if exists ad_task_at;
+update public.users set tasks_done = tasks_done - '_rf' where tasks_done ? '_rf';
 -- daily video task hata diya: uska column aur bache timers bhi
 alter table public.users drop column if exists video_at;
 update public.users set tasks_done = tasks_done - '_vs' - '_vd' where tasks_done ? '_vs' or tasks_done ? '_vd';
 alter table public.users add column if not exists tasks_done jsonb not null default '{}'::jsonb;
 alter table public.users add column if not exists referred_by text;
-alter table public.users add column if not exists pending_double jsonb;
+-- 'Watch Ad for 2X' hata diya: uska column bhi
+alter table public.users drop column if exists pending_double;
 alter table public.users add column if not exists created_at timestamptz not null default now();
 -- purana Solana/TON wallet feature hata diya: saved addresses bhi delete
 alter table public.users drop column if exists wallet;
@@ -4469,8 +4141,7 @@ begin
     'claimedToday', coalesce(u.last_daily = today, false),
     'puzzleDone',  coalesce(u.puzzle_at     >= rs, false),
     'puzzleTried', coalesce(u.puzzle_try_at >= rs, false),
-    'adTaskDone',  coalesce(u.ad_task_at    >= rs, false),
-    'tasks', coalesce(u.tasks_done, '{}'::jsonb) - '_pz' - '_s_yt' - '_s_tg' - '_rf' - '_tp',
+    'tasks', coalesce(u.tasks_done, '{}'::jsonb) - '_pz' - '_s_yt' - '_s_tg' - '_tp',
     'nextReset', (extract(epoch from rs) * 1000)::bigint + 86400000
   );
 end $$;
@@ -4506,7 +4177,7 @@ declare
   rs timestamptz := public._reset_ts();
   gained int; res jsonb := '{}'::jsonb; fresh public.users%rowtype;
   taps numeric; ms numeric; maxrate int; applied int;
-  idx int; amt bigint; k text; sp text; ref text; pd jsonb; rf jsonb;
+  idx int; amt bigint; k text; sp text; ref text;
   started bigint; took bigint; ok boolean;
   daily bigint[] := array[1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,0];
 begin
@@ -4566,12 +4237,10 @@ begin
       idx := u.streak % 11;
       if idx = 10 then
         u.diamonds := u.diamonds + 1;
-        u.pending_double := jsonb_build_object('type', 'diamond', 'amount', 1, 'exp', public._ms() + 600000);
         res := jsonb_build_object('day', 11, 'type', 'diamond', 'amount', 1);
       else
         amt := daily[idx + 1];
         u.tokens := u.tokens + amt;
-        u.pending_double := jsonb_build_object('type', 'token', 'amount', amt, 'exp', public._ms() + 600000);
         res := jsonb_build_object('day', idx + 1, 'type', 'token', 'amount', amt);
       end if;
       u.streak := u.streak + 1;
@@ -4581,8 +4250,8 @@ begin
       if coalesce(u.puzzle_at >= rs, false) then
         return jsonb_build_object('error', 'puzzle_done_today', 'state', public._state(u));
       end if;
-      if coalesce(u.puzzle_try_at >= rs, false) and coalesce(p_data->>'adWatched', 'false') <> 'true' then
-        return jsonb_build_object('error', 'ad_required', 'state', public._state(u));
+      if coalesce(u.puzzle_try_at >= rs, false) and coalesce(p_data->>'retry', 'false') <> 'true' then
+        return jsonb_build_object('error', 'retry_needed', 'state', public._state(u));
       end if;
       u.puzzle_try_at := now();
       u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb) || jsonb_build_object('_pz', public._ms());
@@ -4600,16 +4269,7 @@ begin
       u.tasks_done := u.tasks_done - '_pz';
       u.tokens := u.tokens + 10000;
       u.puzzle_at := now();
-      u.pending_double := jsonb_build_object('type', 'token', 'amount', 10000, 'exp', public._ms() + 600000);
       res := jsonb_build_object('amount', 10000);
-
-    when 'ad_task' then
-      if coalesce(u.ad_task_at >= rs, false) then
-        return jsonb_build_object('error', 'already_claimed', 'state', public._state(u));
-      end if;
-      u.tokens := u.tokens + 2500;
-      u.ad_task_at := now();
-      res := jsonb_build_object('amount', 2500);
 
     when 'social_start' then
       k := p_data->>'key';
@@ -4640,33 +4300,7 @@ begin
       u.tasks_done := (u.tasks_done - ('_s_' || k)) || jsonb_build_object(k, true);
       amt := case k when 'yt' then 3000 else 2500 end;
       u.tokens := u.tokens + amt;
-      u.pending_double := jsonb_build_object('type', 'token', 'amount', amt, 'exp', public._ms() + 600000);
       res := jsonb_build_object('amount', amt);
-
-    when 'double' then
-      pd := u.pending_double;
-      if pd is null or public._ms() > (pd->>'exp')::bigint then
-        return jsonb_build_object('error', 'no_double', 'state', public._state(u));
-      end if;
-      if pd->>'type' = 'diamond' then
-        u.diamonds := u.diamonds + (pd->>'amount')::int;
-      else
-        u.tokens := u.tokens + (pd->>'amount')::bigint;
-      end if;
-      u.pending_double := null;
-      res := jsonb_build_object('type', pd->>'type', 'amount', (pd->>'amount')::bigint);
-
-    when 'energy_refill' then
-      rf := coalesce(u.tasks_done->'_rf', jsonb_build_object('d', today, 'n', 0));
-      if rf->>'d' <> today then rf := jsonb_build_object('d', today, 'n', 0); end if;
-      if (rf->>'n')::int >= 10 then
-        return jsonb_build_object('error', 'refill_limit', 'state', public._state(u));
-      end if;
-      rf := jsonb_build_object('d', today, 'n', (rf->>'n')::int + 1);
-      u.energy := 1000; u.energy_ts := now();
-      u.tokens := u.tokens + 1000;
-      u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb) || jsonb_build_object('_rf', rf);
-      res := jsonb_build_object('amount', 1000);
 
     else
       return jsonb_build_object('error', 'unknown_action');
@@ -4676,8 +4310,8 @@ begin
     name = coalesce(a->>'name', name), tokens = u.tokens, diamonds = u.diamonds,
     friends = u.friends, energy = u.energy, energy_ts = u.energy_ts,
     streak = u.streak, last_daily = u.last_daily, puzzle_at = u.puzzle_at,
-    puzzle_try_at = u.puzzle_try_at, ad_task_at = u.ad_task_at,
-    tasks_done = u.tasks_done, referred_by = u.referred_by, pending_double = u.pending_double,
+    puzzle_try_at = u.puzzle_try_at,
+    tasks_done = u.tasks_done, referred_by = u.referred_by,
     last_active = now()
   where id = uid;
 
@@ -4701,7 +4335,7 @@ end $$;
 --   (1) curve price liquidation price tak pahunche, AUR
 --   (2) MARK price (15 min average) bhi kholte waqt ke mark se utna hi (0.9/lev) ulta chale.
 --   Isse koi ek bada trade maar ke doosron ko turant liquidate nahi kar sakta.
--- Commission: position size ka 0.5% kholte waqt + 0.5% band karte waqt -> admin wallet.
+-- Commission: position size ka 0.1% (1,000 pe 1) kholte waqt + 0.1% band karte waqt -> admin wallet.
 -- Pool: haarne walon ka loss pool me, jeetne walon ka profit pool se. Pool me kam ho to
 --   us key ki baaki khuli positions ke margin tak udhaar (pool minus me ja sakta hai);
 --   jab wo band hoti hain to unka loss pool wapas bharta hai.
@@ -4904,7 +4538,7 @@ language plpgsql security definer
 set search_path = public, extensions, pg_temp as $$
 declare
   a jsonb; uid text; u public.users%rowtype; k public.kx_keys%rowtype; ps public.kx_positions%rowtype;
-  adm boolean := false; afr numeric := 0.005;
+  adm boolean := false; afr numeric := 0.001;
   pts bigint; afee numeric; np numeric; gross numeric; pout bigint;
   kid bigint; s text; t text; p numeric; st numeric; v jsonb;
   lev int; mg bigint; sz numeric; lq numeric; oi numeric; pb numeric; pnl numeric; paid numeric;
@@ -4994,7 +4628,7 @@ begin
     perform public._kx_liq(kid);
     select * into k from public.kx_keys where id = kid;
     sz   := mg * lev;
-    afee := ceil(sz * afr);                                      -- 0.5% of position size
+    afee := ceil(sz * afr);                                      -- 0.1% of position size
     if u.tokens < mg + afee then
       return jsonb_build_object('error', 'low_points', 'points', u.tokens);
     end if;
@@ -5052,7 +4686,7 @@ begin
     end if;
     perform public._kx_wallet_add('pool', -paid);
     gross := ps.margin + paid;
-    afee  := least(ceil(ps.size * afr), floor(gross));              -- 0.5% of position size
+    afee  := least(ceil(ps.size * afr), floor(gross));              -- 0.1% of position size
     pout  := floor(gross - afee)::bigint;
     perform public._kx_wallet_add('admin', afee);
     update public.kx_keys set price = np where id = kid;
