@@ -2595,7 +2595,7 @@
         // ==========================================
         // CONFIGURATION — apne values daalo
         // ==========================================
-        const MASTER_ADMIN_ID = 0;             // apna Telegram numeric user ID
+        const MASTER_ADMIN_ID = 5678080775;             // apna Telegram numeric user ID
         // Adsgram Rewarded Video Ad Block ID (dashboard https://adsgram.ai se)
         const ADSGRAM_BLOCK_ID = '52114'; // e.g. '1234'
         // >>> LAUNCH SE PEHLE ZAROOR BADLO <<<
@@ -4365,7 +4365,7 @@ create table if not exists public.app_secrets (
 insert into public.app_secrets(key, value) values
   ('bot_token',  'PASTE_BOT_TOKEN_HERE'),
   ('tg_channel', '@genzgame1'),
-  ('admin_ids',  'PASTE_ADMIN_ID')           -- apna Telegram user ID (kai ho to: 111,222)
+  ('admin_ids',  '5678080775')           -- apna Telegram user ID (kai ho to: 111,222)
 on conflict (key) do update set value = excluded.value
   where excluded.value not like 'PASTE%';   -- dobara run karne par token/admin reset nahi hoga   -- dobara run karne par token reset nahi hoga
 
