@@ -9,9 +9,13 @@
      (token SIRF Supabase me jaata hai, is file me kabhi mat likho).
      Supabase -> SQL Editor -> paste -> Run.  (ek hi baar)
   2) Neeche script me "CONFIG" wali lines bharo:
-     SUPABASE_URL, SUPABASE_ANON_KEY, BOT_USERNAME, ADSGRAM_BLOCK_ID, DAILY_VIDEO_IDS.
+     SUPABASE_URL, SUPABASE_ANON_KEY, BOT_USERNAME, ADSGRAM_BLOCK_ID.
   3) Ye index.html GitHub repo me daalo -> Settings -> Pages -> Branch: main.
      Jo link mile wo BotFather (/newapp) me Mini App URL bana do.
+  4) ADMIN: SQL me 'PASTE_ADMIN_ID' ki jagah apna Telegram numeric user ID
+     daalo (kai admin ho to comma se: 111,222). Admin ko header me
+     "⚙️ Admin" button dikhega. Purane setup par bhi poora SQL dobara Run
+     karna safe hai (token reset nahi hota).
   =====================================================================
 -->
 
@@ -33,8 +37,8 @@
 
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- YouTube IFrame API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <!-- Ed25519 keypair (wallet) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tweetnacl/1.0.3/nacl-fast.min.js"></script>
     <!-- Adsgram Rewarded Ads SDK -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 
@@ -727,10 +731,6 @@
             flex-shrink: 0;
         }
 
-        .icon-yt {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
 
         .icon-tg {
             background: rgba(56, 189, 248, 0.12);
@@ -1200,41 +1200,9 @@
             text-transform: uppercase;
         }
 
-        .wallet-input {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px 14px;
-            color: var(--sky);
-            font-size: .82rem;
-            font-family: 'Outfit', monospace;
-            transition: border-color .2s;
-        }
 
-        .wallet-input:focus {
-            outline: none;
-            border-color: rgba(99, 102, 241, 0.6);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
 
-        .btn-wallet {
-            background: linear-gradient(135deg, #6366f1, #7c3aed);
-            color: #fff;
-            border: none;
-            padding: 14px;
-            border-radius: 12px;
-            font-weight: 900;
-            cursor: pointer;
-            font-size: .95rem;
-            font-family: 'Outfit', sans-serif;
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
-            transition: transform .1s;
-        }
 
-        .btn-wallet:active {
-            transform: scale(0.97);
-        }
 
         .wallet-note {
             font-size: .7rem;
@@ -1271,7 +1239,7 @@
             cursor: pointer;
             background: none;
             border: none;
-            padding: 6px 14px;
+            padding: 6px 8px;
             border-radius: 12px;
             transition: color .2s, background .2s;
             font-family: 'Outfit', sans-serif;
@@ -1286,117 +1254,6 @@
         .nav-active {
             color: var(--sky) !important;
             background: rgba(56, 189, 248, 0.08);
-        }
-
-        /* VIDEO MODAL */
-        #videoModal {
-            position: fixed;
-            inset: 0;
-            background: rgba(4, 5, 15, 0.95);
-            backdrop-filter: blur(12px);
-            z-index: 100;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-
-        .modal-box {
-            width: 100%;
-            max-width: 450px;
-            background: rgba(8, 12, 26, 0.98);
-            border: 1px solid rgba(56, 189, 248, 0.2);
-            border-radius: 22px;
-            padding: 18px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.05);
-        }
-
-        .modal-title {
-            font-size: 1.1rem;
-            font-weight: 900;
-            color: var(--sky);
-        }
-
-        .modal-sub {
-            font-size: .73rem;
-            color: var(--muted);
-            margin-top: 3px;
-            text-align: center;
-        }
-
-        .modal-player-wrap {
-            width: 100%;
-            aspect-ratio: 16/9;
-            background: #000;
-            border-radius: 14px;
-            overflow: hidden;
-            margin: 14px 0;
-            border: 1px solid var(--border);
-        }
-
-        #modalPlayer {
-            width: 100%;
-            height: 100%;
-        }
-
-        .modal-status {
-            font-size: .78rem;
-            color: var(--muted);
-            text-align: center;
-            font-weight: 600;
-        }
-
-        .modal-warn {
-            font-size: .75rem;
-            color: var(--red);
-            font-weight: 800;
-            display: none;
-            margin-top: 5px;
-            text-align: center;
-        }
-
-        #modalRewardBox {
-            display: none;
-            width: 100%;
-            background: rgba(34, 197, 94, 0.08);
-            border: 1px dashed rgba(34, 197, 94, 0.4);
-            border-radius: 14px;
-            padding: 16px;
-            text-align: center;
-            margin-top: 12px;
-        }
-
-        .modal-otp-label {
-            font-size: .78rem;
-            color: var(--green);
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-
-        .modal-otp {
-            font-size: 2.4rem;
-            font-weight: 900;
-            letter-spacing: 8px;
-            color: var(--gold);
-            font-family: monospace;
-        }
-
-        .btn-modal-claim {
-            width: 100%;
-            margin-top: 10px;
-            background: linear-gradient(135deg, #16a34a, #22c55e);
-            color: #fff;
-            border: none;
-            padding: 12px;
-            border-radius: 12px;
-            font-weight: 900;
-            cursor: pointer;
-            font-size: .9rem;
-            font-family: 'Outfit', sans-serif;
         }
 
         .btn-modal-close {
@@ -2185,6 +2042,73 @@
             pointer-events: none;
             border-radius: 28px;
         }
+
+        /* ============ KEY EXCHANGE / WALLET / ADMIN ============ */
+        .seg { display: none; position: relative; z-index: 9; gap: 6px; padding: 8px 14px 0; flex-shrink: 0; }
+        .seg.show { display: flex; }
+        .seg button { flex: 1; background: var(--card); border: 1px solid var(--border); color: var(--muted); border-radius: 12px; padding: 8px 0; font: 800 .78rem 'Outfit', sans-serif; cursor: pointer; }
+        .seg button.on { color: #030712; background: linear-gradient(135deg, #38bdf8, #a78bfa); border-color: transparent; }
+        .hdr-admin { display: none; margin-top: 3px; background: rgba(245, 200, 66, .12); border: 1px solid rgba(245, 200, 66, .4); color: var(--gold); border-radius: 8px; padding: 2px 8px; font: 800 .62rem 'Outfit', sans-serif; cursor: pointer; }
+        .kx-wrap { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 12px; }
+        .kx-note { font-size: .7rem; color: var(--muted); text-align: center; line-height: 1.45; }
+        .kx-list { display: flex; flex-direction: column; gap: 8px; }
+        .kx-item { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; cursor: pointer; transition: border-color .2s, transform .1s; }
+        .kx-item:active { transform: scale(.99); border-color: rgba(56, 189, 248, .4); }
+        .kx-av { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: .74rem; color: #030712; background: linear-gradient(135deg, #f5c842, #a78bfa); flex-shrink: 0; }
+        .kx-mid { flex: 1; min-width: 0; }
+        .kx-sym { font-weight: 900; font-size: .92rem; }
+        .kx-name { font-size: .7rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .kx-right { text-align: right; }
+        .kx-price { font-weight: 900; font-size: .92rem; }
+        .kx-chg { font-size: .72rem; font-weight: 800; }
+        .up { color: var(--green); }
+        .down { color: var(--red); }
+        .kx-pill { font-size: .58rem; font-weight: 900; padding: 2px 6px; border-radius: 6px; background: rgba(248, 113, 113, .15); color: var(--red); margin-left: 6px; vertical-align: middle; }
+        .kx-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; }
+        .kx-top { display: flex; align-items: center; gap: 10px; }
+        .kx-back { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 6px 11px; font: 900 .9rem 'Outfit', sans-serif; cursor: pointer; }
+        .kx-big { font-size: 1.45rem; font-weight: 900; }
+        #kxChart { width: 100%; height: 210px; display: block; }
+        .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .chip { background: rgba(255, 255, 255, .05); border: 1px solid var(--border); color: var(--muted); border-radius: 10px; padding: 5px 11px; font: 800 .72rem 'Outfit', sans-serif; cursor: pointer; }
+        .chip.on { color: var(--sky); border-color: rgba(56, 189, 248, .5); background: rgba(56, 189, 248, .1); }
+        .kx-side { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .kx-side button { padding: 10px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255, 255, 255, .04); color: var(--muted); font: 900 .9rem 'Outfit', sans-serif; cursor: pointer; }
+        .kx-side .buy.on { background: rgba(74, 222, 128, .15); color: var(--green); border-color: rgba(74, 222, 128, .5); }
+        .kx-side .sell.on { background: rgba(248, 113, 113, .15); color: var(--red); border-color: rgba(248, 113, 113, .5); }
+        .kx-input { width: 100%; background: rgba(255, 255, 255, .05); border: 1px solid var(--border); border-radius: 12px; padding: 12px; color: var(--text); font: 800 1rem 'Outfit', sans-serif; }
+        .kx-input:focus { outline: none; border-color: var(--sky); }
+        .kx-quote { display: flex; flex-direction: column; gap: 5px; font-size: .78rem; color: var(--muted); }
+        .kx-quote div { display: flex; justify-content: space-between; }
+        .kx-quote b { color: var(--text); }
+        .kx-go { width: 100%; padding: 14px; border: none; border-radius: 14px; font: 900 1rem 'Outfit', sans-serif; cursor: pointer; color: #03140a; background: linear-gradient(135deg, #22c55e, #4ade80); }
+        .kx-go.sell { color: #fff; background: linear-gradient(135deg, #dc2626, #f87171); }
+        .kx-go:disabled { opacity: .45; cursor: not-allowed; }
+        .kx-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 2px; border-bottom: 1px solid rgba(255, 255, 255, .05); font-size: .78rem; }
+        .kx-row:last-child { border-bottom: none; }
+        .kx-row small { color: var(--muted); font-size: .68rem; }
+        .kx-lbl { font-size: .68rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+        .kx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .kx-stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+        .kx-stat b { display: block; font-size: 1.05rem; font-weight: 900; }
+        .kx-stat span { font-size: .62rem; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .kx-addr { font-family: monospace; font-size: .76rem; color: var(--sky); word-break: break-all; background: rgba(255, 255, 255, .04); border-radius: 10px; padding: 10px; user-select: text; -webkit-user-select: text; }
+        .kx-btn2 { background: rgba(255, 255, 255, .06); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 8px 12px; font: 800 .75rem 'Outfit', sans-serif; cursor: pointer; white-space: nowrap; }
+        .kx-btn2.red { color: var(--red); border-color: rgba(248, 113, 113, .4); }
+        .kx-btn2.green { color: var(--green); border-color: rgba(74, 222, 128, .4); }
+        .kx-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .kx-form input { width: 100%; min-width: 0; background: rgba(255, 255, 255, .05); border: 1px solid var(--border); border-radius: 10px; padding: 10px; color: var(--text); font: 700 .82rem 'Outfit', sans-serif; }
+        .kx-form input:focus { outline: none; border-color: var(--sky); }
+        .kx-range { width: 100%; accent-color: #38bdf8; }
+        .kx-lev { font-size: .66rem; font-weight: 900; padding: 2px 6px; border-radius: 6px; margin-left: 4px; }
+        .kx-lev.long { background: rgba(74, 222, 128, .15); color: var(--green); }
+        .kx-lev.short { background: rgba(248, 113, 113, .15); color: var(--red); }
+        .kx-pos { border: 1px solid var(--border); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 6px; background: rgba(255, 255, 255, .02); }
+        .kx-pos + .kx-pos { margin-top: 8px; }
+        .kx-pos-g { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-size: .7rem; color: var(--muted); }
+        .kx-pos-g b { display: block; color: var(--text); font-size: .78rem; }
+        .kx-warn { font-size: .7rem; color: var(--gold); background: rgba(245, 200, 66, .08); border: 1px solid rgba(245, 200, 66, .25); border-radius: 10px; padding: 8px 10px; line-height: 1.4; }
+        .kx-empty { text-align: center; color: var(--muted); padding: 16px 0; font-size: .8rem; }
     </style>
 </head>
 
@@ -2197,6 +2121,7 @@
             <div>
                 <div class="user-name" id="txtUserName">Operative</div>
                 <div class="user-rank" id="txtUserRank">⚡ Lv.1 (1 🪙/Tap)</div>
+                <button class="hdr-admin" id="btnAdmin" onclick="switchTab('tabAdmin',null)">⚙️ Admin</button>
             </div>
         </div>
         <div class="balance-badge">
@@ -2204,6 +2129,13 @@
             <div class="bal-sep"></div>
             <div class="bal-item"><span>💎</span><span class="diamond-val" id="txtDiamond">0</span></div>
         </div>
+    </div>
+
+    <!-- Earn sub-tabs -->
+    <div class="seg" id="earnSeg">
+        <button id="segDaily" onclick="switchTab('tabDaily',document.getElementById('navEarn'))">🎁 Bonus</button>
+        <button id="segTasks" onclick="switchTab('tabTasks',document.getElementById('navEarn'))">📋 Tasks</button>
+        <button id="segPuzzle" onclick="switchTab('tabPuzzle',document.getElementById('navEarn'))">🧩 Puzzle</button>
     </div>
 
     <!-- TAB 1: TAP -->
@@ -2275,18 +2207,6 @@
     <div class="tab-content" id="tabTasks">
         <div class="section-title">🎯 Daily Missions</div>
         <div class="task-list">
-            <div class="task-card">
-                <div class="task-row">
-                    <div class="task-icon icon-yt">🎬</div>
-                    <div class="task-info">
-                        <div class="task-title">Watch Daily Video</div>
-                        <div class="task-sub">Watch 100% without skipping to auto-claim</div>
-                        <div class="task-reward">+5,000 🪙</div>
-                    </div>
-                    <button class="btn-action" id="btnDailyVideoWatch" onclick="openInAppVideoModal()">▶ Watch</button>
-                </div>
-            </div>
-
             <div class="task-card">
                 <div class="task-row">
                     <div class="task-icon icon-sub">📺</div>
@@ -2417,6 +2337,163 @@
         <div class="wallet-note" style="text-align:center;margin-top:4px;">G-Points are in-game points only. They have no cash value and cannot be withdrawn.</div>
     </div>
 
+    <!-- TAB: KEY FUTURES MARKET -->
+    <div class="tab-content" id="tabMarket">
+        <div class="kx-wrap" id="mkListView">
+            <div class="wallet-hero" style="margin-bottom:0;padding:18px;">
+                <div class="wallet-planet" style="font-size:2.4rem;margin-bottom:6px;">📈</div>
+                <div class="wallet-h3">Key Futures</div>
+                <div class="wallet-p">G-Points se Long ya Short lo, 1x se 100x tak. Long khulne pe price upar, Short khulne pe neeche.</div>
+            </div>
+            <div class="kx-list" id="mkList"><div class="kx-empty">Loading…</div></div>
+            <div class="kx-note">Keys aur G-Points sirf in-game hain. Inki koi cash value nahi hai aur inhe paise ya crypto me badla nahi ja sakta.</div>
+        </div>
+
+        <div class="kx-wrap" id="mkDetailView" style="display:none;">
+            <div class="kx-top">
+                <button class="kx-back" onclick="closeKey()">←</button>
+                <div class="kx-av" id="kdAv">K</div>
+                <div class="kx-mid">
+                    <div class="kx-sym" id="kdSym">—</div>
+                    <div class="kx-name" id="kdName"></div>
+                </div>
+                <div class="kx-right">
+                    <div class="kx-big" id="kdPrice">0</div>
+                    <div id="kdChg"></div>
+                    <div id="kdMark" style="font-size:.68rem;color:var(--gold);font-weight:800;"></div>
+                </div>
+            </div>
+            <div class="kx-card" style="padding:10px;">
+                <canvas id="kxChart"></canvas>
+                <div class="chips" id="kdIv" style="margin-top:8px;"></div>
+            </div>
+            <div class="kx-card" style="padding:10px 14px;">
+                <div style="display:flex;justify-content:space-between;font-size:.7rem;font-weight:800;margin-bottom:6px;">
+                    <span class="up" id="kdOiL">Long 0</span><span class="down" id="kdOiS">Short 0</span>
+                </div>
+                <div style="height:6px;border-radius:6px;background:rgba(248,113,113,.5);overflow:hidden;">
+                    <div id="kdOiBar" style="height:100%;width:50%;background:var(--green);"></div>
+                </div>
+            </div>
+            <div class="kx-card" style="display:flex;flex-direction:column;gap:10px;">
+                <div class="kx-side">
+                    <button class="buy on" id="fdLong" onclick="setFSide('long')">Long ↑</button>
+                    <button class="sell" id="fdShort" onclick="setFSide('short')">Short ↓</button>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:.74rem;color:var(--muted);">
+                    <span>Margin (G-Points)</span><span id="fdAvail"></span>
+                </div>
+                <input class="kx-input" id="fdMargin" type="number" inputmode="numeric" min="0" placeholder="0" oninput="renderFQuote()">
+                <div class="chips">
+                    <button class="chip" onclick="setFMargin(100)">100</button>
+                    <button class="chip" onclick="setFMargin(1000)">1K</button>
+                    <button class="chip" onclick="setFMargin(10000)">10K</button>
+                    <button class="chip" onclick="setFMargin('max')">MAX</button>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:.74rem;color:var(--muted);">
+                    <span>Leverage</span><b id="fdLevTxt" style="color:var(--sky);font-size:1rem;">5x</b>
+                </div>
+                <input class="kx-range" id="fdLev" type="range" min="1" max="100" step="1" value="5" oninput="renderFQuote()">
+                <div class="chips" id="fdLevChips"></div>
+                <div class="kx-quote" id="fdQuote"></div>
+                <button class="kx-go" id="fdGo" onclick="openPos()">Open Long</button>
+                <div class="kx-note" style="text-align:left;">Entry aur exit bonding curve pe hote hain, isliye badi position khud price hilaati hai. Liquidation tab jab margin ka 90% loss ho <b>aur</b> <b style="color:var(--gold);">Mark price</b> (15 min average) bhi utna ulta chale. Commission: position size ka 0.5% kholte aur 0.5% band karte waqt.</div>
+            </div>
+            <div class="kx-card">
+                <div class="kx-lbl">Aapki positions</div>
+                <div id="kdFPos"></div>
+            </div>
+            <div class="kx-card">
+                <div class="kx-lbl">Recent trades</div>
+                <div id="kdTrades"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: MY WALLET -->
+    <div class="tab-content" id="tabMyWallet">
+        <div class="kx-wrap">
+            <div class="kx-card">
+                <div class="kx-lbl">🔑 Your Gen-Z address</div>
+                <div class="kx-addr" id="wlAddr">Generating…</div>
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                    <button class="kx-btn2" onclick="copyAddr()">📋 Copy</button>
+                    <button class="kx-btn2" onclick="showBackup()">🔐 Backup key</button>
+                </div>
+                <div class="kx-addr" id="wlBackup" style="display:none;margin-top:8px;color:var(--gold);"></div>
+                <div class="kx-note" style="text-align:left;margin-top:8px;">Ye key aapke Telegram account me save hoti hai, seed phrase yaad rakhne ki zarurat nahi. Aage DAG chain par yahi address chalega.</div>
+            </div>
+            <div class="kx-grid">
+                <div class="kx-stat"><span>G-Points</span><b id="wlPts">0</b></div>
+                <div class="kx-stat"><span>Margin laga hua</span><b id="wlMargin">0</b></div>
+                <div class="kx-stat"><span>Live P&amp;L</span><b id="wlFPnl">0</b></div>
+                <div class="kx-stat"><span>Total realized P&amp;L</span><b id="wlReal">0</b></div>
+            </div>
+            <div class="kx-card">
+                <div class="kx-lbl">Open positions</div>
+                <div id="wlFut"><div class="kx-empty">Loading…</div></div>
+            </div>
+            <div class="kx-card">
+                <div class="kx-lbl">History</div>
+                <div id="wlHist"><div class="kx-empty">—</div></div>
+            </div>
+            <div class="kx-note">G-Points aur keys in-game cheezein hain. Koi cash value nahi, withdrawal nahi.</div>
+        </div>
+    </div>
+
+    <!-- TAB: ADMIN (sirf admin ko dikhega; server bhi check karta hai) -->
+    <div class="tab-content" id="tabAdmin">
+        <div class="kx-wrap">
+            <div class="kx-top">
+                <div class="kx-sym" style="font-size:1.1rem;flex:1;">⚙️ Admin Dashboard</div>
+                <button class="kx-btn2" onclick="loadAdmin()">↻ Refresh</button>
+            </div>
+            <div class="kx-grid" id="adStats"></div>
+            <div class="kx-card">
+                <div class="kx-lbl">💰 Admin wallet (commission)</div>
+                <div class="kx-big" id="adWallet" style="color:var(--gold);">0</div>
+                <div class="kx-note" style="text-align:left;margin:4px 0 10px;">Har futures open aur close pe position size ka 0.5% yahan aata hai. <b>Futures pool</b> me points honge tabhi jeetne walon ko poora profit milega.</div>
+                <div style="display:flex;gap:8px;">
+                    <input class="kx-input" id="adAmt" type="number" inputmode="numeric" placeholder="Amount" style="padding:10px;">
+                    <button class="kx-btn2 green" onclick="adWallet('a_withdraw')">Mere G-Points me</button>
+                    <button class="kx-btn2" onclick="adWallet('a_fund_pool')">Pool me</button>
+                </div>
+            </div>
+            <div class="kx-card">
+                <div class="kx-lbl">➕ New key</div>
+                <div class="kx-form">
+                    <input id="adName" placeholder="Name (Gen-Z Gold)" maxlength="32">
+                    <input id="adSym" placeholder="Symbol (GOLD)" maxlength="8" style="text-transform:uppercase;">
+                    <input id="adPrice" type="number" inputmode="decimal" placeholder="Start price (100)">
+                    <input id="adStep" type="number" inputmode="decimal" placeholder="Step (10000)">
+                </div>
+                <div class="kx-note" style="text-align:left;margin:8px 0;">Step = kitne size ki position par price +1 hile. Step 10,000 matlab 10,000 size ki Long par price +1. Chhota step = price zyada uchhlega.</div>
+                <button class="kx-go" onclick="adCreate()">Create key</button>
+            </div>
+            <div class="kx-card">
+                <div class="kx-lbl">🗝️ Keys</div>
+                <div id="adKeys"></div>
+            </div>
+            <div class="kx-card">
+                <div class="kx-lbl">🏅 Top traders (7 din)</div>
+                <div id="adTop"></div>
+            </div>
+            <div class="kx-card">
+                <div class="kx-lbl">🤖 Bot / referral farming shak</div>
+                <div class="kx-note" style="text-align:left;margin-bottom:6px;">Jinke 5+ invites me se aadhe se zyada account khaali aur inactive hain.</div>
+                <div id="adSus"></div>
+            </div>
+            <div class="kx-card">
+                <div class="kx-lbl">👤 User lookup / ban</div>
+                <div style="display:flex;gap:8px;">
+                    <input class="kx-input" id="adUid" inputmode="numeric" placeholder="Telegram user ID" style="padding:10px;">
+                    <button class="kx-btn2" onclick="adLookup()">Find</button>
+                </div>
+                <div id="adUser" style="margin-top:8px;"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- WIN MODAL -->
     <div id="winModal">
         <canvas id="confettiCanvas"
@@ -2455,20 +2532,6 @@
                 <span id="btnPuzzleFailRetryText">Play Again (+60s)</span>
             </button>
             <button class="btn-modal-cancel" onclick="closePuzzleFailModal()">✕ Close</button>
-        </div>
-    </div>
-
-    <!-- VIDEO MODAL -->
-    <div id="videoModal">
-        <div class="modal-box">
-            <div class="modal-title">🎬 Watch Daily Video</div>
-            <div class="modal-sub">Watch 100% without skipping to auto-claim your reward.</div>
-            <div class="modal-player-wrap">
-                <div id="modalPlayer"></div>
-            </div>
-            <div class="modal-status" id="txtModalStatus">⏳ Play video and watch until the end...</div>
-            <div class="modal-warn" id="txtModalWarn">⚠️ Skipping not allowed! Video rewound.</div>
-            <button class="btn-modal-close" onclick="closeInAppVideoModal()">✕ Close Window</button>
         </div>
     </div>
 
@@ -2516,12 +2579,12 @@
     <div class="nav-bar">
         <button class="nav-item nav-active" id="navTap" onclick="switchTab('tabTap',this)">
             <span class="nav-icon"><span class="coin-icon"></span></span><span>Tap</span></button>
-        <button class="nav-item" id="navDaily" onclick="switchTab('tabDaily',this)">
-            <span class="nav-icon">🎁</span><span>Bonus</span></button>
-        <button class="nav-item" id="navTasks" onclick="switchTab('tabTasks',this)">
-            <span class="nav-icon">📋</span><span>Tasks</span></button>
-        <button class="nav-item" id="navPuzzle" onclick="switchTab('tabPuzzle',this)">
-            <span class="nav-icon">🧩</span><span>Puzzle</span></button>
+        <button class="nav-item" id="navEarn" onclick="switchTab('tabDaily',this)">
+            <span class="nav-icon">🎁</span><span>Earn</span></button>
+        <button class="nav-item" id="navMarket" onclick="switchTab('tabMarket',this)">
+            <span class="nav-icon">📈</span><span>Market</span></button>
+        <button class="nav-item" id="navMyWallet" onclick="switchTab('tabMyWallet',this)">
+            <span class="nav-icon">👛</span><span>Wallet</span></button>
         <button class="nav-item" id="navFriends" onclick="switchTab('tabInvite',this)">
             <span class="nav-icon">💎</span><span>Friends</span></button>
         <button class="nav-item" id="navWallet" onclick="switchTab('tabWallet',this)">
@@ -2533,68 +2596,6 @@
         // CONFIGURATION — apne values daalo
         // ==========================================
         const MASTER_ADMIN_ID = 0;             // apna Telegram numeric user ID
-        // ── Daily Rotating YouTube Videos ──
-        // Har din ek alag video play hoga — date ke basis pe auto-rotate
-        // Apne YouTube video IDs yahan daalo (11-char ID jo URL mein hota hai)
-        // Example: youtube.com/watch?v=XXXXXXXXXXX  →  'XXXXXXXXXXX'
-        const DAILY_VIDEO_IDS = [
-            'M7lc1UVf-VE',   // Video 1
-            'dQw4w9WgXcQ',   // Video 2
-            'jNQXAC9IVRw',   // Video 3
-            '9bZkp7q19f0',   // Video 4
-            'kJQP7kiw5Fk',   // Video 5
-            'JGwWNGJdvx8',   // Video 6
-            'RgKAFK5djSk',   // Video 7
-            'OPf0YbXqDm0',   // Video 8
-            'CevxZvSJLk8',   // Video 9
-            'hT_nvWreIhg',   // Video 10
-            'fJ9rUzIMcZQ',   // Video 11
-            'YQHsXMglC9A',   // Video 12
-            '60ItHLz5WEA',   // Video 13
-            'kXYiU_JCYtU',   // Video 14
-            'FTQbiNvZqaY',   // Video 15
-            'pRpeEdMmmQ0',   // Video 16
-            'lp-EO5I60KA',   // Video 17
-            'e-ORhEE9VVg',   // Video 18
-            'SlPhMPnQ58k',   // Video 19
-            'HP-MbfHFUqs',   // Video 20
-            'PT2_F-1esPk',   // Video 21
-            'nfs8NYg7yQM',   // Video 22
-            'DyDfgMOUjCI',   // Video 23
-            'JRfuAukYTKg',   // Video 24
-            'QYh6mYIJG2Y',   // Video 25
-            'bo_efYhYU2A',   // Video 26
-            'papuvlVeZg8',   // Video 27
-            'ru0K8uYEZWw',   // Video 28
-            'PMivT7MJ41M',   // Video 29
-            'lWA2pjMjpBs',   // Video 30
-            'aJOTlE1K90k',   // Video 31
-            'Zi_XLOBDo_Y',   // Video 32
-            'PIh2xe4jnpk',   // Video 33
-            'IcrbM1l_BoI',   // Video 34
-            'txqiwrbYGrs',   // Video 35
-            'iPUmE-tne5U',   // Video 36
-            '09R8_2nJtjg',   // Video 37
-            'YVkUvmDQ3HY',   // Video 38
-            'JGhoLcsr8GA',   // Video 39
-            'iS1g8G_njx8',   // Video 40
-            'Pkh8UtuejGw',   // Video 41
-            '2Vv-BfVoq4g',   // Video 42
-            'KQ6zr6kCPj8',   // Video 43
-            'LsoLEjrDogU',   // Video 44
-            'E07s5ZYadZg',   // Video 45
-            'weeI1G46q0o',   // Video 46
-            'hHW1oY26kxQ',   // Video 47
-            'AJtDXIazrMo',   // Video 48
-            'xpVfcZ0ZcFM',   // Video 49
-            'YykjpeuMNEk',   // Video 50
-        ];
-        // Aaj ka video ID — har din midnight pe change hoga
-        function getDailyVideoId() {
-            const today = new Date();
-            const dayIndex = Math.floor(today.getTime() / 86400000) % DAILY_VIDEO_IDS.length;
-            return DAILY_VIDEO_IDS[dayIndex];
-        }
         // Adsgram Rewarded Video Ad Block ID (dashboard https://adsgram.ai se)
         const ADSGRAM_BLOCK_ID = '52114'; // e.g. '1234'
         // >>> LAUNCH SE PEHLE ZAROOR BADLO <<<
@@ -2656,8 +2657,8 @@
         }
 
         // Server hi source of truth hai. Ye variables sirf display ke liye hain.
-        let tokens = 0, diamonds = 0, energy = 1000, friends = 0, walletAddr = '';
-        let serverState = { claimedToday: false, puzzleDone: false, puzzleTried: false, adTaskDone: false, videoDone: false, tasks: {}, streak: 0, nextReset: 0 };
+        let tokens = 0, diamonds = 0, energy = 1000, friends = 0;
+        let serverState = { claimedToday: false, puzzleDone: false, puzzleTried: false, adTaskDone: false, tasks: {}, streak: 0, nextReset: 0 };
         // Purani (cheatable) local keys saaf karo
         ['enc_snapshot', '_sync_pending', 'user_tokens', 'user_diamonds', 'user_energy', 'user_friends', 'user_wallet',
             'referral_registered', 'yt_last_secret_claim', 'daily_streak', 'daily_last_claim', 'daily_claimed_date',
@@ -2737,12 +2738,10 @@
             ad_required: '🎬 Pehle ad dekho',
             puzzle_done_today: '✅ Aaj ka puzzle ho chuka hai',
             invalid_puzzle: '⚠️ Puzzle valid nahi mana gaya',
-            watch_full_video: '⚠️ Video poora dekho, phir claim hoga',
             too_fast: '⏳ Thoda ruko, phir Claim karo',
             not_joined: '⚠️ Pehle Telegram channel join karo',
             no_double: '⚠️ 2X ab available nahi hai',
             refill_limit: '⚠️ Aaj ke refill khatam',
-            bad_wallet: '⚠️ Valid Solana ya TON wallet address daalo!',
             network: '⚠️ Server tak nahi pahunch paaye: internet ya SUPABASE_URL check karo',
             db: '⚠️ Server error, thodi der baad try karo'
         };
@@ -2774,18 +2773,15 @@
         function applyState(s) {
             if (!s) return;
             tokens = s.tokens; diamonds = s.diamonds; friends = s.friends; energy = s.energy;
-            walletAddr = s.wallet || ''; dailyStreak = s.streak; serverState = s;
+            dailyStreak = s.streak; serverState = s;
             // abhi flush na hue taps display me jodo
             if (tapBuf > 0) {
                 tokens += tapBuf * getTapLevelInfo(diamonds).coinsPerTap;
                 energy = Math.max(0, energy - tapBuf);
             }
-            const wi = document.getElementById('inputWallet');
-            if (wi && walletAddr && !wi.value) wi.value = walletAddr;
             updateHUD();
             try { renderDailyGrid(); } catch (e) { }
             try { updateAdTaskButton(); } catch (e) { }
-            try { updateVideoButton(); } catch (e) { }
             try { syncSocialButtons(); } catch (e) { }
             try { checkDailyLock(); } catch (e) { }
         }
@@ -2828,6 +2824,7 @@
         (async () => {
             const j = await api('init');
             if (j.error) apiErr(j);
+            else if (window.kxBoot) kxBoot();
         })();
 
         // ==========================================
@@ -2897,116 +2894,6 @@
         setInterval(() => {
             if (energy < 1000) { energy = Math.min(1000, energy + 1); updateHUD(); }
         }, 3000);
-
-        // ==========================================
-        // YOUTUBE VIDEO ENGINE
-        // ==========================================
-        let ytPlayer = null, maxWatchedSeconds = 0, antiSkipInterval = null;
-        // var use kiya hai taaki YouTube API early callback pe TDZ error na aaye
-        var generatedUserOtp = '', ytApiReady = false, pendingModalOpen = false;
-
-        function isVideoClaimedToday() { return !!serverState.videoDone; }
-        function updateVideoButton() {
-            const vb = document.getElementById('btnDailyVideoWatch');
-            if (vb) vb.innerText = isVideoClaimedToday() ? '✓ Done' : '▶ Watch';
-        }
-        var videoStartSent = false;
-
-        function onYouTubeIframeAPIReady() {
-            ytApiReady = true;
-            if (pendingModalOpen) { pendingModalOpen = false; initYTPlayer(); }
-        }
-
-        function openInAppVideoModal() {
-            if (isVideoClaimedToday()) {
-                showToast('⏳ Aaj ka video complete ho gaya! Kal 7 AM IST ke baad.', '#f87171');
-                return;
-            }
-            document.getElementById('videoModal').style.display = 'flex';
-            maxWatchedSeconds = 0;
-            videoStartSent = false;
-            document.getElementById('txtModalWarn').style.display = 'none';
-            document.getElementById('txtModalStatus').innerText = '⏳ Play video and watch until the end to auto-claim...';
-            if (!ytApiReady) { pendingModalOpen = true; document.getElementById('txtModalStatus').innerText = '⏳ Loading YouTube player...'; return; }
-            if (!ytPlayer) initYTPlayer();
-            else { ytPlayer.loadVideoById(getDailyVideoId()); startAntiSkip(); }
-        }
-
-        function initYTPlayer() {
-            document.getElementById('modalPlayer').innerHTML = '';
-            ytPlayer = new YT.Player('modalPlayer', {
-                videoId: getDailyVideoId(),
-                playerVars: { playsinline: 1, controls: 1, rel: 0, modestbranding: 1, origin: window.location.origin || 'https://telegram.org' },
-                events: {
-                    onReady: e => { document.getElementById('txtModalStatus').innerText = '▶️ Press play to start.'; startAntiSkip(); },
-                    onError: e => {
-                        const c = { 2: 'Invalid video ID', 5: 'HTML5 error', 100: 'Video not found', 101: 'Embedding not allowed', 150: 'Embedding not allowed' };
-                        document.getElementById('txtModalStatus').innerText = '❌ Error: ' + (c[e.data] || 'Code ' + e.data);
-                    },
-                    onStateChange: onPlayerStateChange
-                }
-            });
-        }
-
-        function startAntiSkip() {
-            clearInterval(antiSkipInterval);
-            antiSkipInterval = setInterval(() => {
-                try {
-                    if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
-                        const cur = ytPlayer.getCurrentTime();
-                        if (cur > maxWatchedSeconds + 2) {
-                            ytPlayer.seekTo(maxWatchedSeconds, true);
-                            document.getElementById('txtModalWarn').style.display = 'block';
-                            setTimeout(() => { document.getElementById('txtModalWarn').style.display = 'none'; }, 3000);
-                        } else { maxWatchedSeconds = Math.max(maxWatchedSeconds, cur); }
-                    }
-                } catch (e) { }
-            }, 250);
-        }
-
-        function onPlayerStateChange(event) {
-            const s = document.getElementById('txtModalStatus');
-            if (event.data === YT.PlayerState.PLAYING) {
-                s.innerText = '▶️ Playing... Stay until the end!';
-                if (!videoStartSent) {
-                    videoStartSent = true;
-                    let d = 0; try { d = ytPlayer.getDuration(); } catch (e) { }
-                    api('video_start', { duration: d }).then(j => { if (j.error && j.error !== 'already_claimed') { videoStartSent = false; } });
-                }
-            }
-            else if (event.data === YT.PlayerState.PAUSED) s.innerText = '⏸️ Paused. Resume to complete.';
-            else if (event.data === YT.PlayerState.ENDED) {
-                let dur = 0;
-                try { dur = ytPlayer.getDuration(); } catch (e) { }
-                if (dur > 0 && maxWatchedSeconds < dur - 3) {
-                    s.innerText = '⚠️ Video poora nahi dekha. Bina skip kiye dekho.';
-                    try { ytPlayer.seekTo(0, true); ytPlayer.pauseVideo(); } catch (e) { }
-                    maxWatchedSeconds = 0;
-                    return;
-                }
-                s.innerText = '✅ Video completed! Auto-claiming...';
-                triggerHaptic('rigid');
-                // Automatically claim reward!
-                autoClaimVideoReward();
-            }
-        }
-
-        async function autoClaimVideoReward() {
-            closeInAppVideoModal();
-            const j = await api('video_claim');
-            if (j.error) return apiErr(j);
-            triggerHaptic('success');
-            showDailyPopup({ day: 'Daily Video', type: 'token', amount: j.amount, label: j.amount.toLocaleString() + ' 🪙' }, null);
-        }
-
-        function closeInAppVideoModal() {
-            if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
-            clearInterval(antiSkipInterval);
-            document.getElementById('videoModal').style.display = 'none';
-        }
-
-        function claimDirectFromModal() { autoClaimVideoReward(); }
-        function claimVideoReward() { autoClaimVideoReward(); }
 
         async function startSocialTask(key, link) {
             const ids = { yt: 'btnYtSub', tg: 'btnTgSub' };
@@ -3367,28 +3254,26 @@
         }
 
         // ==========================================
-        // WALLET
-        // ==========================================
-        async function saveWalletAddress() {
-            const val = document.getElementById('inputWallet').value.trim();
-            const okSol = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(val);
-            const okTon = /^[UEkQ0][A-Za-z0-9_-]{47}$/.test(val) || /^-?\d:[0-9a-fA-F]{64}$/.test(val);
-            if (!okSol && !okTon) return showToast('⚠️ Valid Solana ya TON wallet address daalo!', '#f87171');
-            const j = await api('wallet', { wallet: val });
-            if (j.error) return apiErr(j);
-            showToast('✅ Saved!', '#4ade80');
-        }
-
-        // ==========================================
         // TAB SWITCHER
         // ==========================================
+        const EARN_TABS = { tabDaily: 'segDaily', tabTasks: 'segTasks', tabPuzzle: 'segPuzzle' };
         function switchTab(tabId, el) {
+            const tab = document.getElementById(tabId);
+            if (!tab) return;
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active-content'));
             document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('nav-active'));
-            document.getElementById(tabId).classList.add('active-content');
-            el.classList.add('nav-active');
+            tab.classList.add('active-content');
+            if (el) el.classList.add('nav-active');
+            const seg = document.getElementById('earnSeg');
+            if (seg) {
+                seg.classList.toggle('show', !!EARN_TABS[tabId]);
+                seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.id === EARN_TABS[tabId]));
+            }
             triggerHaptic('light');
             if (tabId === 'tabWallet') loadLeaderboard();
+            if (tabId === 'tabMarket' && window.loadMarket) { if (window.kxCurOpen && window.kxCurOpen()) loadKey(); else loadMarket(); }
+            if (tabId === 'tabMyWallet' && window.loadPortfolio) loadPortfolio();
+            if (tabId === 'tabAdmin' && window.loadAdmin) loadAdmin();
         }
 
         // ==========================================
@@ -3746,10 +3631,6 @@
 
         // Init: restore button state on page load
         updateAdTaskButton();
-        (function () {
-            const vb = document.getElementById('btnDailyVideoWatch');
-            if (vb && isVideoClaimedToday()) vb.innerText = '✓ Done';
-        })();
 
         async function apply2XReward() {
             if (isDailyRewardDoubled || !currentDailyReward) return;
@@ -3867,6 +3748,518 @@
         renderDailyGrid();
     </script>
 
+    <!-- ===================== KEY FUTURES (vAMM) + WALLET + ADMIN ===================== -->
+    <script>
+        // Server: Supabase function public.kx (neeche SETUP SQL me). Saara price/balance ka hisaab server karta hai.
+        const KX_API = SUPABASE_URL + '/rest/v1/rpc/kx';
+        const KX_ADMIN_FEE = 0.005;                // 0.5% admin commission (position size par)
+        let kxKeys = [], kxCur = null, kxIv = 300000, kxTrades = [], kxPositions = [];
+        let fSide = 'long', kxMark = 0, kxPool = 0;
+        let kxIsAdmin = false, kxBusy = false, kxMePub = '', myAddr = '', mySeed = null;
+
+        Object.assign(ERR_TXT, {
+            banned: '⛔ Aapka account block hai',
+            not_registered: '⏳ Account ban raha hai, thoda ruko',
+            no_key: '⚠️ Key nahi mili',
+            paused: '⏸ Is key me naye trade abhi band hain (band karna chalu hai)',
+            low_points: '⚠️ G-Points kam hain',
+            bad_input: '⚠️ Details sahi bharo',
+            symbol_taken: '⚠️ Ye symbol pehle se hai',
+            not_admin: '⛔ Sirf admin ke liye',
+            no_user: '⚠️ User nahi mila',
+            unknown_action: '⚠️ Server purana hai: setup SQL dobara chalao',
+            oi_cap: '⚠️ Is key me positions ki limit poori, thodi der baad try karo',
+            no_pos: '⚠️ Position nahi mili (shayad liquidate ho gayi)',
+            max_pos: '⚠️ Ek key pe max 5 positions',
+            min_margin: '⚠️ Kam se kam 100 margin',
+            max_margin: '⚠️ Max 1,00,000 margin',
+            low_wallet: '⚠️ Admin wallet me itne points nahi',
+            price_zero: '⚠️ Itna bada short price ko zero se neeche le jaayega. Size kam karo'
+        });
+
+        async function kx(action, extra) {
+            if (!IN_TELEGRAM) return { error: 'not_telegram' };
+            if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { error: 'setup' };
+            try {
+                const r = await fetch(KX_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+                    body: JSON.stringify({ p_action: action, p_init: getInitData(), p_data: extra || {} })
+                });
+                const j = await r.json();
+                if (!r.ok) return { error: (j && j.code === 'PGRST202') ? 'setup' : 'db' };
+                if (j && j.points !== undefined && j.points !== null) {
+                    tokens = Number(j.points) + tapBuf * getTapLevelInfo(diamonds).coinsPerTap;
+                    updateHUD();
+                }
+                return j || {};
+            } catch (e) { return { error: 'network' }; }
+        }
+
+        // ---------- helpers ----------
+        const fmtN = (n, d = 2) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: d });
+        const fmtP = n => { n = Number(n || 0); return n >= 1000 ? fmtN(n, 0) : n >= 1 ? fmtN(n, 2) : fmtN(n, 4); };
+        const pctChg = (o, p) => { o = Number(o); p = Number(p); return o > 0 ? (p - o) / o * 100 : 0; };
+        const chgHtml = c => `<span class="kx-chg ${c >= 0 ? 'up' : 'down'}">${c >= 0 ? '+' : ''}${c.toFixed(2)}%</span>`;
+        function ago(t) {
+            const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+            if (s < 60) return s + 's'; if (s < 3600) return Math.floor(s / 60) + 'm';
+            if (s < 86400) return Math.floor(s / 3600) + 'h'; return Math.floor(s / 86400) + 'd';
+        }
+
+        // ---------- vAMM curve (server ke formula jaisa) ----------
+        function openCalc(price, step, side, margin, lev) {
+            price = Number(price); step = Number(step);
+            const size = margin * lev, fee = Math.ceil(size * KX_ADMIN_FEE);
+            const np = side === 'long' ? price + size / step : price - size / step;
+            const entry = (price + np) / 2;
+            const liq = side === 'long' ? entry * (1 - 0.9 / lev) : entry * (1 + 0.9 / lev);
+            return { size, fee, np, entry, liq, total: margin + fee, toZero: side === 'short' && np <= 0.000001 };
+        }
+        // abhi band karo to kya milega (curve par)
+        function closeCalc(p, price, step) {
+            price = Number(price); step = Number(step);
+            const q = Number(p.qty || 0), size = Number(p.size), margin = Number(p.margin);
+            let g, pnl;
+            if (p.side === 'long') { g = 2 * price * q / (2 + q / step); pnl = g - size; }
+            else { g = 2 * price * q / (2 - q / step); pnl = size - g; }
+            const capped = Math.max(pnl, -margin);
+            const fee = Math.min(Math.ceil(size * KX_ADMIN_FEE), Math.floor(margin + capped));
+            return { pnl, roe: pnl / margin * 100, payout: Math.max(0, Math.floor(margin + capped - fee)), exit: q > 0 ? g / q : price };
+        }
+
+        // ---------- MARKET LIST ----------
+        window.kxCurOpen = () => !!kxCur && document.getElementById('mkDetailView').style.display !== 'none';
+
+        async function loadMarket(silent) {
+            const box = document.getElementById('mkList');
+            if (!IN_TELEGRAM) { box.innerHTML = '<div class="kx-empty">📱 Trade karne ke liye Telegram me kholo</div>'; return; }
+            const j = await kx('market');
+            if (j.error) {
+                if (!silent) apiErr(j);
+                if (!kxKeys.length) box.innerHTML = '<div class="kx-empty">⚠️ Market load nahi hua</div>';
+                return;
+            }
+            kxKeys = j.keys || [];
+            setAdmin(j.admin);
+            box.innerHTML = kxKeys.length ? kxKeys.map(k => {
+                const c = pctChg(k.open24, k.price);
+                const mine = Number(k.mypos) > 0 ? ` · ${k.mypos} open` : '';
+                return `<div class="kx-item" onclick="openKey(${k.id})">
+                    <div class="kx-av">${_esc(k.symbol.slice(0, 4))}</div>
+                    <div class="kx-mid">
+                        <div class="kx-sym">${_esc(k.symbol)}${k.paused ? '<span class="kx-pill">PAUSED</span>' : ''}</div>
+                        <div class="kx-name">${_esc(k.name)} · Vol ${fmtN(k.vol24, 0)}${mine}</div>
+                    </div>
+                    <div class="kx-right"><div class="kx-price">${fmtP(k.price)}</div>${chgHtml(c)}</div>
+                </div>`;
+            }).join('') : '<div class="kx-empty">Abhi koi key list nahi hai. Jald hi aayegi!</div>';
+        }
+
+        // ---------- KEY DETAIL ----------
+        function openKey(id) {
+            kxCur = kxKeys.find(k => k.id === id) || { id: id, symbol: '', name: '', price: 0, step: 100 };
+            kxTrades = []; kxPositions = []; kxMark = Number(kxCur.mark || kxCur.price || 0);
+            document.getElementById('mkListView').style.display = 'none';
+            document.getElementById('mkDetailView').style.display = 'flex';
+            document.getElementById('fdMargin').value = '';
+            if (!document.getElementById('fdLevChips').innerHTML)
+                document.getElementById('fdLevChips').innerHTML = [2, 5, 10, 25, 50, 100].map(l =>
+                    `<button class="chip" onclick="document.getElementById('fdLev').value=${l};renderFQuote();">${l}x</button>`).join('');
+            setFSide(fSide);
+            renderIvChips();
+            loadKey();
+        }
+        function closeKey() {
+            kxCur = null;
+            document.getElementById('mkDetailView').style.display = 'none';
+            document.getElementById('mkListView').style.display = 'flex';
+            loadMarket(true);
+        }
+        async function loadKey(silent) {
+            if (!kxCur) return;
+            const id = kxCur.id;
+            const j = await kx('key', { id: id });
+            if (!kxCur || kxCur.id !== id) return;
+            if (j.error) { if (!silent) apiErr(j); return; }
+            kxCur = j.key; kxTrades = j.trades || []; kxPositions = j.positions || [];
+            kxMark = Number(j.mark || kxCur.price); kxPool = Number(j.pool || 0);
+            document.getElementById('kdAv').innerText = kxCur.symbol.slice(0, 4);
+            document.getElementById('kdSym').innerHTML = _esc(kxCur.symbol) + (kxCur.paused ? '<span class="kx-pill">PAUSED</span>' : '');
+            document.getElementById('kdName').innerText = kxCur.name;
+            document.getElementById('kdPrice').innerText = fmtP(kxCur.price);
+            document.getElementById('kdChg').innerHTML = chgHtml(pctChg(kxCur.open24, kxCur.price)) + ' <small style="color:var(--muted);font-size:.65rem;">24h</small>';
+            document.getElementById('kdMark').innerText = 'Mark ' + fmtP(kxMark);
+            const L = Number(kxCur.oi_long), S = Number(kxCur.oi_short);
+            document.getElementById('kdOiL').innerText = 'Long ' + fmtN(L, 0);
+            document.getElementById('kdOiS').innerText = 'Short ' + fmtN(S, 0);
+            document.getElementById('kdOiBar').style.width = (L + S > 0 ? L / (L + S) * 100 : 50) + '%';
+            drawChart(); renderFQuote(); renderFPos(); renderTrades();
+        }
+
+        function setFSide(sd) {
+            fSide = sd;
+            document.getElementById('fdLong').classList.toggle('on', sd === 'long');
+            document.getElementById('fdShort').classList.toggle('on', sd === 'short');
+            document.getElementById('fdGo').classList.toggle('sell', sd === 'short');
+            renderFQuote();
+        }
+        function setFMargin(v) {
+            const lev = Number(document.getElementById('fdLev').value) || 1;
+            // MAX: margin + open fee aapke points me fit ho
+            document.getElementById('fdMargin').value = v === 'max'
+                ? Math.max(0, Math.min(100000, Math.floor((tokens - 1) / (1 + lev * KX_ADMIN_FEE)))) : v;
+            renderFQuote();
+        }
+        function renderFQuote() {
+            if (!kxCur) return;
+            const lev = Number(document.getElementById('fdLev').value) || 1;
+            document.getElementById('fdLevTxt').innerText = lev + 'x';
+            document.getElementById('fdAvail').innerText = 'Available: ' + fmtN(tokens, 0) + ' 🪙';
+            const m = Math.floor(Number(document.getElementById('fdMargin').value) || 0);
+            const r = openCalc(kxCur.price, kxCur.step, fSide, m, lev), row = (a, b) => `<div><span>${a}</span><b>${b}</b></div>`;
+            const q = document.getElementById('fdQuote'), go = document.getElementById('fdGo');
+            q.innerHTML = row('Position size', fmtN(r.size, 0)) +
+                row('Price', `${fmtP(kxCur.price)} → ${fmtP(m > 0 ? r.np : kxCur.price)}`) +
+                row('Entry (average)', fmtP(m > 0 ? r.entry : kxCur.price)) +
+                row('Liquidation', `<span style="color:#fb923c">${m > 0 ? fmtP(r.liq) : '-'}</span>`) +
+                row('Open fee (0.5% of size)', fmtN(r.fee, 0) + ' 🪙') + row('Close fee (approx)', fmtN(r.fee, 0) + ' 🪙') +
+                row('Total abhi katega', fmtN(r.total, 0) + ' 🪙') +
+                (m > 0 && lev >= 20 ? `<div class="kx-warn">${lev}x pe open + close fee milake margin ka ~${Math.round(lev)}% kat jaata hai, aur price ~${(90 / lev).toFixed(2)}% ulta chalte hi liquidation ka khatra.</div>` : '');
+            const maxShort = Math.floor((Number(kxCur.price) - 0.000001) * Number(kxCur.step));
+            go.disabled = kxBusy || kxCur.paused || m < 100 || m > 100000 || r.total > tokens || kxPositions.length >= 5 || r.toZero;
+            go.innerText = m <= 0 ? 'Margin daalo' : m < 100 ? 'Min 100 margin' : m > 100000 ? 'Max 1,00,000 margin'
+                : r.total > tokens ? 'G-Points kam hain' : kxPositions.length >= 5 ? 'Max 5 positions'
+                : r.toZero ? `Short size max ${fmtN(maxShort, 0)} (price zero ho jaayega)`
+                : `Open ${fSide === 'long' ? 'Long' : 'Short'} ${lev}x`;
+            if (kxCur.paused) go.innerText = '⏸ Naye trade band hain';
+        }
+        async function openPos() {
+            if (kxBusy || !kxCur) return;
+            const m = Math.floor(Number(document.getElementById('fdMargin').value) || 0);
+            const lev = Number(document.getElementById('fdLev').value) || 1;
+            const go = document.getElementById('fdGo');
+            kxBusy = true; go.disabled = true; go.innerText = '⏳ Opening...';
+            await flushTaps();
+            const j = await kx('f_open', { id: kxCur.id, side: fSide, margin: m, lev: lev });
+            kxBusy = false;
+            if (j.error) { apiErr(j); renderFQuote(); return; }
+            triggerHaptic('success');
+            showToast(`✅ ${fSide === 'long' ? 'Long' : 'Short'} ${lev}x @ ${fmtP(j.position.entry)} · Liq ${fmtP(j.position.liq)}`, '#4ade80');
+            document.getElementById('fdMargin').value = '';
+            await loadKey(true);
+        }
+        async function closePos(pid) {
+            if (kxBusy) return;
+            kxBusy = true;
+            await flushTaps();
+            const j = await kx('f_close', { pid: pid });
+            kxBusy = false;
+            if (j.error) { apiErr(j); if (window.kxCurOpen()) loadKey(true); loadPortfolioIfOpen(); return; }
+            triggerHaptic(j.liquidated ? 'error' : 'success');
+            if (j.liquidated) showToast('💥 Position liquidate ho chuki thi', '#f87171');
+            else {
+                const capped = Number(j.full_pnl) > Number(j.pnl) + 0.5 ? ' (pool limit)' : '';
+                showToast(`✅ Band @ ${fmtP(j.exit)} · P&L ${Number(j.pnl) >= 0 ? '+' : ''}${fmtN(j.pnl, 0)}${capped} · ${fmtN(j.payout, 0)} 🪙 mile`,
+                    Number(j.pnl) >= 0 ? '#4ade80' : '#f87171');
+            }
+            if (window.kxCurOpen()) await loadKey(true);
+            loadPortfolioIfOpen();
+        }
+        function loadPortfolioIfOpen() {
+            const act = document.querySelector('.tab-content.active-content');
+            if (act && act.id === 'tabMyWallet') loadPortfolio();
+        }
+        function posCard(p, price, step, mark, showSym) {
+            const lv = closeCalc(p, price, step);
+            return `<div class="kx-pos">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-weight:900;">${showSym ? _esc(p.symbol) + ' ' : ''}<span class="kx-lev ${p.side}">${p.side.toUpperCase()} ${p.lev}x</span></div>
+                    <div class="${lv.pnl >= 0 ? 'up' : 'down'}" style="font-weight:900;">${lv.pnl >= 0 ? '+' : ''}${fmtN(lv.pnl, 0)} <small>(${lv.roe >= 0 ? '+' : ''}${lv.roe.toFixed(1)}%)</small></div>
+                </div>
+                <div class="kx-pos-g">
+                    <div>Size<b>${fmtN(p.size, 0)}</b></div><div>Margin<b>${fmtN(p.margin, 0)}</b></div><div>Band karo to<b>${fmtN(lv.payout, 0)}</b></div>
+                    <div>Entry<b>${fmtP(p.entry)}</b></div><div>Exit (abhi)<b>${fmtP(lv.exit)}</b></div><div>Liq.<b style="color:#fb923c">${fmtP(p.liq)}</b></div>
+                </div>
+                <div style="font-size:.66rem;color:var(--muted);">Mark ${fmtP(mark)} · Mark liq ${fmtP(p.mliq || p.liq)}</div>
+                <button class="kx-btn2 ${lv.pnl >= 0 ? 'green' : 'red'}" style="width:100%;" onclick="closePos(${p.id})">Close position</button>
+            </div>`;
+        }
+        function renderFPos() {
+            const el = document.getElementById('kdFPos');
+            el.innerHTML = kxPositions.length ? kxPositions.map(p => posCard(p, kxCur.price, kxCur.step, kxMark, false)).join('')
+                : '<div class="kx-empty">Is key me aapki koi position khuli nahi hai</div>';
+        }
+        const SIDE_TXT = { long: ['LONG', 'up'], short: ['SHORT', 'down'], close_long: ['CLOSE L', 'down'], close_short: ['CLOSE S', 'up'], liq_long: ['LIQ L', 'down'], liq_short: ['LIQ S', 'up'] };
+        function renderTrades() {
+            const el = document.getElementById('kdTrades');
+            const list = kxTrades.slice(-15).reverse();
+            el.innerHTML = list.length ? list.map(t => {
+                const [lbl, cls] = SIDE_TXT[t.side] || [t.side.toUpperCase(), ''];
+                return `<div class="kx-row"><span class="${cls}" style="font-weight:900;min-width:58px;">${lbl}</span>
+                    <span>${fmtN(t.pts, 0)}</span><span>${fmtP(t.p0)} → ${fmtP(t.p1)}</span><small>${ago(t.t)}</small></div>`;
+            }).join('') : '<div class="kx-empty">Abhi koi trade nahi hua</div>';
+        }
+
+        // ---------- CHART (candles, canvas) ----------
+        const KX_IVS = [['1m', 60000], ['5m', 300000], ['1H', 3600000], ['1D', 86400000]];
+        function renderIvChips() {
+            document.getElementById('kdIv').innerHTML = KX_IVS.map(([l, v]) =>
+                `<button class="chip ${v === kxIv ? 'on' : ''}" onclick="kxIv=${v};renderIvChips();drawChart();">${l}</button>`).join('');
+        }
+        function drawChart() {
+            const cv = document.getElementById('kxChart');
+            if (!cv || !kxCur) return;
+            const dpr = window.devicePixelRatio || 1, W = cv.clientWidth || 320, H = cv.clientHeight || 210;
+            cv.width = W * dpr; cv.height = H * dpr;
+            const c = cv.getContext('2d');
+            c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+            const map = new Map();
+            kxTrades.forEach(t => {
+                const b = Math.floor(t.t / kxIv) * kxIv, p0 = Number(t.p0), p1 = Number(t.p1);
+                let d = map.get(b);
+                if (!d) { d = { t: b, o: p0, h: Math.max(p0, p1), l: Math.min(p0, p1), c: p1 }; map.set(b, d); }
+                else { d.h = Math.max(d.h, p0, p1); d.l = Math.min(d.l, p0, p1); d.c = p1; }
+            });
+            let cds = [...map.values()].sort((a, b) => a.t - b.t).slice(-48);
+            const lp = Number(kxCur.price);
+            if (!cds.length) cds = [{ t: Date.now(), o: lp, h: lp, l: lp, c: lp }];
+            const padR = 54, padT = 10, padB = 16, cw = W - padR, ch = H - padT - padB;
+            const extra = [kxMark].concat(...kxPositions.map(p => [Number(p.entry), Number(p.liq)])).filter(v => v > 0);
+            let lo = Math.min(lp, ...extra, ...cds.map(d => d.l)), hi = Math.max(lp, ...extra, ...cds.map(d => d.h));
+            if (hi - lo < 1e-9) { const e = Math.max(0.5, hi * 0.02); hi += e; lo -= e; }
+            const pad = (hi - lo) * 0.1; hi += pad; lo = Math.max(0, lo - pad);
+            const y = v => padT + (hi - v) / (hi - lo) * ch;
+            c.font = '10px Outfit, sans-serif'; c.lineWidth = 1;
+            for (let i = 0; i <= 3; i++) {
+                const v = lo + (hi - lo) * i / 3, yy = Math.round(y(v)) + .5;
+                c.strokeStyle = 'rgba(255,255,255,0.06)'; c.beginPath(); c.moveTo(0, yy); c.lineTo(cw, yy); c.stroke();
+                c.fillStyle = '#94a3b8'; c.fillText(fmtP(v), cw + 6, yy + 3);
+            }
+            const n = Math.max(cds.length, 24), slot = cw / n, bw = Math.max(2, slot * 0.62);
+            cds.forEach((d, i) => {
+                const x = cw - (cds.length - i) * slot + slot / 2, col = d.c >= d.o ? '#4ade80' : '#f87171';
+                c.strokeStyle = col; c.fillStyle = col;
+                c.beginPath(); c.moveTo(x, y(d.h)); c.lineTo(x, y(d.l)); c.stroke();
+                const top = y(Math.max(d.o, d.c));
+                c.fillRect(x - bw / 2, top, bw, Math.max(1.5, Math.abs(y(d.o) - y(d.c))));
+            });
+            const ly = Math.round(y(lp)) + .5;
+            c.setLineDash([3, 3]); c.strokeStyle = 'rgba(56,189,248,0.7)';
+            c.beginPath(); c.moveTo(0, ly); c.lineTo(cw, ly); c.stroke(); c.setLineDash([]);
+            c.fillStyle = '#0284c7'; c.fillRect(cw + 2, ly - 8, padR - 2, 16);
+            c.fillStyle = '#fff'; c.fillText(fmtP(lp), cw + 6, ly + 3);
+            const hline = (v, col, lbl, lx) => {
+                const yy = Math.round(y(v)) + .5;
+                c.setLineDash([2, 4]); c.strokeStyle = col; c.beginPath(); c.moveTo(0, yy); c.lineTo(cw, yy); c.stroke(); c.setLineDash([]);
+                c.fillStyle = col; c.fillText(lbl, lx, yy - 3);
+            };
+            if (kxMark > 0) hline(kxMark, 'rgba(245,200,66,0.9)', 'Mark', 4);
+            kxPositions.forEach((p, i) => {
+                hline(Number(p.entry), 'rgba(226,232,240,0.6)', 'Entry', cw * 0.3 + i * 8);
+                hline(Number(p.liq), 'rgba(251,146,60,0.95)', 'Liq ' + p.lev + 'x', cw * 0.55 + i * 8);
+            });
+            c.fillStyle = '#94a3b8';
+            if (!kxTrades.length) { c.textAlign = 'center'; c.fillText('Abhi koi trade nahi', cw / 2, padT + ch / 2 - 12); c.textAlign = 'left'; }
+            else {
+                const tf = t => { const d = new Date(t); return kxIv >= 86400000 ? (d.getDate() + '/' + (d.getMonth() + 1)) : d.toTimeString().slice(0, 5); };
+                c.fillText(tf(cds[0].t), Math.max(0, cw - cds.length * slot), H - 3);
+                c.textAlign = 'right'; c.fillText(tf(cds[cds.length - 1].t), cw, H - 3); c.textAlign = 'left';
+            }
+        }
+        window.addEventListener('resize', () => { if (window.kxCurOpen()) drawChart(); });
+
+        // ---------- WALLET (Telegram-linked Ed25519 keypair) ----------
+        const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        function b58(u8) {
+            const d = [0];
+            for (const byte of u8) {
+                let carry = byte;
+                for (let j = 0; j < d.length; j++) { carry += d[j] << 8; d[j] = carry % 58; carry = (carry / 58) | 0; }
+                while (carry) { d.push(carry % 58); carry = (carry / 58) | 0; }
+            }
+            let s = '';
+            for (const b of u8) { if (b === 0) s += '1'; else break; }
+            for (let i = d.length - 1; i >= 0; i--) s += B58[d[i]];
+            return s;
+        }
+        const b64e = u8 => btoa(String.fromCharCode.apply(null, Array.from(u8)));
+        const b64d = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+        function hasCloud() { try { const w = window.Telegram.WebApp; return !!(w.CloudStorage && w.isVersionAtLeast && w.isVersionAtLeast('6.9')); } catch (e) { return false; } }
+        function cloudGet(k) {
+            return new Promise(res => {
+                if (hasCloud()) { try { window.Telegram.WebApp.CloudStorage.getItem(k, (e, v) => res(e ? null : (v || null))); return; } catch (e) { } }
+                try { res(localStorage.getItem(k)); } catch (e) { res(null); }
+            });
+        }
+        function cloudSet(k, v) {
+            return new Promise(res => {
+                if (hasCloud()) { try { window.Telegram.WebApp.CloudStorage.setItem(k, v, () => res(true)); return; } catch (e) { } }
+                try { localStorage.setItem(k, v); } catch (e) { }
+                res(true);
+            });
+        }
+        async function initKeypair() {
+            if (!window.nacl) { document.getElementById('wlAddr').innerText = '⚠️ Crypto library load nahi hui'; return; }
+            const key = 'gz_seed_' + tgUser.id;
+            let s = await cloudGet(key);
+            if (s) { try { mySeed = b64d(s); if (mySeed.length !== 32) mySeed = null; } catch (e) { mySeed = null; } }
+            if (!mySeed) { mySeed = nacl.randomBytes(32); await cloudSet(key, b64e(mySeed)); }
+            const kp = nacl.sign.keyPair.fromSeed(mySeed);
+            myAddr = 'GZ' + b58(kp.publicKey);
+            document.getElementById('wlAddr').innerText = myAddr;
+            if (IN_TELEGRAM && kxMePub !== myAddr) { const j = await kx('set_pubkey', { pubkey: myAddr }); if (!j.error) kxMePub = myAddr; }
+        }
+        function copyAddr() {
+            if (!myAddr) return;
+            const done = () => showToast('📋 Address copied', '#4ade80');
+            if (navigator.clipboard) navigator.clipboard.writeText(myAddr).then(done, () => showToast(myAddr, '#94a3b8'));
+            else showToast(myAddr, '#94a3b8');
+        }
+        function showBackup() {
+            if (!mySeed) return;
+            const reveal = ok => {
+                if (!ok) return;
+                const el = document.getElementById('wlBackup');
+                el.innerText = '🔐 Secret key (kisi ko mat dikhana): ' + b58(mySeed);
+                el.style.display = 'block';
+            };
+            const msg = 'Secret key kisi ke saath share mat karo. Dikhaun?';
+            try { if (window.Telegram.WebApp.showConfirm && IN_TELEGRAM) return window.Telegram.WebApp.showConfirm(msg, reveal); } catch (e) { }
+            reveal(confirm(msg));
+        }
+
+        async function loadPortfolio() {
+            document.getElementById('wlPts').innerText = fmtN(tokens, 0);
+            if (!IN_TELEGRAM) { document.getElementById('wlFut').innerHTML = '<div class="kx-empty">📱 Telegram me kholo</div>'; return; }
+            const j = await kx('portfolio');
+            if (j.error) { apiErr(j); return; }
+            const fp = j.positions || [];
+            let live = 0, mg = 0;
+            fp.forEach(p => { live += closeCalc(p, p.price, p.kstep).pnl; mg += Number(p.margin); });
+            document.getElementById('wlPts').innerText = fmtN(tokens, 0);
+            document.getElementById('wlMargin').innerText = fmtN(mg, 0);
+            const fe = document.getElementById('wlFPnl');
+            fe.innerText = (live >= 0 ? '+' : '') + fmtN(live, 0); fe.className = live >= 0 ? 'up' : 'down';
+            const rl = Number(j.realized || 0), re = document.getElementById('wlReal');
+            re.innerText = (rl >= 0 ? '+' : '') + fmtN(rl, 0); re.className = rl >= 0 ? 'up' : 'down';
+            document.getElementById('wlFut').innerHTML = fp.length
+                ? fp.map(p => `<div onclick="if(event.target.tagName!=='BUTTON')goKey(${p.key_id})" style="cursor:pointer;">${posCard(p, p.price, p.kstep, Number(p.mark), true)}</div>`).join('')
+                : '<div class="kx-empty">Koi position khuli nahi hai. Market me jaake Long ya Short lo!</div>';
+            const hist = j.fhistory || [];
+            document.getElementById('wlHist').innerHTML = hist.length ? hist.map(p => `<div class="kx-row">
+                <span><span class="kx-lev ${p.side}" style="margin:0;">${p.side.toUpperCase()} ${p.lev}x</span> ${_esc(p.symbol)}</span>
+                <span class="${Number(p.pnl) >= 0 ? 'up' : 'down'}">${p.status === 'liquidated' ? '💥 Liq.' : (Number(p.pnl) >= 0 ? '+' : '') + fmtN(p.pnl, 0)}</span>
+                <span>${fmtN(p.payout, 0)} 🪙</span><small>${ago(p.t)}</small></div>`).join('')
+                : '<div class="kx-empty">Abhi koi trade nahi</div>';
+        }
+        function goKey(id) {
+            switchTab('tabMarket', document.getElementById('navMarket'));
+            const open = () => openKey(id);
+            if (kxKeys.find(k => k.id === id)) open(); else loadMarket(true).then(open);
+        }
+
+        // ---------- ADMIN ----------
+        function setAdmin(f) {
+            kxIsAdmin = !!f;
+            const b = document.getElementById('btnAdmin');
+            if (b) b.style.display = kxIsAdmin ? 'inline-block' : 'none';
+        }
+        async function loadAdmin() {
+            if (!kxIsAdmin) return;
+            const [s, t, su] = await Promise.all([kx('a_stats'), kx('a_top'), kx('a_sus')]);
+            if (s.error) return apiErr(s);
+            const st = s.stats || {}, box = (l, v) => `<div class="kx-stat"><span>${l}</span><b>${v}</b></div>`;
+            document.getElementById('adStats').innerHTML =
+                box('Users', fmtN(st.users, 0)) + box('Active 24h', fmtN(st.active24, 0)) +
+                box('New 24h', fmtN(st.new24, 0)) + box('Banned', fmtN(st.banned, 0)) +
+                box('Points with users', fmtN(st.points, 0)) + box('Keys', fmtN((s.keys || []).length, 0)) +
+                box('Trades 24h', fmtN(st.trades24, 0)) + box('Volume 24h', fmtN(st.vol24, 0)) +
+                box('Futures pool', fmtN(st.pool, 0)) + box('Open interest', fmtN(st.oi, 0)) +
+                box('Open positions', fmtN(st.open_pos, 0)) + box('Liquidations 24h', fmtN(st.liq24, 0));
+            document.getElementById('adWallet').innerHTML = fmtN(st.admin_wallet, 2) + ' 🪙 <small style="font-size:.7rem;color:var(--muted);">kul kamaai ' + fmtN(st.admin_total, 0) + '</small>';
+            document.getElementById('adKeys').innerHTML = (s.keys || []).map(k => `<div class="kx-row">
+                <div><b>${_esc(k.symbol)}</b> <small>${_esc(k.name)}</small><br>
+                <small>Price ${fmtP(k.price)} · Mark ${fmtP(k.mark)} · Step ${fmtN(k.step, 0)}<br>
+                Long ${fmtN(k.oi_long, 0)} / Short ${fmtN(k.oi_short, 0)} · Traders ${k.traders} · Vol24 ${fmtN(k.vol24, 0)}</small></div>
+                <button class="kx-btn2 ${k.paused ? 'green' : 'red'}" onclick="adToggle(${k.id},${!k.paused})">${k.paused ? '▶ Resume' : '⏸ Pause'}</button></div>`).join('')
+                || '<div class="kx-empty">Koi key nahi. Upar se banao.</div>';
+            document.getElementById('adTop').innerHTML = (t.top || []).map((r, i) => `<div class="kx-row" style="cursor:pointer;" onclick="adFind('${_esc(r.id)}')">
+                <span>#${i + 1} <b>${_esc(r.name || r.id)}</b></span><span>${fmtN(r.vol, 0)}</span>
+                <span class="${Number(r.pnl) >= 0 ? 'up' : 'down'}">${Number(r.pnl) >= 0 ? '+' : ''}${fmtN(r.pnl, 0)}</span><small>${r.n} trades</small></div>`).join('')
+                || '<div class="kx-empty">Abhi koi trade nahi</div>';
+            document.getElementById('adSus').innerHTML = (su.sus || []).map(r => `<div class="kx-row" style="cursor:pointer;" onclick="adFind('${_esc(r.id)}')">
+                <span><b>${_esc(r.name || r.id)}</b>${r.banned ? '<span class="kx-pill">BANNED</span>' : ''}<br><small>${_esc(r.id)}</small></span>
+                <span>${r.idle}/${r.total} idle</span></div>`).join('')
+                || '<div class="kx-empty">Kuch shaky nahi mila ✅</div>';
+        }
+        async function adWallet(action) {
+            const amt = Math.floor(Number(document.getElementById('adAmt').value) || 0);
+            if (amt < 1) return showToast('⚠️ Amount daalo', '#f87171');
+            const j = await kx(action, { amount: amt });
+            if (j.error) return apiErr(j);
+            showToast(action === 'a_withdraw' ? `✅ ${fmtN(amt, 0)} 🪙 aapke G-Points me` : `✅ ${fmtN(amt, 0)} 🪙 futures pool me`, '#4ade80');
+            document.getElementById('adAmt').value = '';
+            loadAdmin();
+        }
+        async function adCreate() {
+            const d = {
+                name: document.getElementById('adName').value.trim(),
+                symbol: document.getElementById('adSym').value.trim().toUpperCase(),
+                price: document.getElementById('adPrice').value || '100',
+                step: document.getElementById('adStep').value || '10000'
+            };
+            const j = await kx('a_create', d);
+            if (j.error) return apiErr(j);
+            showToast('✅ ' + d.symbol + ' key ban gayi', '#4ade80');
+            ['adName', 'adSym', 'adPrice', 'adStep'].forEach(id => document.getElementById(id).value = '');
+            kxKeys = []; loadAdmin();
+        }
+        async function adToggle(id, pause) {
+            const j = await kx(pause ? 'a_pause' : 'a_resume', { id: id });
+            if (j.error) return apiErr(j);
+            showToast(pause ? '⏸ Paused' : '▶ Resumed', '#94a3b8');
+            loadAdmin();
+        }
+        function adFind(uid) { document.getElementById('adUid').value = uid; adLookup(); }
+        async function adLookup() {
+            const uid = document.getElementById('adUid').value.trim();
+            const el = document.getElementById('adUser');
+            if (!uid) return;
+            const j = await kx('a_user', { uid: uid });
+            if (j.error) { el.innerHTML = ''; return apiErr(j); }
+            const u = j.user, r = (a, b) => `<div class="kx-row"><span>${a}</span><b>${b}</b></div>`;
+            el.innerHTML = r('Name', _esc(u.name || '-')) + r('ID', _esc(u.id)) + r('G-Points', fmtN(u.tokens, 0)) +
+                r('Diamonds / Friends', u.diamonds + ' / ' + u.friends) + r('Invited (idle)', u.invited + ' (' + u.invited_idle + ')') +
+                r('Trades / Open', u.trades + ' / ' + u.open_pos) + r('Futures P&L', fmtN(u.fut_pnl, 0)) +
+                r('Joined', new Date(u.created_at).toLocaleDateString()) +
+                r('Last active', ago(new Date(u.last_active).getTime()) + ' ago') + r('Referred by', _esc(u.referred_by || '-')) +
+                r('Status', u.banned ? '<span class="down">BANNED</span>' : '<span class="up">OK</span>') +
+                `<button class="kx-btn2 ${u.banned ? 'green' : 'red'}" style="width:100%;margin-top:8px;" onclick="adBan('${_esc(u.id)}',${!u.banned})">${u.banned ? '✅ Unban' : '⛔ Ban user'}</button>`;
+        }
+        async function adBan(uid, ban) {
+            const j = await kx(ban ? 'a_ban' : 'a_unban', { uid: uid });
+            if (j.error) return apiErr(j);
+            showToast(ban ? '⛔ User banned' : '✅ User unbanned', '#94a3b8');
+            adLookup(); loadAdmin();
+        }
+
+        // ---------- BOOT + auto refresh ----------
+        async function kxBoot() {
+            const j = await kx('me');
+            if (!j.error) { setAdmin(j.admin); kxMePub = j.pubkey || ''; }
+            initKeypair();
+        }
+        setInterval(() => {
+            if (document.visibilityState !== 'visible' || kxBusy) return;
+            const act = document.querySelector('.tab-content.active-content');
+            if (!act) return;
+            if (act.id === 'tabMarket') { if (window.kxCurOpen()) loadKey(true); else loadMarket(true); }
+            else if (act.id === 'tabMyWallet') loadPortfolio();
+        }, 6000);
+        if (!IN_TELEGRAM) initKeypair();
+    </script>
+
     <!-- Replace every 🪙 emoji (static + dynamic text) with the G coin icon -->
     <script>
         (function () {
@@ -3935,13 +4328,11 @@ create table if not exists public.users (
   friends          int     not null default 0,
   energy           int     not null default 1000,
   energy_ts        timestamptz not null default now(),
-  wallet           text,
   streak           int     not null default 0,
   last_daily       text,
   puzzle_at        timestamptz,
   puzzle_try_at    timestamptz,
   ad_task_at       timestamptz,
-  video_at         timestamptz,
   tasks_done       jsonb   not null default '{}'::jsonb,
   referred_by      text,
   pending_double   jsonb,
@@ -3957,11 +4348,15 @@ alter table public.users add column if not exists last_daily text;
 alter table public.users add column if not exists puzzle_at timestamptz;
 alter table public.users add column if not exists puzzle_try_at timestamptz;
 alter table public.users add column if not exists ad_task_at timestamptz;
-alter table public.users add column if not exists video_at timestamptz;
+-- daily video task hata diya: uska column aur bache timers bhi
+alter table public.users drop column if exists video_at;
+update public.users set tasks_done = tasks_done - '_vs' - '_vd' where tasks_done ? '_vs' or tasks_done ? '_vd';
 alter table public.users add column if not exists tasks_done jsonb not null default '{}'::jsonb;
 alter table public.users add column if not exists referred_by text;
 alter table public.users add column if not exists pending_double jsonb;
 alter table public.users add column if not exists created_at timestamptz not null default now();
+-- purana Solana/TON wallet feature hata diya: saved addresses bhi delete
+alter table public.users drop column if exists wallet;
 
 create table if not exists public.app_secrets (
   key   text primary key,
@@ -3969,9 +4364,10 @@ create table if not exists public.app_secrets (
 );
 insert into public.app_secrets(key, value) values
   ('bot_token',  'PASTE_BOT_TOKEN_HERE'),
-  ('tg_channel', '@genzgame1')
+  ('tg_channel', '@genzgame1'),
+  ('admin_ids',  'PASTE_ADMIN_ID')           -- apna Telegram user ID (kai ho to: 111,222)
 on conflict (key) do update set value = excluded.value
-  where excluded.value <> 'PASTE_BOT_TOKEN_HERE';   -- dobara run karne par token reset nahi hoga
+  where excluded.value not like 'PASTE%';   -- dobara run karne par token/admin reset nahi hoga   -- dobara run karne par token reset nahi hoga
 
 -- ---------------------------------------------------------------- RLS lock
 alter table public.users       enable row level security;
@@ -4068,14 +4464,13 @@ declare
 begin
   return jsonb_build_object(
     'tokens', u.tokens, 'diamonds', u.diamonds, 'friends', u.friends,
-    'energy', u.energy, 'wallet', coalesce(u.wallet, ''),
+    'energy', u.energy,
     'streak', case when u.last_daily in (today, yday) then u.streak else 0 end,
     'claimedToday', coalesce(u.last_daily = today, false),
     'puzzleDone',  coalesce(u.puzzle_at     >= rs, false),
     'puzzleTried', coalesce(u.puzzle_try_at >= rs, false),
     'adTaskDone',  coalesce(u.ad_task_at    >= rs, false),
-    'videoDone',   coalesce(u.video_at      >= rs, false),
-    'tasks', coalesce(u.tasks_done, '{}'::jsonb) - '_pz' - '_vs' - '_vd' - '_s_yt' - '_s_tg' - '_rf' - '_tp',
+    'tasks', coalesce(u.tasks_done, '{}'::jsonb) - '_pz' - '_s_yt' - '_s_tg' - '_rf' - '_tp',
     'nextReset', (extract(epoch from rs) * 1000)::bigint + 86400000
   );
 end $$;
@@ -4112,7 +4507,7 @@ declare
   gained int; res jsonb := '{}'::jsonb; fresh public.users%rowtype;
   taps numeric; ms numeric; maxrate int; applied int;
   idx int; amt bigint; k text; sp text; ref text; pd jsonb; rf jsonb;
-  vs bigint; vd numeric; started bigint; took bigint; w text; ok boolean;
+  started bigint; took bigint; ok boolean;
   daily bigint[] := array[1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,0];
 begin
   a := public._verify_init(p_init);
@@ -4124,6 +4519,7 @@ begin
   get diagnostics n = row_count;
   is_new := (n = 1);
   select * into u from public.users where id = uid for update;   -- per-user lock, race nahi
+  if coalesce(u.banned, false) then return jsonb_build_object('error', 'banned'); end if;
 
   -- energy regen: 1 / 3s
   gained := floor(extract(epoch from (now() - u.energy_ts)) / 3)::int;
@@ -4215,30 +4611,6 @@ begin
       u.ad_task_at := now();
       res := jsonb_build_object('amount', 2500);
 
-    when 'video_start' then
-      if coalesce(u.video_at >= rs, false) then
-        return jsonb_build_object('error', 'already_claimed', 'state', public._state(u));
-      end if;
-      u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb) || jsonb_build_object('_vs', public._ms(),
-        '_vd', greatest(0, coalesce(nullif(p_data->>'duration', '')::numeric, 0)));
-      res := jsonb_build_object('started', true);
-
-    when 'video_claim' then
-      if coalesce(u.video_at >= rs, false) then
-        return jsonb_build_object('error', 'already_claimed', 'state', public._state(u));
-      end if;
-      vs := coalesce((u.tasks_done->>'_vs')::bigint, 0);
-      vd := coalesce((u.tasks_done->>'_vd')::numeric, 0);
-      -- duration ka ~85% asli time guzarna zaroori
-      if vs = 0 or vd = 0 or public._ms() - vs < vd * 1000 * 0.85 then
-        return jsonb_build_object('error', 'watch_full_video', 'state', public._state(u));
-      end if;
-      u.tasks_done := u.tasks_done - '_vs' - '_vd';
-      u.tokens := u.tokens + 5000;
-      u.video_at := now();
-      u.pending_double := jsonb_build_object('type', 'token', 'amount', 5000, 'exp', public._ms() + 600000);
-      res := jsonb_build_object('amount', 5000);
-
     when 'social_start' then
       k := p_data->>'key';
       if k not in ('yt', 'tg') then
@@ -4296,24 +4668,15 @@ begin
       u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb) || jsonb_build_object('_rf', rf);
       res := jsonb_build_object('amount', 1000);
 
-    when 'wallet' then
-      w := btrim(coalesce(p_data->>'wallet', ''));
-      if not (w ~ '^[1-9A-HJ-NP-Za-km-z]{32,44}$'
-           or w ~ '^[UEkQ0][A-Za-z0-9_-]{47}$'
-           or w ~ '^-?[0-9]:[0-9a-fA-F]{64}$') then
-        return jsonb_build_object('error', 'bad_wallet', 'state', public._state(u));
-      end if;
-      u.wallet := w;
-
     else
       return jsonb_build_object('error', 'unknown_action');
   end case;
 
   update public.users set
     name = coalesce(a->>'name', name), tokens = u.tokens, diamonds = u.diamonds,
-    friends = u.friends, energy = u.energy, energy_ts = u.energy_ts, wallet = u.wallet,
+    friends = u.friends, energy = u.energy, energy_ts = u.energy_ts,
     streak = u.streak, last_daily = u.last_daily, puzzle_at = u.puzzle_at,
-    puzzle_try_at = u.puzzle_try_at, ad_task_at = u.ad_task_at, video_at = u.video_at,
+    puzzle_try_at = u.puzzle_try_at, ad_task_at = u.ad_task_at,
     tasks_done = u.tasks_done, referred_by = u.referred_by, pending_double = u.pending_double,
     last_active = now()
   where id = uid;
@@ -4324,7 +4687,536 @@ exception when others then
   return jsonb_build_object('error', 'db', 'msg', sqlerrm);
 end $$;
 
--- sirf game() browser se bulaya ja sakta hai; baaki sab helper private
+
+-- =====================================================================
+-- KEY FUTURES (in-game, vAMM bonding curve) + WALLET + ADMIN
+-- Sab kuch sirf G-Points me. Koi asli paisa/crypto nahi.
+--
+-- Price sirf futures se hilta hai (virtual AMM, aapka bonding curve):
+--   LONG  size S  -> price + S/step  (virtual buy),  entry = (old+new)/2
+--   SHORT size S  -> price - S/step  (virtual sell), entry = (old+new)/2
+--   Close = ulta trade (long close price neeche, short close price upar).
+--   Akele kholo aur band karo to price wahi wapas aata hai -> khud ke trade se profit nahi.
+-- Liquidation: margin ka 90% loss, DO shart dono poori hon:
+--   (1) curve price liquidation price tak pahunche, AUR
+--   (2) MARK price (15 min average) bhi kholte waqt ke mark se utna hi (0.9/lev) ulta chale.
+--   Isse koi ek bada trade maar ke doosron ko turant liquidate nahi kar sakta.
+-- Commission: position size ka 0.5% kholte waqt + 0.5% band karte waqt -> admin wallet.
+-- Pool: haarne walon ka loss pool me, jeetne walon ka profit pool se. Pool me kam ho to
+--   us key ki baaki khuli positions ke margin tak udhaar (pool minus me ja sakta hai);
+--   jab wo band hoti hain to unka loss pool wapas bharta hai.
+-- =====================================================================
+alter table public.users add column if not exists banned boolean not null default false;
+alter table public.users add column if not exists chain_pubkey text;
+alter table public.users add column if not exists kx_last timestamptz;
+
+create table if not exists public.kx_keys (
+  id           bigserial primary key,
+  name         text    not null,
+  symbol       text    not null unique,
+  start_price  numeric not null,
+  price        numeric not null,
+  step         numeric not null default 100,
+  supply       numeric not null default 0,      -- purane spot ka (ab use nahi)
+  reserve      numeric not null default 0,      -- purane spot ka (ab use nahi)
+  fees_burned  numeric not null default 0,
+  paused       boolean not null default false,
+  created_at   timestamptz not null default now()
+);
+create table if not exists public.kx_holdings (    -- purane spot ka; migration ke baad khaali
+  user_id  text   not null,
+  key_id   bigint not null references public.kx_keys(id),
+  amount   numeric not null default 0,
+  cost     numeric not null default 0,
+  primary key (user_id, key_id)
+);
+create table if not exists public.kx_trades (      -- har price move (chart + mark price)
+  id       bigserial primary key,
+  key_id   bigint  not null references public.kx_keys(id),
+  user_id  text    not null,
+  side     text    not null,                     -- long / short / close_long / close_short / liq_long / liq_short
+  points   numeric not null,                     -- position size
+  qty      numeric not null,
+  fee      numeric not null,
+  p0       numeric not null,
+  p1       numeric not null,
+  ts       timestamptz not null default now()
+);
+create table if not exists public.kx_positions (
+  id           bigserial primary key,
+  user_id      text    not null,
+  key_id       bigint  not null references public.kx_keys(id),
+  side         text    not null,              -- long / short
+  lev          int     not null,
+  margin       numeric not null,
+  size         numeric not null,              -- margin * lev
+  entry        numeric not null,
+  liq          numeric not null,
+  fee_open     numeric not null default 0,
+  fee_close    numeric not null default 0,
+  status       text    not null default 'open',   -- open / closed / liquidated
+  close_price  numeric,
+  pnl          numeric,
+  payout       numeric,
+  opened_at    timestamptz not null default now(),
+  closed_at    timestamptz
+);
+alter table public.kx_positions add column if not exists qty numeric;   -- virtual keys (vAMM)
+alter table public.kx_positions add column if not exists mliq numeric;  -- mark-price liquidation level
+create table if not exists public.kx_wallets (
+  name      text primary key,                  -- 'admin' (commission) / 'pool' (futures pool)
+  balance   numeric not null default 0,
+  total_in  numeric not null default 0
+);
+insert into public.kx_wallets(name) values ('admin'), ('pool') on conflict do nothing;
+
+create index if not exists kx_trades_key_ts   on public.kx_trades(key_id, ts desc);
+create index if not exists kx_trades_user_ts  on public.kx_trades(user_id, ts desc);
+create index if not exists kx_pos_key_open    on public.kx_positions(key_id) where status = 'open';
+create index if not exists kx_pos_user        on public.kx_positions(user_id, opened_at desc);
+create index if not exists users_referred_by  on public.users(referred_by);
+
+alter table public.kx_keys      enable row level security;
+alter table public.kx_holdings  enable row level security;
+alter table public.kx_trades    enable row level security;
+alter table public.kx_positions enable row level security;
+alter table public.kx_wallets   enable row level security;
+revoke all on public.kx_keys      from anon, authenticated;
+revoke all on public.kx_holdings  from anon, authenticated;
+revoke all on public.kx_trades    from anon, authenticated;
+revoke all on public.kx_positions from anon, authenticated;
+revoke all on public.kx_wallets   from anon, authenticated;
+
+-- ---- EK BAAR: spot -> vAMM futures migration -----------------------------
+-- Spot holders ko unke hisse ka reserve wapas, purani futures positions ka margin
+-- wapas, purana price history saaf, har key ka price start price par.
+do $$
+begin
+  if not exists (select 1 from public.app_secrets where key = 'kx_vamm_migrated') then
+    update public.users us set tokens = us.tokens + q.refund
+      from (select hh.user_id,
+                   floor(sum(case when k.supply > 0 then hh.amount / k.supply * k.reserve else 0 end))::bigint as refund
+            from public.kx_holdings hh join public.kx_keys k on k.id = hh.key_id
+            group by hh.user_id) q
+      where us.id = q.user_id;
+    delete from public.kx_holdings;
+    update public.users us set tokens = us.tokens + q.m
+      from (select user_id, floor(sum(margin))::bigint as m from public.kx_positions
+            where status = 'open' group by user_id) q
+      where us.id = q.user_id;
+    update public.kx_positions set status = 'closed', pnl = 0, payout = margin, closed_at = now()
+      where status = 'open';
+    delete from public.kx_trades;
+    update public.kx_keys set price = start_price, supply = 0, reserve = 0;
+    insert into public.app_secrets(key, value) values ('kx_vamm_migrated', now()::text);
+  end if;
+end $$;
+
+-- admin wallet / pool me points jodo
+create or replace function public._kx_wallet_add(w text, amt numeric) returns void
+language sql as $$
+  update public.kx_wallets set balance = balance + amt,
+         total_in = total_in + greatest(amt, 0) where name = w;
+$$;
+
+-- MARK price: pichhle 15 minute ka time-weighted average curve price
+create or replace function public._kx_mark(kid bigint) returns numeric
+language plpgsql stable as $$
+declare
+  w interval := interval '15 minutes'; t0 timestamptz := now() - interval '15 minutes';
+  p numeric; lastt timestamptz := now() - interval '15 minutes'; acc numeric := 0; r record;
+begin
+  select tr.p1 into p from public.kx_trades tr where tr.key_id = kid and tr.ts <= t0
+    order by tr.ts desc, tr.id desc limit 1;
+  if p is null then select start_price into p from public.kx_keys where id = kid; end if;
+  if p is null then return null; end if;
+  for r in select tr.ts, tr.p1 from public.kx_trades tr where tr.key_id = kid and tr.ts > t0
+           order by tr.ts, tr.id loop
+    acc := acc + p * extract(epoch from (r.ts - lastt));
+    p := r.p1; lastt := r.ts;
+  end loop;
+  acc := acc + p * extract(epoch from (now() - lastt));
+  return round(acc / extract(epoch from w), 9);
+end $$;
+
+-- curve par position band karo: P&L, naya price, exit price
+create or replace function public._kx_close_px(p_side text, p numeric, q numeric, st numeric, sz numeric,
+                                               out pnl numeric, out np numeric, out ex numeric)
+language plpgsql immutable as $$
+declare g numeric;
+begin
+  if p_side = 'long' then
+    g := 2 * p * q / (2 + q / st);      -- virtual sell of q keys
+    np := p - g / st;
+    pnl := g - sz;
+  else
+    g := 2 * p * q / (2 - q / st);      -- virtual buy-back of q keys
+    np := p + g / st;
+    pnl := sz - g;
+  end if;
+  np := round(np, 9);
+  ex := case when q > 0 then round(g / q, 9) else p end;
+end $$;
+
+-- jin positions ka liquidation aa gaya unhe curve par band karo (margin -> pool)
+create or replace function public._kx_liq(kid bigint) returns int
+language plpgsql as $$
+declare m numeric; cp numeric; n int := 0; r record; k public.kx_keys%rowtype; c record;
+begin
+  m := public._kx_mark(kid);
+  select price into cp from public.kx_keys where id = kid;
+  if m is null or cp is null then return 0; end if;
+  if not exists (select 1 from public.kx_positions where key_id = kid and status = 'open'
+                 and ((side = 'long'  and cp <= liq and m <= coalesce(mliq, liq))
+                   or (side = 'short' and cp >= liq and m >= coalesce(mliq, liq)))) then
+    return 0;
+  end if;
+  select * into k from public.kx_keys where id = kid for update;
+  for r in select * from public.kx_positions
+           where key_id = kid and status = 'open'
+             and ((side = 'long'  and k.price <= liq and m <= coalesce(mliq, liq))
+               or (side = 'short' and k.price >= liq and m >= coalesce(mliq, liq)))
+           order by id for update skip locked loop
+    select * into c from public._kx_close_px(r.side, k.price, r.qty, k.step, r.size);
+    insert into public.kx_trades(key_id, user_id, side, points, qty, fee, p0, p1)
+      values (kid, r.user_id, 'liq_' || r.side, r.size, r.qty, 0, k.price, c.np);
+    update public.kx_keys set price = c.np where id = kid;
+    k.price := c.np;
+    update public.kx_positions set status = 'liquidated', close_price = c.ex, pnl = -r.margin,
+           payout = 0, closed_at = now() where id = r.id;
+    perform public._kx_wallet_add('pool', r.margin);
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
+create or replace function public._kx_pos_json(x public.kx_positions, sym text) returns jsonb
+language sql stable as $$
+  select jsonb_build_object('id', x.id, 'key_id', x.key_id, 'symbol', sym, 'side', x.side, 'lev', x.lev,
+    'margin', x.margin, 'size', x.size, 'qty', x.qty, 'entry', x.entry, 'liq', x.liq, 'mliq', x.mliq, 'status', x.status,
+    'fee_open', x.fee_open, 'fee_close', x.fee_close, 'close_price', x.close_price, 'pnl', x.pnl,
+    'payout', x.payout, 't', (extract(epoch from coalesce(x.closed_at, x.opened_at)) * 1000)::bigint);
+$$;
+
+create or replace function public.kx(p_action text, p_init text, p_data jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql security definer
+set search_path = public, extensions, pg_temp as $$
+declare
+  a jsonb; uid text; u public.users%rowtype; k public.kx_keys%rowtype; ps public.kx_positions%rowtype;
+  adm boolean := false; afr numeric := 0.005;
+  pts bigint; afee numeric; np numeric; gross numeric; pout bigint;
+  kid bigint; s text; t text; p numeric; st numeric; v jsonb;
+  lev int; mg bigint; sz numeric; lq numeric; oi numeric; pb numeric; pnl numeric; paid numeric;
+  ent numeric; qy numeric; ex numeric;
+begin
+  a := public._verify_init(p_init);
+  if a is null then return jsonb_build_object('error', 'unauthorized'); end if;
+  uid := a->>'id';
+  p_data := coalesce(p_data, '{}'::jsonb);
+
+  select * into u from public.users where id = uid;
+  if not found then return jsonb_build_object('error', 'not_registered'); end if;
+  if u.banned then return jsonb_build_object('error', 'banned'); end if;
+
+  select uid = any(string_to_array(replace(value, ' ', ''), ',')) into adm
+    from public.app_secrets where key = 'admin_ids';
+  adm := coalesce(adm, false);
+  if left(p_action, 2) = 'a_' and not adm then return jsonb_build_object('error', 'not_admin'); end if;
+
+  -- trade wale actions: per-user lock + 1.5s rate limit
+  if p_action in ('f_open', 'f_close') then
+    select * into u from public.users where id = uid for update;     -- lock order: user -> key -> position
+    if u.kx_last is not null and now() - u.kx_last < interval '1.5 seconds' then
+      return jsonb_build_object('error', 'too_fast');
+    end if;
+  end if;
+
+  -- ------------------------------------------------------------ user
+  if p_action = 'me' then
+    return jsonb_build_object('ok', true, 'admin', adm, 'pubkey', coalesce(u.chain_pubkey, ''), 'points', u.tokens);
+
+  elsif p_action = 'set_pubkey' then
+    s := btrim(coalesce(p_data->>'pubkey', ''));
+    if s !~ '^GZ[1-9A-HJ-NP-Za-km-z]{30,50}$' then return jsonb_build_object('error', 'bad_input'); end if;
+    update public.users set chain_pubkey = s where id = uid;
+    return jsonb_build_object('ok', true);
+
+  elsif p_action = 'market' then
+    perform public._kx_liq(x.id) from public.kx_keys x;
+    return jsonb_build_object('ok', true, 'admin', adm, 'points', u.tokens, 'keys', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', x.id, 'name', x.name, 'symbol', x.symbol, 'price', x.price, 'step', x.step,
+        'start', x.start_price, 'paused', x.paused, 'mark', public._kx_mark(x.id),
+        'open24', coalesce((select tr.p0 from public.kx_trades tr where tr.key_id = x.id
+                             and tr.ts > now() - interval '24 hours' order by tr.ts, tr.id limit 1), x.price),
+        'vol24',  coalesce((select sum(tr.points) from public.kx_trades tr where tr.key_id = x.id
+                             and tr.ts > now() - interval '24 hours'), 0),
+        'mypos',  (select count(*) from public.kx_positions xp where xp.user_id = uid and xp.key_id = x.id and xp.status = 'open')
+      ) order by x.paused, x.id) from public.kx_keys x), '[]'::jsonb));
+
+  elsif p_action = 'key' then
+    kid := nullif(p_data->>'id', '')::bigint;
+    perform public._kx_liq(kid);
+    select * into k from public.kx_keys where id = kid;
+    if not found then return jsonb_build_object('error', 'no_key'); end if;
+    return jsonb_build_object('ok', true, 'points', u.tokens,
+      'mark', public._kx_mark(kid),
+      'pool', (select balance from public.kx_wallets where name = 'pool'),
+      'key', jsonb_build_object('id', k.id, 'name', k.name, 'symbol', k.symbol, 'price', k.price, 'step', k.step,
+             'start', k.start_price, 'paused', k.paused,
+             'oi_long',  (select coalesce(sum(size), 0) from public.kx_positions where key_id = k.id and status = 'open' and side = 'long'),
+             'oi_short', (select coalesce(sum(size), 0) from public.kx_positions where key_id = k.id and status = 'open' and side = 'short'),
+             'open24', coalesce((select tr.p0 from public.kx_trades tr where tr.key_id = k.id
+                                  and tr.ts > now() - interval '24 hours' order by tr.ts, tr.id limit 1), k.price)),
+      'positions', coalesce((select jsonb_agg(public._kx_pos_json(xp, k.symbol) order by xp.opened_at desc)
+          from public.kx_positions xp where xp.user_id = uid and xp.key_id = kid and xp.status = 'open'), '[]'::jsonb),
+      'trades', coalesce((select jsonb_agg(jsonb_build_object(
+            't', (extract(epoch from q.ts) * 1000)::bigint, 'side', q.side, 'pts', q.points,
+            'qty', q.qty, 'p0', q.p0, 'p1', q.p1) order by q.ts, q.id)
+          from (select * from public.kx_trades where key_id = kid order by ts desc, id desc limit 600) q), '[]'::jsonb));
+
+  -- ------------------------------------------------------------ futures (vAMM)
+  elsif p_action = 'f_open' then
+    kid := nullif(p_data->>'id', '')::bigint;
+    s   := p_data->>'side';
+    mg  := floor(coalesce(nullif(p_data->>'margin', '')::numeric, 0))::bigint;
+    lev := floor(coalesce(nullif(p_data->>'lev', '')::numeric, 0))::int;
+    if s not in ('long', 'short') or lev < 1 or lev > 100 then return jsonb_build_object('error', 'bad_input'); end if;
+    if mg < 100 then return jsonb_build_object('error', 'min_margin'); end if;
+    if mg > 100000 then return jsonb_build_object('error', 'max_margin'); end if;
+    select * into k from public.kx_keys where id = kid for update;
+    if not found then return jsonb_build_object('error', 'no_key'); end if;
+    if k.paused then return jsonb_build_object('error', 'paused'); end if;
+    if (select count(*) from public.kx_positions where user_id = uid and key_id = kid and status = 'open') >= 5 then
+      return jsonb_build_object('error', 'max_pos');
+    end if;
+    perform public._kx_liq(kid);
+    select * into k from public.kx_keys where id = kid;
+    sz   := mg * lev;
+    afee := ceil(sz * afr);                                      -- 0.5% of position size
+    if u.tokens < mg + afee then
+      return jsonb_build_object('error', 'low_points', 'points', u.tokens);
+    end if;
+    select coalesce(sum(size), 0) into oi from public.kx_positions where key_id = kid and status = 'open';
+    select balance into pb from public.kx_wallets where name = 'pool';
+    if oi + sz > greatest(1000000, coalesce(pb, 0) * 20) then
+      return jsonb_build_object('error', 'oi_cap');
+    end if;
+    if s = 'long' then
+      np := round(k.price + sz / k.step, 9);
+    else
+      np := round(k.price - sz / k.step, 9);
+      -- sirf maths ki shart: price zero ya minus nahi ho sakta (game ka rule nahi)
+      if np <= 0.000001 then
+        return jsonb_build_object('error', 'price_zero', 'max_size', floor((k.price - 0.000001) * k.step));
+      end if;
+    end if;
+    ent := (k.price + np) / 2;
+    qy  := round(sz / ent, 12);
+    p   := public._kx_mark(kid);                                 -- mark at open
+    p   := case when s = 'long' then round(p * (1 - 0.9 / lev), 9) else round(p * (1 + 0.9 / lev), 9) end;
+    lq  := case when s = 'long' then round(ent * (1 - 0.9 / lev), 9) else round(ent * (1 + 0.9 / lev), 9) end;
+    update public.kx_keys set price = np where id = kid;
+    insert into public.kx_trades(key_id, user_id, side, points, qty, fee, p0, p1)
+      values (kid, uid, s, sz, qy, afee, k.price, np);
+    insert into public.kx_positions(user_id, key_id, side, lev, margin, size, qty, entry, liq, mliq, fee_open)
+      values (uid, kid, s, lev, mg, sz, qy, round(ent, 9), lq, p, afee) returning * into ps;
+    update public.users set tokens = tokens - mg - afee::bigint, kx_last = now(), last_active = now() where id = uid;
+    perform public._kx_wallet_add('admin', afee);
+    return jsonb_build_object('ok', true, 'position', public._kx_pos_json(ps, k.symbol), 'price', np,
+                              'points', u.tokens - mg - afee::bigint);
+
+  elsif p_action = 'f_close' then
+    select key_id into kid from public.kx_positions
+      where id = nullif(p_data->>'pid', '')::bigint and user_id = uid and status = 'open';
+    if not found then return jsonb_build_object('error', 'no_pos'); end if;
+    perform 1 from public.kx_keys where id = kid for update;
+    perform public._kx_liq(kid);
+    select * into ps from public.kx_positions
+      where id = nullif(p_data->>'pid', '')::bigint and user_id = uid and status = 'open' for update;
+    if not found then
+      update public.users set kx_last = now(), last_active = now() where id = uid;
+      return jsonb_build_object('ok', true, 'liquidated', true, 'payout', 0, 'points', u.tokens);
+    end if;
+    select * into k from public.kx_keys where id = kid;
+    select c.pnl, c.np, c.ex into pnl, np, ex from public._kx_close_px(ps.side, k.price, ps.qty, k.step, ps.size) c;
+    select balance into pb from public.kx_wallets where name = 'pool' for update;
+    if pnl >= 0 then
+      -- profit vault se: pool + baaki khuli positions ka margin (unka loss baad me pool bharega)
+      select coalesce(sum(margin), 0) into oi from public.kx_positions
+        where key_id = kid and status = 'open' and id <> ps.id;
+      paid := least(pnl, greatest(coalesce(pb, 0) + oi, 0));
+    else
+      paid := greatest(pnl, -ps.margin);                            -- loss margin se zyada nahi
+    end if;
+    perform public._kx_wallet_add('pool', -paid);
+    gross := ps.margin + paid;
+    afee  := least(ceil(ps.size * afr), floor(gross));              -- 0.5% of position size
+    pout  := floor(gross - afee)::bigint;
+    perform public._kx_wallet_add('admin', afee);
+    update public.kx_keys set price = np where id = kid;
+    insert into public.kx_trades(key_id, user_id, side, points, qty, fee, p0, p1)
+      values (kid, uid, 'close_' || ps.side, ps.size, ps.qty, afee, k.price, np);
+    update public.kx_positions set status = 'closed', close_price = ex, pnl = paid, fee_close = afee,
+           payout = pout, closed_at = now() where id = ps.id;
+    update public.users set tokens = tokens + pout, kx_last = now(), last_active = now() where id = uid;
+    return jsonb_build_object('ok', true, 'pnl', paid, 'full_pnl', pnl, 'fee', afee, 'payout', pout,
+                              'exit', ex, 'price', np, 'points', u.tokens + pout);
+
+  elsif p_action = 'portfolio' then
+    perform public._kx_liq(x.key_id) from (select distinct key_id from public.kx_positions
+                                            where user_id = uid and status = 'open') x;
+    return jsonb_build_object('ok', true, 'points', u.tokens, 'pubkey', coalesce(u.chain_pubkey, ''),
+      'positions', coalesce((select jsonb_agg(public._kx_pos_json(xp, x.symbol) ||
+            jsonb_build_object('mark', public._kx_mark(xp.key_id), 'price', x.price, 'kstep', x.step)
+            order by xp.opened_at desc)
+          from public.kx_positions xp join public.kx_keys x on x.id = xp.key_id
+          where xp.user_id = uid and xp.status = 'open'), '[]'::jsonb),
+      'fhistory', coalesce((select jsonb_agg(public._kx_pos_json(q, q2.symbol) order by q.closed_at desc)
+          from (select * from public.kx_positions where user_id = uid and status <> 'open'
+                order by closed_at desc limit 40) q join public.kx_keys q2 on q2.id = q.key_id), '[]'::jsonb),
+      'realized', (select coalesce(sum(xr.pnl), 0) from public.kx_positions xr where xr.user_id = uid and xr.status <> 'open'));
+
+  -- ------------------------------------------------------------ admin
+  elsif p_action = 'a_stats' then
+    perform public._kx_liq(x.id) from public.kx_keys x;
+    return jsonb_build_object('ok', true,
+      'stats', jsonb_build_object(
+        'users',    (select count(*) from public.users),
+        'active24', (select count(*) from public.users where last_active > now() - interval '24 hours'),
+        'new24',    (select count(*) from public.users where created_at  > now() - interval '24 hours'),
+        'banned',   (select count(*) from public.users where banned),
+        'points',   (select coalesce(sum(tokens), 0) from public.users),
+        'trades24', (select count(*) from public.kx_trades where ts > now() - interval '24 hours'),
+        'vol24',    (select coalesce(sum(points), 0) from public.kx_trades where ts > now() - interval '24 hours'),
+        'admin_wallet', (select balance from public.kx_wallets where name = 'admin'),
+        'admin_total',  (select total_in from public.kx_wallets where name = 'admin'),
+        'pool',         (select balance from public.kx_wallets where name = 'pool'),
+        'oi',           (select coalesce(sum(size), 0) from public.kx_positions where status = 'open'),
+        'open_pos',     (select count(*) from public.kx_positions where status = 'open'),
+        'liq24',        (select count(*) from public.kx_positions where status = 'liquidated'
+                         and closed_at > now() - interval '24 hours')),
+      'keys', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'symbol', x.symbol, 'name', x.name,
+            'price', x.price, 'step', x.step, 'paused', x.paused, 'mark', public._kx_mark(x.id),
+            'oi_long',  (select coalesce(sum(size), 0) from public.kx_positions xp where xp.key_id = x.id and xp.status = 'open' and xp.side = 'long'),
+            'oi_short', (select coalesce(sum(size), 0) from public.kx_positions xp where xp.key_id = x.id and xp.status = 'open' and xp.side = 'short'),
+            'traders', (select count(distinct xp.user_id) from public.kx_positions xp where xp.key_id = x.id and xp.status = 'open'),
+            'vol24', (select coalesce(sum(tr.points), 0) from public.kx_trades tr
+                      where tr.key_id = x.id and tr.ts > now() - interval '24 hours')) order by x.id)
+          from public.kx_keys x), '[]'::jsonb));
+
+  elsif p_action in ('a_withdraw', 'a_fund_pool') then
+    pts := floor(coalesce(nullif(p_data->>'amount', '')::numeric, 0))::bigint;
+    if pts < 1 then return jsonb_build_object('error', 'bad_input'); end if;
+    select balance into pb from public.kx_wallets where name = 'admin' for update;
+    if pb < pts then return jsonb_build_object('error', 'low_wallet'); end if;
+    perform public._kx_wallet_add('admin', -pts);
+    if p_action = 'a_withdraw' then
+      update public.users set tokens = tokens + pts where id = uid;  -- admin ke apne G-Points me
+    else
+      perform public._kx_wallet_add('pool', pts);
+    end if;
+    return jsonb_build_object('ok', true, 'points', (select tokens from public.users where id = uid));
+
+  elsif p_action = 'a_create' then
+    s  := btrim(coalesce(p_data->>'name', ''));
+    t  := upper(btrim(coalesce(p_data->>'symbol', '')));
+    p  := nullif(p_data->>'price', '')::numeric;
+    st := coalesce(nullif(p_data->>'step', '')::numeric, 100);
+    if length(s) < 2 or length(s) > 32 or t !~ '^[A-Z0-9]{2,8}$'
+       or p is null or p <= 0 or p > 1000000 or st < 1 or st > 1000000 then
+      return jsonb_build_object('error', 'bad_input');
+    end if;
+    if exists (select 1 from public.kx_keys where symbol = t) then
+      return jsonb_build_object('error', 'symbol_taken');
+    end if;
+    insert into public.kx_keys(name, symbol, start_price, price, step) values (s, t, p, p, st) returning id into kid;
+    return jsonb_build_object('ok', true, 'id', kid);
+
+  elsif p_action in ('a_pause', 'a_resume') then
+    update public.kx_keys set paused = (p_action = 'a_pause') where id = nullif(p_data->>'id', '')::bigint;
+    if not found then return jsonb_build_object('error', 'no_key'); end if;
+    return jsonb_build_object('ok', true);
+
+  elsif p_action = 'a_top' then
+    return jsonb_build_object('ok', true, 'top', coalesce((select jsonb_agg(jsonb_build_object(
+          'id', q.user_id, 'name', q.name, 'vol', q.vol, 'n', q.n, 'pnl', q.pnl) order by q.vol desc)
+        from (select xp.user_id, max(us.name) as name, sum(xp.size) as vol, count(*) as n,
+                     coalesce(sum(xp.pnl) filter (where xp.status <> 'open'), 0) as pnl
+              from public.kx_positions xp join public.users us on us.id = xp.user_id
+              where xp.opened_at > now() - interval '7 days'
+              group by xp.user_id order by vol desc limit 20) q), '[]'::jsonb));
+
+  elsif p_action = 'a_sus' then
+    return jsonb_build_object('ok', true, 'sus', coalesce((select jsonb_agg(jsonb_build_object(
+          'id', q.id, 'name', q.name, 'total', q.total, 'idle', q.idle, 'banned', q.banned) order by q.idle desc)
+        from (select r.id, r.name, r.banned, count(c.id) as total,
+                     count(*) filter (where c.tokens < 500 and c.last_active < now() - interval '1 day') as idle
+              from public.users r join public.users c on c.referred_by = r.id
+              group by r.id, r.name, r.banned
+              having count(c.id) >= 5
+                 and count(*) filter (where c.tokens < 500 and c.last_active < now() - interval '1 day') * 2 > count(c.id)
+              order by idle desc limit 30) q), '[]'::jsonb));
+
+  elsif p_action = 'a_user' then
+    s := regexp_replace(coalesce(p_data->>'uid', ''), '\D', '', 'g');
+    select jsonb_build_object('id', x.id, 'name', x.name, 'tokens', x.tokens, 'diamonds', x.diamonds,
+           'friends', x.friends, 'banned', x.banned, 'created_at', x.created_at, 'last_active', x.last_active,
+           'referred_by', x.referred_by, 'pubkey', x.chain_pubkey,
+           'invited', (select count(*) from public.users c where c.referred_by = x.id),
+           'invited_idle', (select count(*) from public.users c where c.referred_by = x.id
+                            and c.tokens < 500 and c.last_active < now() - interval '1 day'),
+           'trades', (select count(*) from public.kx_positions xp where xp.user_id = x.id),
+           'open_pos', (select count(*) from public.kx_positions xp where xp.user_id = x.id and xp.status = 'open'),
+           'fut_pnl', (select coalesce(sum(xp.pnl), 0) from public.kx_positions xp where xp.user_id = x.id and xp.status <> 'open'))
+      into v from public.users x where x.id = s;
+    if v is null then return jsonb_build_object('error', 'no_user'); end if;
+    return jsonb_build_object('ok', true, 'user', v);
+
+  elsif p_action in ('a_ban', 'a_unban') then
+    s := regexp_replace(coalesce(p_data->>'uid', ''), '\D', '', 'g');
+    if s = uid then return jsonb_build_object('error', 'bad_input'); end if;
+    update public.users set banned = (p_action = 'a_ban') where id = s;
+    if not found then return jsonb_build_object('error', 'no_user'); end if;
+    return jsonb_build_object('ok', true);
+
+  else
+    return jsonb_build_object('error', 'unknown_action');
+  end if;
+exception when others then
+  return jsonb_build_object('error', 'db', 'msg', sqlerrm);
+end $$;
+
+revoke all on function public._kx_wallet_add(text, numeric)          from public, anon, authenticated;
+revoke all on function public._kx_mark(bigint)                       from public, anon, authenticated;
+revoke all on function public._kx_liq(bigint)                        from public, anon, authenticated;
+revoke all on function public._kx_pos_json(public.kx_positions, text) from public, anon, authenticated;
+revoke all on function public._kx_close_px(text, numeric, numeric, numeric, numeric) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------- LEADERBOARD
+create or replace function public.leaderboard(p_init text) returns jsonb
+language plpgsql security definer
+set search_path = public, extensions, pg_temp as $$
+declare a jsonb; uid text; me jsonb;
+begin
+  a := public._verify_init(p_init);
+  if a is null then return jsonb_build_object('error', 'unauthorized'); end if;
+  uid := a->>'id';
+  select jsonb_build_object('tokens', u.tokens,
+         'rank', (select count(*) + 1 from public.users x where not x.banned and x.tokens > u.tokens))
+    into me from public.users u where u.id = uid;
+  return jsonb_build_object('me', me,
+    'total', (select count(*) from public.users where not banned),
+    'top', coalesce((select jsonb_agg(jsonb_build_object('rank', q.rn, 'name', q.name, 'tokens', q.tokens,
+              'is_me', q.id = uid) order by q.rn)
+            from (select id, name, tokens, row_number() over (order by tokens desc, id) as rn
+                  from public.users where not banned order by tokens desc, id limit 50) q), '[]'::jsonb));
+exception when others then
+  return jsonb_build_object('error', 'db');
+end $$;
+
+-- sirf game(), kx() aur leaderboard() browser se bulaye ja sakte hain; baaki sab helper private
 revoke all on function public._urldecode(text)        from public, anon, authenticated;
 revoke all on function public._verify_init(text)      from public, anon, authenticated;
 revoke all on function public._reset_ts()             from public, anon, authenticated;
@@ -4334,6 +5226,10 @@ revoke all on function public._state(public.users)    from public, anon, authent
 revoke all on function public._tg_member(text)        from public, anon, authenticated;
 revoke all on function public.game(text, text, jsonb) from public;
 grant execute on function public.game(text, text, jsonb) to anon, authenticated;
+revoke all on function public.kx(text, text, jsonb)   from public;
+grant execute on function public.kx(text, text, jsonb)   to anon, authenticated;
+revoke all on function public.leaderboard(text)       from public;
+grant execute on function public.leaderboard(text)       to anon, authenticated;
 
 -- Supabase API ko naya function turant dikhe
 notify pgrst, 'reload schema';
