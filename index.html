@@ -1981,6 +1981,11 @@
         .kx-item { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; cursor: pointer; transition: border-color .2s, transform .1s; }
         .kx-item:active { transform: scale(.99); border-color: rgba(56, 189, 248, .4); }
         .kx-av { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: .74rem; color: #030712; background: linear-gradient(135deg, #f5c842, #a78bfa); flex-shrink: 0; }
+        .kx-av.logo { background: rgba(255, 255, 255, .06); border: 1px solid var(--border); overflow: hidden; color: var(--text); }
+        .kx-av.logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .kx-av.emoji { font-size: 1.45rem; }
+        .kx-logo-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+        .kx-logo-row input { flex: 1; min-width: 120px; background: rgba(255, 255, 255, .05); border: 1px solid var(--border); border-radius: 10px; padding: 10px; color: var(--text); font: 700 .82rem 'Outfit', sans-serif; }
         .kx-mid { flex: 1; min-width: 0; }
         .kx-sym { font-weight: 900; font-size: .92rem; }
         .kx-name { font-size: .7rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2396,6 +2401,12 @@
                     <input id="adPrice" type="number" inputmode="decimal" placeholder="Start price (100)">
                     <input id="adStep" type="number" inputmode="decimal" placeholder="Step (10000)">
                 </div>
+                <div class="kx-logo-row">
+                    <div class="kx-av" id="adLogoPrev">?</div>
+                    <input id="adLogo" placeholder="Logo: 💎 or image link" oninput="logoPreview('adLogo','adLogoPrev','adSym')">
+                    <button class="kx-btn2" onclick="pickLogo('adLogo','adLogoPrev','adSym')">📷 Upload</button>
+                </div>
+                <div class="chips" style="margin-top:6px;"><button class="chip" onclick="setLogoVal('adLogo','adLogoPrev','adSym','💎')">💎</button><button class="chip" onclick="setLogoVal('adLogo','adLogoPrev','adSym','🪙')">🪙</button><button class="chip" onclick="setLogoVal('adLogo','adLogoPrev','adSym','🔥')">🔥</button><button class="chip" onclick="setLogoVal('adLogo','adLogoPrev','adSym','🚀')">🚀</button><button class="chip" onclick="setLogoVal('adLogo','adLogoPrev','adSym','⭐')">⭐</button><button class="chip" onclick="setLogoVal('adLogo','adLogoPrev','adSym','👑')">👑</button><button class="chip" onclick="setLogoVal('adLogo','adLogoPrev','adSym','🐸')">🐸</button><button class="chip" onclick="setLogoVal('adLogo','adLogoPrev','adSym','🐶')">🐶</button></div>
                 <div class="kx-note" style="text-align:left;margin:8px 0;">Step = position size that moves the price by +1. Step 10,000 means a 10,000-size Long moves the price +1. Smaller step = bigger price swings.</div>
                 <button class="kx-go" onclick="adCreate()">Create key</button>
             </div>
@@ -3488,8 +3499,9 @@
             no_key: '⚠️ Key not found',
             paused: '⏸ New trades are paused for this key (closing still works)',
             low_points: '⚠️ Not enough G-Points',
-            bad_input: '⚠️ Details sahi bharo',
+            bad_input: '⚠️ Please check the details',
             symbol_taken: '⚠️ This symbol already exists',
+            bad_logo: '⚠️ Logo must be an emoji, an https image link, or an uploaded image',
             step_locked: '⚠️ Step can only be changed when the key has no open positions',
             not_admin: '⛔ Admin only',
             no_user: '⚠️ User not found',
@@ -3573,7 +3585,7 @@
                 const c = pctChg(k.open24, k.price);
                 const mine = Number(k.mypos) > 0 ? ` · ${k.mypos} open` : '';
                 return `<div class="kx-item" onclick="openKey(${k.id})">
-                    <div class="kx-av">${_esc(k.symbol.slice(0, 4))}</div>
+                    ${keyAv(k)}
                     <div class="kx-mid">
                         <div class="kx-sym">${_esc(k.symbol)}${k.paused ? '<span class="kx-pill">PAUSED</span>' : ''}</div>
                         <div class="kx-name">${_esc(k.name)} · Vol ${fmtN(k.vol24, 0)}${mine}</div>
@@ -3619,7 +3631,7 @@
             (j.candles || []).forEach(cd => { if (kxCandles[cd.iv]) kxCandles[cd.iv].set(cd.t, cd); });
             kxCur = j.key; kxPositions = j.positions || [];
             kxMark = Number(j.mark || kxCur.price);
-            document.getElementById('kdAv').innerText = kxCur.symbol.slice(0, 4);
+            setAv(document.getElementById('kdAv'), kxCur);
             document.getElementById('kdSym').innerHTML = _esc(kxCur.symbol) + (kxCur.paused ? '<span class="kx-pill">PAUSED</span>' : '');
             document.getElementById('kdName').innerText = kxCur.name;
             document.getElementById('kdPrice').innerText = fmtP(kxCur.price);
@@ -3911,6 +3923,62 @@
             if (kxKeys.find(k => k.id === id)) open(); else loadMarket(true).then(open);
         }
 
+        // ---------- KEY LOGO ----------
+        const LOGO_RE_IMG = /^(data:image\/(png|jpeg|webp);base64,|https:\/\/|[A-Za-z0-9_.\/-]+\.(png|jpe?g|webp|gif|svg)$)/i;
+        function keyAvInner(k) {
+            const lg = (k && k.logo) || '';
+            if (lg && LOGO_RE_IMG.test(lg)) return { cls: 'kx-av logo', html: `<img src="${_esc(lg)}" alt="" onerror="this.replaceWith(document.createTextNode('${_esc((k.symbol || '?').slice(0, 4))}'))">` };
+            if (lg) return { cls: 'kx-av logo emoji', html: _esc(lg) };
+            return { cls: 'kx-av', html: _esc((k && k.symbol ? k.symbol : '?').slice(0, 4)) };
+        }
+        function keyAv(k, id) { const a = keyAvInner(k); return `<div class="${a.cls}"${id ? ` id="${id}"` : ''}>${a.html}</div>`; }
+        function setAv(el, k) { if (!el) return; const a = keyAvInner(k); el.className = a.cls; el.innerHTML = a.html; }
+        const _logoData = {};          // upload ki hui image (input me lambi string nahi dikhate)
+        function logoValue(inputId) {
+            if (_logoData[inputId]) return _logoData[inputId];
+            const v = (document.getElementById(inputId).value || '').trim();
+            if (v === '(uploaded image)') return undefined;   // edit me purana upload wala logo hi rehne do
+            return v;
+        }
+        function logoPreview(inputId, prevId, symId) {
+            const inp = document.getElementById(inputId);
+            if (inp.value !== '(uploaded image)') _logoData[inputId] = null;
+            const v = logoValue(inputId);
+            const sym = (document.getElementById(symId) || {}).value || '?';
+            if (v === undefined) return;
+            setAv(document.getElementById(prevId), { symbol: sym.toUpperCase(), logo: v });
+        }
+        function setLogoVal(inputId, prevId, symId, v) {
+            document.getElementById(inputId).value = v; logoPreview(inputId, prevId, symId);
+        }
+        // phone se image chuno -> 96x96 me chhota karke save (kuch KB)
+        function pickLogo(inputId, prevId, symId) {
+            const fi = document.createElement('input');
+            fi.type = 'file'; fi.accept = 'image/*';
+            fi.onchange = () => {
+                const file = fi.files && fi.files[0];
+                if (!file) return;
+                const img = new Image(), url = URL.createObjectURL(file);
+                img.onload = () => {
+                    const S = 96, cv = document.createElement('canvas'); cv.width = S; cv.height = S;
+                    const c = cv.getContext('2d'), m = Math.min(img.width, img.height);
+                    c.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, S, S);
+                    URL.revokeObjectURL(url);
+                    let d = cv.toDataURL('image/webp', 0.85);
+                    if (!d.startsWith('data:image/webp')) d = cv.toDataURL('image/png');
+                    if (d.length > 20000) d = cv.toDataURL('image/jpeg', 0.7);
+                    if (d.length > 20000) return showToast('⚠️ Image too large, try another one', '#f87171');
+                    _logoData[inputId] = d;
+                    document.getElementById(inputId).value = '(uploaded image)';
+                    const sym = (document.getElementById(symId) || {}).value || '?';
+                    setAv(document.getElementById(prevId), { symbol: sym.toUpperCase(), logo: d });
+                };
+                img.onerror = () => showToast('⚠️ Could not read this image', '#f87171');
+                img.src = url;
+            };
+            fi.click();
+        }
+
         // ---------- ADMIN ----------
         function setAdmin(f) {
             kxIsAdmin = !!f;
@@ -3948,6 +4016,14 @@
                         <input id="aeStep${k.id}" type="number" inputmode="decimal" value="${Number(k.step)}" placeholder="Step">
                         <button class="kx-btn2 green" onclick="adEditSave(${k.id})">💾 Save</button>
                     </div>
+                    <div class="kx-logo-row">
+                        ${keyAv(k, 'aePrev' + k.id)}
+                        <input id="aeLogo${k.id}" value="${_esc(k.logo && k.logo.startsWith('data:') ? '(uploaded image)' : (k.logo || ''))}" placeholder="Logo: 💎 or image link"
+                            oninput="logoPreview('aeLogo${k.id}','aePrev${k.id}','aeSym${k.id}')">
+                        <button class="kx-btn2" onclick="pickLogo('aeLogo${k.id}','aePrev${k.id}','aeSym${k.id}')">📷</button>
+                    </div>
+                    <div class="chips" style="margin-top:6px;">${['💎', '🪙', '🔥', '🚀', '⭐', '👑', '🐸', '🐶'].map(e =>
+                        `<button class="chip" onclick="setLogoVal('aeLogo${k.id}','aePrev${k.id}','aeSym${k.id}','${e}')">${e}</button>`).join('')}</div>
                     <div class="kx-note" style="text-align:left;margin-top:6px;">Price cannot be edited. Step can only change when there are no open positions.</div>
                 </div>`).join('')
                 || '<div class="kx-empty">No keys yet. Create one above.</div>';
@@ -3974,12 +4050,14 @@
                 name: document.getElementById('adName').value.trim(),
                 symbol: document.getElementById('adSym').value.trim().toUpperCase(),
                 price: document.getElementById('adPrice').value || '100',
-                step: document.getElementById('adStep').value || '10000'
+                step: document.getElementById('adStep').value || '10000',
+                logo: logoValue('adLogo') || ''
             };
             const j = await kx('a_create', d);
             if (j.error) return apiErr(j);
             showToast('✅ Key ' + d.symbol + ' created', '#4ade80');
-            ['adName', 'adSym', 'adPrice', 'adStep'].forEach(id => document.getElementById(id).value = '');
+            ['adName', 'adSym', 'adPrice', 'adStep', 'adLogo'].forEach(id => document.getElementById(id).value = '');
+            _logoData.adLogo = null; logoPreview('adLogo', 'adLogoPrev', 'adSym');
             kxKeys = []; loadAdmin();
         }
         async function adToggle(id, pause) {
@@ -3999,6 +4077,8 @@
                 symbol: document.getElementById('aeSym' + id).value.trim().toUpperCase(),
                 step: document.getElementById('aeStep' + id).value
             };
+            const lv = logoValue('aeLogo' + id);
+            if (lv !== undefined) d.logo = lv;                         // '(uploaded image)' = purana logo hi rakho
             const j = await kx('a_edit', d);
             if (j.error) return apiErr(j);
             showToast('✅ Key updated', '#4ade80');
@@ -4797,6 +4877,20 @@ language sql stable as $$
     'payout', x.payout, 't', (extract(epoch from coalesce(x.closed_at, x.opened_at)) * 1000)::bigint);
 $$;
 
+-- ---- KEY LOGO: emoji (jaise 💎), image link (https://... ya GitHub repo ki file), ya chhoti upload ki hui image ----
+alter table public.kx_keys add column if not exists logo text;
+create or replace function public._kx_logo(v text) returns text
+language sql immutable as $$
+  select case
+    when v is null or btrim(v) = '' then null
+    when v ~ '^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$' and length(v) <= 20000 then v
+    when v ~* '^https://[^\s"''<>()]+$' and length(v) <= 500 then v
+    when v ~* '^[A-Za-z0-9_./-]+\.(png|jpe?g|webp|gif|svg)$' and v !~ '\.\.' and length(v) <= 200 then v
+    when char_length(btrim(v)) <= 4 and btrim(v) !~ '[<>"''&\\]' then btrim(v)
+    else '!bad'
+  end;
+$$;
+
 -- ---- MARKET STATS CACHE: har key ka Mark / 24h change / 24h volume ----------------------
 -- Har request pe dobara ginne ki jagah max har 10 second me ek baar gin ke yahan save.
 -- Isi waqt us key ki liquidation bhi check hoti hai.
@@ -4923,7 +5017,7 @@ begin
     perform public._kx_stats(x.id) from public.kx_keys x;        -- max har 10 sec me ek baar asli kaam
     return jsonb_build_object('ok', true, 'admin', adm, 'points', u.tokens, 'keys', coalesce((
       select jsonb_agg(jsonb_build_object(
-        'id', x.id, 'name', x.name, 'symbol', x.symbol, 'price', x.price, 'step', x.step,
+        'id', x.id, 'name', x.name, 'symbol', x.symbol, 'logo', x.logo, 'price', x.price, 'step', x.step,
         'start', x.start_price, 'paused', x.paused, 'mark', coalesce(st.mark, x.price),
         'open24', coalesce(st.open24, x.price), 'vol24', coalesce(st.vol24, 0),
         'mypos',  (select count(*) from public.kx_positions xp where xp.user_id = uid and xp.key_id = x.id and xp.status = 'open')
@@ -4938,7 +5032,7 @@ begin
     select * into k from public.kx_keys where id = kid;
     return jsonb_build_object('ok', true, 'points', u.tokens,
       'mark', coalesce((select mark from public.kx_stats where key_id = kid), k.price),
-      'key', jsonb_build_object('id', k.id, 'name', k.name, 'symbol', k.symbol, 'price', k.price, 'step', k.step,
+      'key', jsonb_build_object('id', k.id, 'name', k.name, 'symbol', k.symbol, 'logo', k.logo, 'price', k.price, 'step', k.step,
              'start', k.start_price, 'paused', k.paused,
              'oi_long',  (select coalesce(sum(size), 0) from public.kx_positions where key_id = k.id and status = 'open' and side = 'long'),
              'oi_short', (select coalesce(sum(size), 0) from public.kx_positions where key_id = k.id and status = 'open' and side = 'short'),
@@ -5114,7 +5208,7 @@ begin
         'liq24',        (select count(*) from public.kx_positions where status = 'liquidated'
                          and closed_at > now() - interval '24 hours'),
         'db_mb',        round(pg_database_size(current_database()) / 1048576.0, 1)),
-      'keys', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'symbol', x.symbol, 'name', x.name,
+      'keys', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'symbol', x.symbol, 'name', x.name, 'logo', x.logo,
             'price', x.price, 'step', x.step, 'paused', x.paused, 'mark', public._kx_mark(x.id),
             'oi_long',  (select coalesce(sum(size), 0) from public.kx_positions xp where xp.key_id = x.id and xp.status = 'open' and xp.side = 'long'),
             'oi_short', (select coalesce(sum(size), 0) from public.kx_positions xp where xp.key_id = x.id and xp.status = 'open' and xp.side = 'short'),
@@ -5148,7 +5242,10 @@ begin
     if exists (select 1 from public.kx_keys where symbol = t) then
       return jsonb_build_object('error', 'symbol_taken');
     end if;
-    insert into public.kx_keys(name, symbol, start_price, price, step) values (s, t, p, p, st) returning id into kid;
+    v := to_jsonb(public._kx_logo(p_data->>'logo'));
+    if v #>> '{}' = '!bad' then return jsonb_build_object('error', 'bad_logo'); end if;
+    insert into public.kx_keys(name, symbol, start_price, price, step, logo)
+      values (s, t, p, p, st, v #>> '{}') returning id into kid;
     return jsonb_build_object('ok', true, 'id', kid);
 
   elsif p_action in ('a_pause', 'a_resume') then
@@ -5173,6 +5270,11 @@ begin
     -- step badalne se khuli positions ka P&L badal jaata, isliye tab mana
     if st <> k.step and exists (select 1 from public.kx_positions where key_id = kid and status = 'open') then
       return jsonb_build_object('error', 'step_locked');
+    end if;
+    if p_data ? 'logo' then
+      v := to_jsonb(public._kx_logo(p_data->>'logo'));
+      if v #>> '{}' = '!bad' then return jsonb_build_object('error', 'bad_logo'); end if;
+      update public.kx_keys set logo = v #>> '{}' where id = kid;
     end if;
     update public.kx_keys set name = s, symbol = t, step = st where id = kid;
     return jsonb_build_object('ok', true);
@@ -5321,6 +5423,7 @@ revoke all on function public.kx_tick()                     from public, anon, a
 revoke all on function public._kx_stats(bigint, boolean)    from public, anon, authenticated;
 revoke all on function public._lb_refresh()                 from public, anon, authenticated;
 revoke all on function public._admin_ids()                  from public, anon, authenticated;
+revoke all on function public._kx_logo(text)                from public, anon, authenticated;
 
 -- pg_cron se har minute chalao (Supabase me milta hai). Na mile to game phir bhi chalega,
 -- bas ye kaam users ki requests ke saath hota rahega.
