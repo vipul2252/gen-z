@@ -223,7 +223,7 @@
             width: 230px;
             height: 230px;
             cursor: pointer;
-            touch-action: manipulation;
+            touch-action: none;                /* multi-finger tap par zoom/scroll na ho */
             outline: none;
             -webkit-user-select: none;
             user-select: none;
@@ -2092,7 +2092,7 @@
                 </div>
             </div>
 
-            <div class="coin-wrap" onclick="handleTap(event)">
+            <div class="coin-wrap" id="coinWrap">
                 <div class="coin-ring r3"></div>
                 <div class="coin-ring r2"></div>
                 <div class="coin-ring r1"></div>
@@ -2803,30 +2803,49 @@
         // ==========================================
         // TAP ENGINE (Diamond Level Multiplier)
         // ==========================================
-        function handleTap(event) {
+        // Multi-touch: jitni ungliyan ek saath coin pe padti hain, utne tap.
+        // Har tap ko current level ke hisaab se coins (coinsPerTap) milte hain.
+        function tapAt(x, y) {
+            if (energy < 1) return false;
+            const reward = getTapLevelInfo(diamonds).coinsPerTap;
+            energy--;
+            tokens += reward;
+            tapBuf++;
+            const num = document.createElement('div');
+            num.className = 'float-num';
+            num.innerText = `+${reward}`;
+            num.style.left = (x || window.innerWidth / 2) + 'px';
+            num.style.top = (y || window.innerHeight / 2) + 'px';
+            document.body.appendChild(num);
+            setTimeout(() => num.remove(), 750);
+            return true;
+        }
+        function tapMany(points) {
             if (energy < 1) {
                 triggerHaptic('heavy');
                 showToast('⚡ Energy 0! It refills by itself (1 every 3s). Come back in a bit!', '#f87171');
                 return;
             }
-            const lvl = getTapLevelInfo(diamonds);
-            const reward = lvl.coinsPerTap;
-
-            energy--;
-            tokens += reward;
-            tapBuf++;
+            let n = 0;
+            for (const p of points.slice(0, 10)) { if (tapAt(p.x, p.y)) n++; }
+            if (!n) return;
             saveTapBackup();
-            triggerHaptic('light');
-
-            const num = document.createElement('div');
-            num.className = 'float-num';
-            num.innerText = `+${reward}`;
-            num.style.left = (event.clientX || window.innerWidth / 2) + 'px';
-            num.style.top = (event.clientY || window.innerHeight / 2) + 'px';
-            document.body.appendChild(num);
-            setTimeout(() => num.remove(), 750);
+            triggerHaptic(n > 1 ? 'medium' : 'light');
             updateHUD();
         }
+        // mouse / purane phone: ek click = ek tap
+        function handleTap(event) { tapMany([{ x: event.clientX, y: event.clientY }]); }
+        (function () {
+            const el = document.getElementById('coinWrap');
+            if (!el) return;
+            let lastTouch = 0;
+            el.addEventListener('touchstart', e => {
+                e.preventDefault();                       // isse baad wala "click" nahi aata (double count nahi)
+                lastTouch = Date.now();
+                tapMany(Array.from(e.changedTouches).map(t => ({ x: t.clientX, y: t.clientY })));
+            }, { passive: false });
+            el.addEventListener('click', e => { if (Date.now() - lastTouch > 700) handleTap(e); });
+        })();
 
         // ==========================================
         // TAP LEVELS MODAL
@@ -4444,7 +4463,7 @@ begin
       taps := greatest(0, floor(coalesce(nullif(p_data->>'taps', '')::numeric, 0)));
       -- speed limit SERVER ke time se: pichhle tap-sync ke baad kitna time guzra (max 60s)
       ms := least(60000, greatest(0, public._ms() - coalesce((u.tasks_done->>'_tp')::bigint, 0)));
-      maxrate := ceil(ms / 1000.0 * 20)::int + 30;          -- 20 tap/sec + thoda buffer
+      maxrate := ceil(ms / 1000.0 * 30)::int + 50;          -- 30 tap/sec (5 ungli tak) + thoda buffer
       applied := least(taps, u.energy, maxrate)::int;
       u.energy := u.energy - applied;
       u.tokens := u.tokens + applied * public._cpt(u.diamonds);
