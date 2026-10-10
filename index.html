@@ -3490,6 +3490,7 @@
             low_points: '⚠️ Not enough G-Points',
             bad_input: '⚠️ Details sahi bharo',
             symbol_taken: '⚠️ This symbol already exists',
+            step_locked: '⚠️ Step can only be changed when the key has no open positions',
             not_admin: '⛔ Admin only',
             no_user: '⚠️ User not found',
             unknown_action: '⚠️ Server is out of date, please try again later',
@@ -3610,7 +3611,7 @@
             const since = silent && kxLastId > 0 ? kxLastId : 0;
             const j = await kx('key', { id: id, since: since });
             if (!kxCur || kxCur.id !== id) return;
-            if (j.error) { if (!silent) apiErr(j); return; }
+            if (j.error) { if (j.error === 'no_key') { showToast('⚠️ This key was removed', '#f87171'); return closeKey(); } if (!silent) apiErr(j); return; }
             const nt = j.trades || [];
             if (Number(j.since) > 0) kxTrades = kxTrades.concat(nt).slice(-600);
             else { kxTrades = nt; kxCandles = { '1h': new Map(), '1d': new Map() }; }
@@ -3930,11 +3931,25 @@
                 box('Open positions', fmtN(st.open_pos, 0)) + box('Liquidations 24h', fmtN(st.liq24, 0)) +
                 box('Database size', fmtN(st.db_mb, 1) + ' / 500 MB');
             document.getElementById('adWallet').innerHTML = fmtN(st.admin_wallet, 2) + ' 🪙 <small style="font-size:.7rem;color:var(--muted);">total earned ' + fmtN(st.admin_total, 0) + '</small>';
+            window._adKeys = s.keys || [];
             document.getElementById('adKeys').innerHTML = (s.keys || []).map(k => `<div class="kx-row">
                 <div><b>${_esc(k.symbol)}</b> <small>${_esc(k.name)}</small><br>
                 <small>Price ${fmtP(k.price)} · Mark ${fmtP(k.mark)} · Step ${fmtN(k.step, 0)}<br>
                 Long ${fmtN(k.oi_long, 0)} / Short ${fmtN(k.oi_short, 0)} · Traders ${k.traders} · Vol24 ${fmtN(k.vol24, 0)}</small></div>
-                <button class="kx-btn2 ${k.paused ? 'green' : 'red'}" onclick="adToggle(${k.id},${!k.paused})">${k.paused ? '▶ Resume' : '⏸ Pause'}</button></div>`).join('')
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button class="kx-btn2 ${k.paused ? 'green' : 'red'}" onclick="adToggle(${k.id},${!k.paused})">${k.paused ? '▶ Resume' : '⏸ Pause'}</button>
+                    <button class="kx-btn2" onclick="adEditOpen(${k.id})">✏️ Edit</button>
+                    <button class="kx-btn2 red" onclick="adDelete(${k.id})">🗑 Delete</button>
+                </div></div>
+                <div id="adEdit${k.id}" style="display:none;padding:8px 0 12px;">
+                    <div class="kx-form">
+                        <input id="aeName${k.id}" value="${_esc(k.name)}" maxlength="32" placeholder="Name">
+                        <input id="aeSym${k.id}" value="${_esc(k.symbol)}" maxlength="8" style="text-transform:uppercase;" placeholder="Symbol">
+                        <input id="aeStep${k.id}" type="number" inputmode="decimal" value="${Number(k.step)}" placeholder="Step">
+                        <button class="kx-btn2 green" onclick="adEditSave(${k.id})">💾 Save</button>
+                    </div>
+                    <div class="kx-note" style="text-align:left;margin-top:6px;">Price cannot be edited. Step can only change when there are no open positions.</div>
+                </div>`).join('')
                 || '<div class="kx-empty">No keys yet. Create one above.</div>';
             document.getElementById('adTop').innerHTML = (t.top || []).map((r, i) => `<div class="kx-row" style="cursor:pointer;" onclick="adFind('${_esc(r.id)}')">
                 <span>#${i + 1} <b>${_esc(r.name || r.id)}</b></span><span>${fmtN(r.vol, 0)}</span>
@@ -3972,6 +3987,41 @@
             if (j.error) return apiErr(j);
             showToast(pause ? '⏸ Paused' : '▶ Resumed', '#94a3b8');
             loadAdmin();
+        }
+        function adEditOpen(id) {
+            const el = document.getElementById('adEdit' + id);
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+        async function adEditSave(id) {
+            const d = {
+                id: id,
+                name: document.getElementById('aeName' + id).value.trim(),
+                symbol: document.getElementById('aeSym' + id).value.trim().toUpperCase(),
+                step: document.getElementById('aeStep' + id).value
+            };
+            const j = await kx('a_edit', d);
+            if (j.error) return apiErr(j);
+            showToast('✅ Key updated', '#4ade80');
+            kxKeys = []; loadAdmin();
+        }
+        function askConfirm(msg) {
+            return new Promise(res => {
+                try { if (IN_TELEGRAM && window.Telegram.WebApp.showConfirm) return window.Telegram.WebApp.showConfirm(msg, ok => res(!!ok)); } catch (e) { }
+                res(confirm(msg));
+            });
+        }
+        async function adDelete(id) {
+            const k = (window._adKeys || []).find(x => x.id === id);
+            if (!(await askConfirm(`Delete key ${k ? k.symbol : ''}? Its chart and trade history will be removed. This cannot be undone.`))) return;
+            let j = await kx('a_delete', { id: id });
+            if (j.error === 'key_has_positions') {
+                const ok = await askConfirm(`${j.open} open position(s) on this key. Refund their full margin (${fmtN(j.margin, 0)} G-Points) and delete?`);
+                if (!ok) return;
+                j = await kx('a_delete', { id: id, force: true });
+            }
+            if (j.error) return apiErr(j);
+            showToast(j.refunded ? `🗑 Deleted · ${j.refunded} position(s) refunded` : '🗑 Key deleted', '#94a3b8');
+            kxKeys = []; loadAdmin();
         }
         function adFind(uid) { document.getElementById('adUid').value = uid; adLookup(); }
         async function adLookup() {
@@ -5105,6 +5155,50 @@ begin
     update public.kx_keys set paused = (p_action = 'a_pause') where id = nullif(p_data->>'id', '')::bigint;
     if not found then return jsonb_build_object('error', 'no_key'); end if;
     return jsonb_build_object('ok', true);
+
+  -- ---- key EDIT: naam, symbol, step (price nahi badalta) ----
+  elsif p_action = 'a_edit' then
+    kid := nullif(p_data->>'id', '')::bigint;
+    select * into k from public.kx_keys where id = kid for update;
+    if not found then return jsonb_build_object('error', 'no_key'); end if;
+    s  := btrim(coalesce(p_data->>'name', k.name));
+    t  := upper(btrim(coalesce(p_data->>'symbol', k.symbol)));
+    st := coalesce(nullif(p_data->>'step', '')::numeric, k.step);
+    if length(s) < 2 or length(s) > 32 or t !~ '^[A-Z0-9]{2,8}$' or st < 1 or st > 1000000 then
+      return jsonb_build_object('error', 'bad_input');
+    end if;
+    if exists (select 1 from public.kx_keys where symbol = t and id <> kid) then
+      return jsonb_build_object('error', 'symbol_taken');
+    end if;
+    -- step badalne se khuli positions ka P&L badal jaata, isliye tab mana
+    if st <> k.step and exists (select 1 from public.kx_positions where key_id = kid and status = 'open') then
+      return jsonb_build_object('error', 'step_locked');
+    end if;
+    update public.kx_keys set name = s, symbol = t, step = st where id = kid;
+    return jsonb_build_object('ok', true);
+
+  -- ---- key DELETE: khuli positions ho to pehle poocho; force = sabka margin wapas, phir delete ----
+  elsif p_action = 'a_delete' then
+    kid := nullif(p_data->>'id', '')::bigint;
+    select * into k from public.kx_keys where id = kid for update;
+    if not found then return jsonb_build_object('error', 'no_key'); end if;
+    select count(*), coalesce(sum(margin), 0) into lev, pb
+      from public.kx_positions where key_id = kid and status = 'open';
+    if lev > 0 and coalesce(p_data->>'force', 'false') <> 'true' then
+      return jsonb_build_object('error', 'key_has_positions', 'open', lev, 'margin', pb);
+    end if;
+    -- har khuli position ka poora margin user ko wapas (koi P&L nahi, koi fee nahi)
+    update public.users us set tokens = us.tokens + q.m
+      from (select user_id, floor(sum(margin))::bigint as m from public.kx_positions
+             where key_id = kid and status = 'open' group by user_id) q
+     where us.id = q.user_id;
+    delete from public.kx_positions where key_id = kid;
+    delete from public.kx_trades    where key_id = kid;
+    delete from public.kx_candles   where key_id = kid;
+    delete from public.kx_stats     where key_id = kid;
+    delete from public.kx_holdings  where key_id = kid;
+    delete from public.kx_keys      where id = kid;
+    return jsonb_build_object('ok', true, 'refunded', lev, 'margin', pb);
 
   elsif p_action = 'a_top' then
     return jsonb_build_object('ok', true, 'top', coalesce((select jsonb_agg(jsonb_build_object(
