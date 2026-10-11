@@ -37,6 +37,10 @@
 
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- AdsGram SDK (sirf optional rewarded ads; load na ho to game normal chalta hai) -->
+    <script src="https://sad.adsgram.ai/js/sad.min.js" async></script>
+    <!-- Monetag SDK (backup: AdsGram ka ad na mile tab) — sirf Rewarded interstitial use hota hai -->
+    <script src="https://libtl.com/sdk.js" data-zone="12007470" data-sdk="show_12007470" async></script>
     <!-- Ed25519 keypair (wallet) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tweetnacl/1.0.3/nacl-fast.min.js"></script>
 
@@ -2107,6 +2111,8 @@
                 <div class="energy-bar">
                     <div id="energyFill"></div>
                 </div>
+                <button class="btn-action" id="btnAdEnergy" style="display:none;width:100%;margin-top:10px;white-space:normal;"
+                    onclick="watchAd('energy')">📺 Refill energy with an ad (optional)</button>
             </div>
         </div>
     </div>
@@ -2138,6 +2144,18 @@
     <div class="tab-content" id="tabTasks">
         <div class="section-title">🎯 Daily Missions</div>
         <div class="task-list">
+            <div class="task-card" id="adTaskCard" style="display:none;">
+                <div class="task-row">
+                    <div class="task-icon icon-tg">🎬</div>
+                    <div class="task-info">
+                        <div class="task-title">Watch an ad <span style="font-size:.7rem;color:var(--muted);font-weight:600;">(optional)</span></div>
+                        <div class="task-sub" id="adTaskSub">5 left today</div>
+                        <div class="task-reward">+500</div>
+                    </div>
+                    <button class="btn-action" id="btnAdPts" onclick="watchAd('pts')">Watch</button>
+                </div>
+            </div>
+
             <div class="task-card">
                 <div class="task-row">
                     <div class="task-icon icon-sub">📺</div>
@@ -2486,6 +2504,22 @@
     <!-- Toast -->
     <div id="_toast"></div>
 
+    <!-- ADS CONSENT (pehli baar ek hi baar dikhta hai) -->
+    <div id="adConsent" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(2,6,23,.78);align-items:center;justify-content:center;padding:20px;">
+        <div style="max-width:340px;width:100%;background:#0f172a;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:22px 20px;text-align:center;color:#e2e8f0;font-family:'Outfit',sans-serif;">
+            <div style="font-size:2.2rem;">🎬</div>
+            <div style="font-size:1.1rem;font-weight:800;margin:6px 0 10px;">About ads in Gen-Z</div>
+            <div style="font-size:.88rem;line-height:1.5;color:#cbd5e1;text-align:left;">
+                • This game shows <b>optional</b> ads.<br>
+                • An ad plays only when you tap a <b>"Watch"</b> button.<br>
+                • Watch to the end to get the bonus: <b>+500 G-Points</b> (Tasks) or an <b>energy refill</b>.<br>
+                • Everything in the game works without ads.<br>
+                • G-Points are in-game points only, with no cash value.
+            </div>
+            <button class="btn-action" style="width:100%;margin-top:16px;padding:12px;" onclick="adConsentOk()">OK, got it</button>
+        </div>
+    </div>
+
     <!-- DAILY BONUS CONGRATS POPUP -->
     <div id="dailyPopup" onclick="if(event.target===this) closeDailyPopup()">
         <div id="dailyPopupCard" class="dp-border-gold">
@@ -2526,6 +2560,9 @@
         const MASTER_ADMIN_ID = 5678080775;             // apna Telegram numeric user ID
         // >>> LAUNCH SE PEHLE ZAROOR BADLO <<<
         const BOT_USERNAME = 'Genz20_bot';      // bina @ ke, e.g. 'MyGameBot'
+        const ADSGRAM_BLOCK_ID = '53373';               // AdsGram → Ad block (Reward) ka UnitID. Khali = AdsGram band
+        const MONETAG_ZONE_ID = '12007470';            // Monetag → Telegram Mini App main zone. Khali = Monetag band
+                                                       // (zone badle to <head> wali libtl.com script ki dono values bhi badlo)
         const BOT_APP_SHORTNAME = 'play';                  // agar BotFather me Mini App ka short name hai to likho, warna khali chhodo
 
         // ==========================================
@@ -2639,6 +2676,7 @@
             document.getElementById('txtDiamond').innerText = diamonds;
             document.getElementById('txtEnergy').innerText = energy;
             document.getElementById('energyFill').style.width = (energy / 1000 * 100) + '%';
+            try { updateAdEnergyBtn(); } catch (e) { }
             document.getElementById('txtFriendsCount').innerText = friends;
             document.getElementById('txtDiamondReward').innerText = diamonds;
 
@@ -2692,6 +2730,10 @@
             invalid_puzzle: '⚠️ Puzzle solution was not accepted',
             too_fast: '⏳ Too fast, please wait a moment',
             not_joined: '⚠️ Please join the Telegram channel first',
+            ad_limit: '✅ Daily ad limit reached. Come back tomorrow!',
+            ad_wait: '⏳ Please wait a minute before the next ad',
+            ad_not_started: '⚠️ Ad was not started properly, please try again',
+            energy_ok: '⚡ Your energy is not low yet',
             network: '⚠️ Could not reach the server. Check your internet connection',
             db: '⚠️ Server error, please try again in a moment'
         };
@@ -2735,6 +2777,7 @@
             try { renderDailyGrid(); } catch (e) { }
             try { syncSocialButtons(); } catch (e) { }
             try { checkDailyLock(); } catch (e) { }
+            try { updateAdUI(); } catch (e) { }
         }
 
         async function api(action, extra) {
@@ -2827,6 +2870,7 @@
             else {
                 if (window.kxBoot) kxBoot();
                 flushTaps();                                        // pichhli baar ke bache taps (backup) bhejo
+                maybeShowAdConsent();
             }
         })();
 
@@ -2854,6 +2898,7 @@
             if (energy < 1) {
                 triggerHaptic('heavy');
                 showToast('⚡ Energy 0! It refills by itself (1 every 3s). Come back in a bit!', '#f87171');
+                try { updateAdEnergyBtn(); } catch (e) { }
                 return;
             }
             let n = 0;
@@ -2945,6 +2990,120 @@
                 const b = document.getElementById(id);
                 if (b && serverState.tasks && serverState.tasks[k]) { b.innerText = '✓ Done'; b.disabled = true; }
             });
+        }
+
+        // ==========================================
+        // REWARDED ADS (AdsGram, backup Monetag) — sirf optional, sirf button dabane par
+        // - Tasks: "Watch an ad" +500 G-Points, din me max 5, do ad ke beech 60s
+        // - Energy kam (<200) ho to: ad dekh ke energy full, din me max 3
+        // - Reward + limit SERVER deta/check karta hai (ad_start → ad poora → ad_reward)
+        // - Pehli baar ek consent message
+        // ==========================================
+        const ADS_ON = !!(ADSGRAM_BLOCK_ID || MONETAG_ZONE_ID);
+        let _adCtl = null, adBusy = false, _adTimer = null;
+        function adController() {
+            if (_adCtl) return _adCtl;
+            if (!ADS_ON || !window.Adsgram) return null;
+            try { _adCtl = window.Adsgram.init({ blockId: String(ADSGRAM_BLOCK_ID) }); } catch (e) { _adCtl = null; }
+            return _adCtl;
+        }
+        function monetagFn() {
+            if (!MONETAG_ZONE_ID) return null;
+            const f = window['show_' + MONETAG_ZONE_ID];
+            return typeof f === 'function' ? f : null;
+        }
+        function adInfo() {
+            const a = (serverState && serverState.ads) || {};
+            return {
+                pts: Number(a.pts) || 0, en: Number(a.en) || 0, last: Number(a.last) || 0,
+                maxPts: Number(a.maxPts) || 5, maxEn: Number(a.maxEn) || 3, gap: Number(a.gap) || 60000, reward: Number(a.reward) || 500
+            };
+        }
+        function updateAdUI() {
+            const card = document.getElementById('adTaskCard'), eb = document.getElementById('btnAdEnergy');
+            if (!card || !eb) return;
+            const show = ADS_ON && IN_TELEGRAM && !!(serverState && serverState.ads);
+            card.style.display = show ? '' : 'none';
+            if (!show) { eb.style.display = 'none'; return; }
+            const a = adInfo(), left = Math.max(0, a.maxPts - a.pts);
+            const wait = Math.max(0, a.last + a.gap - Date.now());
+            const btn = document.getElementById('btnAdPts'), sub = document.getElementById('adTaskSub');
+            if (left < 1) { btn.disabled = true; btn.innerText = '✓ Done'; sub.innerText = 'Daily limit reached · back tomorrow'; }
+            else if (wait > 0) { btn.disabled = true; btn.innerText = Math.ceil(wait / 1000) + 's'; sub.innerText = left + ' left today'; }
+            else { btn.disabled = adBusy; btn.innerText = adBusy ? '…' : 'Watch'; sub.innerText = left + ' left today'; }
+            clearTimeout(_adTimer);
+            if (left > 0 && wait > 0) _adTimer = setTimeout(updateAdUI, 1000);   // countdown
+            updateAdEnergyBtn();
+        }
+        function updateAdEnergyBtn() {
+            const eb = document.getElementById('btnAdEnergy');
+            if (!eb) return;
+            const a = adInfo(), left = Math.max(0, a.maxEn - a.en);
+            const show = ADS_ON && IN_TELEGRAM && !!(serverState && serverState.ads) && energy < 200 && left > 0;
+            eb.style.display = show ? '' : 'none';
+            eb.disabled = adBusy;
+            if (show) eb.innerText = adBusy ? '…' : `📺 Refill energy with an ad · ${left} left today`;
+        }
+        async function watchAd(kind) {
+            if (adBusy) return;
+            if (!IN_TELEGRAM) return apiErr({ error: 'not_telegram' });
+            const ctl = adController(), mtShow = monetagFn();
+            if (!ctl && !mtShow) return showToast('⚠️ Ads are not available right now, try again later', '#f87171');
+            adBusy = true; updateAdUI();
+            try {
+                if (kind === 'energy') await flushTaps();             // pehle bache taps server pe, phir refill
+                const s = await api('ad_start', { kind: kind });
+                if (s.error) { apiErr(s); return; }
+                // 1) AdsGram  2) uska ad na mile (skip nahi) to Monetag
+                let watched = false, skipped = false;
+                if (ctl) {
+                    try { await ctl.show(); watched = true; }
+                    catch (r) { skipped = !!(r && r.done === false && !r.error); }
+                }
+                if (!watched && !skipped && mtShow) {
+                    try {
+                        const res = await mtShow({ ymid: String((tgUser && tgUser.id) || '') + '-' + Date.now() });
+                        // Monetag ka promise ad jaldi band karne par bhi poora hota hai: sirf 'valued' = poora dekha
+                        if (res && res.reward_event_type === 'valued') watched = true; else skipped = true;
+                    } catch (e) { }
+                }
+                if (!watched) {
+                    showToast(skipped ? '⏭ Ad was closed early, no reward this time' : '⚠️ No ad available right now, try again later', '#fbbf24');
+                    return;
+                }
+                const j = await api('ad_reward', { kind: kind });
+                if (j.error) { apiErr(j); return; }
+                triggerHaptic('rigid');
+                if (j.kind === 'pts') showToast(`✅ +${Number(j.amount).toLocaleString()} G-Points added`, '#4ade80');
+                else showToast('⚡ Energy refilled!', '#4ade80');
+            } finally {
+                adBusy = false; updateAdUI();
+            }
+        }
+        // Consent: pehli baar game khulne par ek baar
+        const AD_CONSENT_KEY = 'gz_ad_consent';
+        function adConsentOk() {
+            document.getElementById('adConsent').style.display = 'none';
+            try { localStorage.setItem(AD_CONSENT_KEY, '1'); } catch (e) { }
+            try { window.Telegram.WebApp.CloudStorage.setItem(AD_CONSENT_KEY, '1', () => { }); } catch (e) { }
+        }
+        function maybeShowAdConsent() {
+            if (!ADS_ON || !IN_TELEGRAM) return;
+            let seen = false;
+            try { seen = localStorage.getItem(AD_CONSENT_KEY) === '1'; } catch (e) { }
+            if (seen) return;
+            const show = () => { document.getElementById('adConsent').style.display = 'flex'; };
+            try {
+                const cs = window.Telegram.WebApp.CloudStorage;
+                if (cs && window.Telegram.WebApp.isVersionAtLeast && window.Telegram.WebApp.isVersionAtLeast('6.9')) {
+                    cs.getItem(AD_CONSENT_KEY, (e, v) => {
+                        if (!e && v === '1') { try { localStorage.setItem(AD_CONSENT_KEY, '1'); } catch (x) { } }
+                        else show();
+                    });
+                    return;
+                }
+            } catch (e) { }
+            show();
         }
 
         // ==========================================
@@ -4407,8 +4566,16 @@ begin
     'claimedToday', coalesce(u.last_daily = today, false),
     'puzzleDone',  coalesce(u.puzzle_at     >= rs, false),
     'puzzleTried', coalesce(u.puzzle_try_at >= rs, false),
-    'tasks', coalesce(u.tasks_done, '{}'::jsonb) - '_pz' - '_s_yt' - '_s_tg' - '_tp' - '_tb',
-    'nextReset', (extract(epoch from rs) * 1000)::bigint + 86400000
+    'tasks', coalesce(u.tasks_done, '{}'::jsonb) - '_pz' - '_s_yt' - '_s_tg' - '_tp' - '_tb' - '_ad' - '_as',
+    'nextReset', (extract(epoch from rs) * 1000)::bigint + 86400000,
+    -- rewarded ads: aaj kitne dekhe (7 AM IST reset), aakhri reward kab mila
+    'ads', jsonb_build_object(
+      'pts', case when (u.tasks_done->'_ad'->>'d')::bigint = (extract(epoch from rs) * 1000)::bigint
+                  then coalesce((u.tasks_done->'_ad'->>'p')::int, 0) else 0 end,
+      'en',  case when (u.tasks_done->'_ad'->>'d')::bigint = (extract(epoch from rs) * 1000)::bigint
+                  then coalesce((u.tasks_done->'_ad'->>'e')::int, 0) else 0 end,
+      'last', coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0),
+      'maxPts', 5, 'maxEn', 3, 'gap', 60000, 'reward', 500)
   );
 end $$;
 
@@ -4580,6 +4747,59 @@ begin
       amt := case k when 'yt' then 3000 else 2500 end;
       u.tokens := u.tokens + amt;
       res := jsonb_build_object('amount', amt);
+
+    -- ---------------------------------------------------- rewarded ads (optional)
+    -- 'pts'    = +500 G-Points, din me max 5, do ad ke beech 60s
+    -- 'energy' = energy full, din me max 3, sirf jab energy kam ho
+    -- ad_start ad dikhane se pehle, ad_reward poora dekhne ke baad. Limit SERVER check karta hai.
+    when 'ad_start', 'ad_reward' then
+      k := p_data->>'kind';
+      if k not in ('pts', 'energy') then
+        return jsonb_build_object('error', 'bad_key', 'state', public._state(u));
+      end if;
+      amt := (extract(epoch from rs) * 1000)::bigint;               -- aaj ka reset (7 AM IST)
+      if coalesce((u.tasks_done->'_ad'->>'d')::bigint, 0) <> amt then
+        u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb)
+          || jsonb_build_object('_ad', jsonb_build_object('d', amt, 'p', 0, 'e', 0,
+               't', coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0)));
+      end if;
+      if k = 'pts' and (u.tasks_done->'_ad'->>'p')::int >= 5
+         or k = 'energy' and (u.tasks_done->'_ad'->>'e')::int >= 3 then
+        return jsonb_build_object('error', 'ad_limit', 'state', public._state(u));
+      end if;
+      if k = 'pts' and public._ms() - coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0) < 60000 then
+        return jsonb_build_object('error', 'ad_wait', 'state', public._state(u));
+      end if;
+      if k = 'energy' and u.energy >= 200 then
+        return jsonb_build_object('error', 'energy_ok', 'state', public._state(u));
+      end if;
+
+      if p_action = 'ad_start' then
+        u.tasks_done := u.tasks_done || jsonb_build_object('_as', jsonb_build_object('k', k, 't', public._ms()));
+        res := jsonb_build_object('started', true);
+      else
+        started := case when u.tasks_done->'_as'->>'k' = k
+                        then coalesce((u.tasks_done->'_as'->>'t')::bigint, 0) else 0 end;
+        took := public._ms() - started;
+        if started = 0 or took > 600000 then
+          return jsonb_build_object('error', 'ad_not_started', 'state', public._state(u));
+        end if;
+        if took < 4000 then                                         -- ad itni jaldi khatam nahi hota
+          return jsonb_build_object('error', 'too_fast', 'state', public._state(u));
+        end if;
+        u.tasks_done := (u.tasks_done - '_as') || jsonb_build_object('_ad',
+          (u.tasks_done->'_ad') || jsonb_build_object(
+            case when k = 'pts' then 'p' else 'e' end,
+            (u.tasks_done->'_ad'->>(case when k = 'pts' then 'p' else 'e' end))::int + 1,
+            't', case when k = 'pts' then public._ms() else (u.tasks_done->'_ad'->>'t')::bigint end));
+        if k = 'pts' then
+          u.tokens := u.tokens + 500;
+          res := jsonb_build_object('kind', k, 'amount', 500);
+        else
+          u.energy := 1000; u.energy_ts := now();
+          res := jsonb_build_object('kind', k, 'energy', 1000);
+        end if;
+      end if;
 
     else
       return jsonb_build_object('error', 'unknown_action');
