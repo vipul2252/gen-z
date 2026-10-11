@@ -2530,6 +2530,31 @@
         // ==========================================
         // TELEGRAM SDK
         // ==========================================
+        // Telegram login data. Normally Telegram ki SDK (telegram-web-app.js) deti hai.
+        // Agar SDK load na ho (slow net / purana Telegram), to wahi data URL se padh lo:
+        // Telegram Mini App ko URL ke #tgWebAppData=... me ye data bhejta hai.
+        // (server is data ka signature check karta hai, isliye ye safe hai)
+        let _rawInit = '';
+        function _readInitData() {
+            try { const d = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData; if (d) return d; } catch (e) { }
+            try {
+                const h = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+                const d = h.get('tgWebAppData'); if (d) return d;
+            } catch (e) { }
+            try {
+                const q = new URLSearchParams(location.search || '');
+                const d = q.get('tgWebAppData'); if (d) return d;
+            } catch (e) { }
+            try {
+                const ss = JSON.parse(sessionStorage.getItem('__telegram__initParams') || 'null');
+                if (ss && ss.tgWebAppData) return ss.tgWebAppData;
+            } catch (e) { }
+            return '';
+        }
+        _rawInit = _readInitData();
+        function _initField(name) {
+            try { return new URLSearchParams(_rawInit).get(name) || ''; } catch (e) { return ''; }
+        }
         let tgUser = { id: 12345678, first_name: 'Operative' };
         try {
             if (window.Telegram && window.Telegram.WebApp) {
@@ -2538,14 +2563,17 @@
                 if (tg.initDataUnsafe && tg.initDataUnsafe.user) tgUser = tg.initDataUnsafe.user;
             }
         } catch (e) { }
+        if (tgUser.id === 12345678 && _rawInit) {
+            try { const u = JSON.parse(_initField('user') || 'null'); if (u && u.id) tgUser = u; } catch (e) { }
+        }
 
         document.getElementById('txtUserName').innerText = tgUser.first_name || 'Operative';
         document.getElementById('txtAvatar').innerText = (tgUser.first_name || 'O').charAt(0).toUpperCase();
 
         let myReferrerId = null;
         try {
-            const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param || '';
-            if (sp.startsWith('ref_')) myReferrerId = sp.replace('ref_', '');
+            const sp = window.Telegram?.WebApp?.initDataUnsafe?.start_param || _initField('start_param') || '';
+            if (/^(ref|gz)_/.test(sp)) myReferrerId = sp.replace(/^(ref|gz)_/, '');
         } catch (e) { }
 
         // ==========================================
@@ -2652,7 +2680,7 @@
         const SUPABASE_ANON_KEY = 'sb_publishable_rQk-_aXNqtc4dmCQwrO_-A_yjOeJQBT';
         const GAME_API = SUPABASE_URL + '/rest/v1/rpc/game';   // setup.sql wala function
 
-        function getInitData() { try { return window.Telegram?.WebApp?.initData || ''; } catch (e) { return ''; } }
+        function getInitData() { try { return window.Telegram?.WebApp?.initData || _rawInit || ''; } catch (e) { return _rawInit || ''; } }
 
         const ERR_TXT = {
             unauthorized: '⚠️ Login could not be verified. Please reopen the game',
@@ -2683,7 +2711,8 @@
                 b.id = 'notTgBanner';
                 b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:88px;z-index:9999;padding:12px 14px;border-radius:14px;' +
                     'background:#1f2937;border:1px solid #f59e0b;color:#fde68a;font:600 13px/1.4 system-ui,sans-serif;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.4)';
-                b.innerHTML = '📱 This game only works inside the <b>Telegram bot</b>.<br>Preview mode: rewards will not be saved.';
+                b.innerHTML = '📱 This game only works inside the <b>Telegram bot</b>.<br>Preview mode: rewards will not be saved.' +
+                    '<br><span style="color:#cbd5e1;font-weight:500;">Already in Telegram? Close the game, update Telegram and open it again from <b>@' + BOT_USERNAME + '</b>.</span>';
                 b.onclick = () => b.remove();
                 document.body.appendChild(b);
             };
@@ -3190,8 +3219,8 @@
             if (!BOT_USERNAME || BOT_USERNAME === 'YOUR_BOT_USERNAME') {
                 return showToast('⚠️ BOT_USERNAME is not set (admin config)', '#f87171');
             }
-            const link = 'https://t.me/' + BOT_USERNAME + (BOT_APP_SHORTNAME ? '/' + BOT_APP_SHORTNAME : '') + '?startapp=ref_' + tgUser.id;
-            const msg = '🔥 Join Gen-Z! Tap, solve daily puzzles and climb the leaderboard with me!';
+            const link = 'https://t.me/' + BOT_USERNAME + (BOT_APP_SHORTNAME ? '/' + BOT_APP_SHORTNAME : '') + '?startapp=gz_' + tgUser.id;
+            const msg = '🚀 Tap to earn G-Points and trade keys with me on Gen-Z!';
             const url = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(msg);
             if (window.Telegram?.WebApp) window.Telegram.WebApp.openTelegramLink(url);
             else window.open(url, '_blank');
@@ -4441,8 +4470,9 @@ begin
   -- referral: sirf naya user, signed start_param se, self-ref nahi
   if is_new and p_action = 'init' then
     sp := coalesce(a->>'start_param', '');
-    if sp like 'ref\_%' then
-      ref := regexp_replace(substr(sp, 5), '\D', '', 'g');
+    -- 'ref_' purane links, 'gz_' naye links (naya prefix = Telegram ka naya link preview card)
+    if sp like 'ref\_%' or sp like 'gz\_%' then
+      ref := regexp_replace(regexp_replace(sp, '^(ref|gz)_', ''), '\D', '', 'g');
       if ref <> '' and ref <> uid and exists (select 1 from public.users where id = ref) then
         u.referred_by := ref;
         update public.users set diamonds = diamonds + 1, friends = friends + 1, last_active = now()
