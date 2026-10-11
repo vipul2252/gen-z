@@ -2272,6 +2272,7 @@
     <div class="tab-content" id="tabMarket">
         <div class="kx-wrap" id="mkListView">
             <div class="wallet-hero" style="margin-bottom:0;padding:18px;">
+                <div style="display:inline-block;margin-bottom:10px;padding:5px 12px;border-radius:999px;background:rgba(250,204,21,0.12);border:1px solid rgba(250,204,21,0.45);color:var(--gold);font-size:0.78rem;font-weight:700;letter-spacing:0.2px;">🎮 Simulation game, in-game points only</div>
                 <div class="wallet-planet" style="font-size:2.4rem;margin-bottom:6px;">📈</div>
                 <div class="wallet-h3">Key Futures</div>
                 <div class="wallet-p">Go Long or Short with G-Points, from 1x to 100x. Opening a Long pushes the price up, opening a Short pushes it down.</div>
@@ -2345,7 +2346,7 @@
     <div class="tab-content" id="tabMyWallet">
         <div class="kx-wrap">
             <!-- Gen-Z address card: users se chhupa hai. Keypair background me banta aur
-                 server pe register hota rehta hai (aage DAG chain ke kaam aayega).
+                 server pe register hota rehta hai.
                  Dikhana ho to neeche wala style="display:none;" hata do. -->
             <div class="kx-card" id="wlAddrCard" style="display:none;">
                 <div class="kx-lbl">🔑 Your Gen-Z address</div>
@@ -2355,7 +2356,7 @@
                     <button class="kx-btn2" onclick="showBackup()">🔐 Backup key</button>
                 </div>
                 <div class="kx-addr" id="wlBackup" style="display:none;margin-top:8px;color:var(--gold);"></div>
-                <div class="kx-note" style="text-align:left;margin-top:8px;">This key is saved in your Telegram account, so there is no seed phrase to remember. The same address will be used on the DAG chain later.</div>
+                <div class="kx-note" style="text-align:left;margin-top:8px;">This key is saved in your Telegram account, so there is no seed phrase to remember.</div>
             </div>
             <div class="kx-grid">
                 <div class="kx-stat"><span>G-Points</span><b id="wlPts">0</b></div>
@@ -2524,7 +2525,7 @@
         // ==========================================
         const MASTER_ADMIN_ID = 5678080775;             // apna Telegram numeric user ID
         // >>> LAUNCH SE PEHLE ZAROOR BADLO <<<
-        const BOT_USERNAME = 'Genz20_bot';      // bina @ ke, e.g. 'GenZAirdropBot'
+        const BOT_USERNAME = 'Genz20_bot';      // bina @ ke, e.g. 'MyGameBot'
         const BOT_APP_SHORTNAME = 'play';                  // agar BotFather me Mini App ka short name hai to likho, warna khali chhodo
 
         // ==========================================
@@ -3703,7 +3704,7 @@
             const lev = Number(document.getElementById('fdLev').value) || 1;
             // MAX: margin + open fee aapke points me fit ho
             document.getElementById('fdMargin').value = v === 'max'
-                ? Math.max(0, Math.min(100000, Math.floor((tokens - 1) / (1 + lev * KX_ADMIN_FEE)))) : v;
+                ? Math.max(0, Math.floor((tokens - 1) / (1 + lev * KX_ADMIN_FEE))) : v;
             renderFQuote();
         }
         function renderFQuote() {
@@ -3733,9 +3734,9 @@
                 row('Total deducted now', fmtN(r.total, 0) + ' 🪙') +
                 (m > 0 && lev >= 20 ? `<div class="kx-warn">At ${lev}x, open + close fees take ~${+(2 * KX_ADMIN_FEE * lev * 100).toFixed(1)}% of your margin, and a ~${(90 / lev).toFixed(2)}% move against you risks liquidation.</div>` : '');
             const maxShort = Math.floor((Number(kxCur.price) - 0.000001) * Number(kxCur.step));
-            go.disabled = kxBusy || kxCur.paused || m < 100 || m > 100000 || r.total > tokens || !!opp || r.toZero;
+            go.disabled = kxBusy || kxCur.paused || m < 100 || r.total > tokens || !!opp || r.toZero;
             go.innerText = opp ? `Close your ${opp.side === 'long' ? 'Long' : 'Short'} position first`
-                : m <= 0 ? 'Enter margin' : m < 100 ? 'Min 100 margin' : m > 100000 ? 'Max 1,00,000 margin'
+                : m <= 0 ? 'Enter margin' : m < 100 ? 'Min 100 margin'
                 : r.total > tokens ? 'Not enough G-Points'
                 : r.toZero ? `Max Short size ${fmtN(maxShort, 0)} (price would hit zero)`
                 : same ? `Add to ${fSide === 'long' ? 'Long' : 'Short'} (${lev}x)`
@@ -5113,7 +5114,6 @@ begin
     lev := floor(coalesce(nullif(p_data->>'lev', '')::numeric, 0))::int;
     if s not in ('long', 'short') or lev < 1 or lev > 100 then return jsonb_build_object('error', 'bad_input'); end if;
     if mg < 100 then return jsonb_build_object('error', 'min_margin'); end if;
-    if mg > 100000 then return jsonb_build_object('error', 'max_margin'); end if;
     select * into k from public.kx_keys where id = kid for update;
     if not found then return jsonb_build_object('error', 'no_key'); end if;
     if k.paused then return jsonb_build_object('error', 'paused'); end if;
@@ -5131,11 +5131,7 @@ begin
     if u.tokens < mg + afee then
       return jsonb_build_object('error', 'low_points', 'points', u.tokens);
     end if;
-    select coalesce(sum(size), 0) into oi from public.kx_positions where key_id = kid and status = 'open';
-    select balance into pb from public.kx_wallets where name = 'pool';
-    if oi + sz > greatest(1000000, coalesce(pb, 0) * 20) then
-      return jsonb_build_object('error', 'oi_cap');
-    end if;
+    -- key pe total positions (OI) ki koi limit nahi
     if s = 'long' then
       np := round(k.price + sz / k.step, 9);
     else
