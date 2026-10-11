@@ -2148,7 +2148,7 @@
                     <div class="task-info">
                         <div class="task-title">Watch an ad <span style="font-size:.7rem;color:var(--muted);font-weight:600;">(optional)</span></div>
                         <div class="task-sub" id="adTaskSub">5 left today</div>
-                        <div class="task-reward">+500</div>
+                        <div class="task-reward" id="adTaskReward">+5,000</div>
                     </div>
                     <button class="btn-action" id="btnAdPts" onclick="watchAd('pts')">Watch</button>
                 </div>
@@ -2510,7 +2510,7 @@
             <div style="font-size:.88rem;line-height:1.5;color:#cbd5e1;text-align:left;">
                 • This game shows <b>optional</b> ads.<br>
                 • An ad plays only when you tap a <b>"Watch"</b> button.<br>
-                • Watch to the end to get the bonus: <b>+500 G-Points</b> (Tasks) or an <b>energy refill</b>.<br>
+                • Watch to the end to get the bonus: <b>+5,000 G-Points</b> (Tasks) or an <b>energy refill</b>.<br>
                 • Everything in the game works without ads.<br>
                 • G-Points are in-game points only, with no cash value.
             </div>
@@ -2991,7 +2991,7 @@
 
         // ==========================================
         // REWARDED ADS (Monetag) — sirf optional, sirf button dabane par
-        // - Tasks: "Watch an ad" +500 G-Points, din me max 5, do ad ke beech 60s
+        // - Tasks: "Watch an ad" +5,000 G-Points, din me max 5, do ad ke beech 60s
         // - Energy kam (<200) ho to: ad dekh ke energy full, din me max 3
         // - Reward + limit SERVER deta/check karta hai (ad_start → ad poora → ad_reward)
         // - Pehli baar ek consent message
@@ -3007,7 +3007,7 @@
             const a = (serverState && serverState.ads) || {};
             return {
                 pts: Number(a.pts) || 0, en: Number(a.en) || 0, last: Number(a.last) || 0,
-                maxPts: Number(a.maxPts) || 5, maxEn: Number(a.maxEn) || 3, gap: Number(a.gap) || 60000, reward: Number(a.reward) || 500
+                maxPts: Number(a.maxPts) || 5, maxEn: Number(a.maxEn) || 3, gap: Number(a.gap) || 60000, reward: Number(a.reward) || 5000
             };
         }
         function updateAdUI() {
@@ -3019,6 +3019,7 @@
             const a = adInfo(), left = Math.max(0, a.maxPts - a.pts);
             const wait = Math.max(0, a.last + a.gap - Date.now());
             const btn = document.getElementById('btnAdPts'), sub = document.getElementById('adTaskSub');
+            document.getElementById('adTaskReward').innerText = '+' + a.reward.toLocaleString();
             if (left < 1) { btn.disabled = true; btn.innerText = '✓ Done'; sub.innerText = 'Daily limit reached · back tomorrow'; }
             else if (wait > 0) { btn.disabled = true; btn.innerText = Math.ceil(wait / 1000) + 's'; sub.innerText = left + ' left today'; }
             else { btn.disabled = adBusy; btn.innerText = adBusy ? '…' : 'Watch'; sub.innerText = left + ' left today'; }
@@ -4563,7 +4564,7 @@ begin
       'en',  case when (u.tasks_done->'_ad'->>'d')::bigint = (extract(epoch from rs) * 1000)::bigint
                   then coalesce((u.tasks_done->'_ad'->>'e')::int, 0) else 0 end,
       'last', coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0),
-      'maxPts', 5, 'maxEn', 3, 'gap', 60000, 'reward', 500)
+      'maxPts', 5, 'maxEn', 3, 'gap', 60000, 'reward', 5000)
   );
 end $$;
 
@@ -4737,7 +4738,7 @@ begin
       res := jsonb_build_object('amount', amt);
 
     -- ---------------------------------------------------- rewarded ads (optional)
-    -- 'pts'    = +500 G-Points, din me max 5, do ad ke beech 60s
+    -- 'pts'    = +5000 G-Points, din me max 5, do ad ke beech 60s
     -- 'energy' = energy full, din me max 3, sirf jab energy kam ho
     -- ad_start ad dikhane se pehle, ad_reward poora dekhne ke baad. Limit SERVER check karta hai.
     when 'ad_start', 'ad_reward' then
@@ -4781,8 +4782,8 @@ begin
             (u.tasks_done->'_ad'->>(case when k = 'pts' then 'p' else 'e' end))::int + 1,
             't', case when k = 'pts' then public._ms() else (u.tasks_done->'_ad'->>'t')::bigint end));
         if k = 'pts' then
-          u.tokens := u.tokens + 500;
-          res := jsonb_build_object('kind', k, 'amount', 500);
+          u.tokens := u.tokens + 5000;
+          res := jsonb_build_object('kind', k, 'amount', 5000);
         else
           u.energy := 1000; u.energy_ts := now();
           res := jsonb_build_object('kind', k, 'energy', 1000);
