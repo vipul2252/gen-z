@@ -37,9 +37,7 @@
 
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- AdsGram SDK (sirf optional rewarded ads; load na ho to game normal chalta hai) -->
-    <script src="https://sad.adsgram.ai/js/sad.min.js" async></script>
-    <!-- Monetag SDK (backup: AdsGram ka ad na mile tab) — sirf Rewarded interstitial use hota hai -->
+    <!-- Monetag SDK (sirf optional rewarded ads; load na ho to game normal chalta hai) — sirf Rewarded interstitial -->
     <script src="https://libtl.com/sdk.js" data-zone="12007470" data-sdk="show_12007470" async></script>
     <!-- Ed25519 keypair (wallet) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tweetnacl/1.0.3/nacl-fast.min.js"></script>
@@ -2560,9 +2558,6 @@
         const MASTER_ADMIN_ID = 5678080775;             // apna Telegram numeric user ID
         // >>> LAUNCH SE PEHLE ZAROOR BADLO <<<
         const BOT_USERNAME = 'Genz20_bot';      // bina @ ke, e.g. 'MyGameBot'
-        // AdsGram block 53373 abhi "active" nahi hai (moderation baaki). Active hone ke baad yahan '53373' daal do.
-        // Tab tak khali: warna AdsGram user ko "Block is not active" error dikhata hai.
-        const ADSGRAM_BLOCK_ID = '';                    // AdsGram → Ad block (Reward) ka UnitID. Khali = AdsGram band
         const MONETAG_ZONE_ID = '12007470';            // Monetag → Telegram Mini App main zone. Khali = Monetag band
                                                        // (zone badle to <head> wali libtl.com script ki dono values bhi badlo)
         const BOT_APP_SHORTNAME = 'play';                  // agar BotFather me Mini App ka short name hai to likho, warna khali chhodo
@@ -2995,20 +2990,14 @@
         }
 
         // ==========================================
-        // REWARDED ADS (AdsGram, backup Monetag) — sirf optional, sirf button dabane par
+        // REWARDED ADS (Monetag) — sirf optional, sirf button dabane par
         // - Tasks: "Watch an ad" +500 G-Points, din me max 5, do ad ke beech 60s
         // - Energy kam (<200) ho to: ad dekh ke energy full, din me max 3
         // - Reward + limit SERVER deta/check karta hai (ad_start → ad poora → ad_reward)
         // - Pehli baar ek consent message
         // ==========================================
-        const ADS_ON = !!(ADSGRAM_BLOCK_ID || MONETAG_ZONE_ID);
-        let _adCtl = null, adBusy = false, _adTimer = null;
-        function adController() {
-            if (_adCtl) return _adCtl;
-            if (!ADS_ON || !window.Adsgram) return null;
-            try { _adCtl = window.Adsgram.init({ blockId: String(ADSGRAM_BLOCK_ID) }); } catch (e) { _adCtl = null; }
-            return _adCtl;
-        }
+        const ADS_ON = !!MONETAG_ZONE_ID;
+        let adBusy = false, _adTimer = null;
         function monetagFn() {
             if (!MONETAG_ZONE_ID) return null;
             const f = window['show_' + MONETAG_ZONE_ID];
@@ -3049,20 +3038,15 @@
         async function watchAd(kind) {
             if (adBusy) return;
             if (!IN_TELEGRAM) return apiErr({ error: 'not_telegram' });
-            const ctl = adController(), mtShow = monetagFn();
-            if (!ctl && !mtShow) return showToast('⚠️ Ads are not available right now, try again later', '#f87171');
+            const mtShow = monetagFn();
+            if (!mtShow) return showToast('⚠️ Ads are not available right now, try again later', '#f87171');
             adBusy = true; updateAdUI();
             try {
                 if (kind === 'energy') await flushTaps();             // pehle bache taps server pe, phir refill
                 const s = await api('ad_start', { kind: kind });
                 if (s.error) { apiErr(s); return; }
-                // 1) AdsGram  2) uska ad na mile (skip nahi) to Monetag
                 let watched = false, skipped = false;
-                if (ctl) {
-                    try { await ctl.show(); watched = true; }
-                    catch (r) { skipped = !!(r && r.done === false && !r.error); }
-                }
-                if (!watched && !skipped && mtShow) {
+                {
                     try {
                         const res = await mtShow({ ymid: String((tgUser && tgUser.id) || '') + '-' + Date.now() });
                         // Monetag ka promise ad jaldi band karne par bhi poora hota hai: sirf 'valued' = poora dekha
