@@ -3064,7 +3064,9 @@
                     try {
                         const res = await mtShow({ ymid: String((tgUser && tgUser.id) || '') + '-' + Date.now() });
                         // Monetag ka promise ad jaldi band karne par bhi poora hota hai: sirf 'valued' = poora dekha
-                        if (res && res.reward_event_type === 'valued') watched = true; else skipped = true;
+                        // (field hi na aaye to purane SDK jaisa maan ke reward; server ka 4s check phir bhi lagta hai)
+                        const ev = res && res.reward_event_type;
+                        if (ev === 'valued' || ev === undefined) watched = true; else skipped = true;
                     } catch (e) { }
                 }
                 if (!watched) {
