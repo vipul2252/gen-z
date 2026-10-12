@@ -2160,10 +2160,10 @@
                     <div class="task-info">
                         <div class="task-title">Subscribe YouTube</div>
                         <div class="task-sub">Subscribe &amp; ring the bell 🔔</div>
-                        <div class="task-reward">+3,000</div>
+                        <div class="task-reward">+20,000</div>
                     </div>
                     <button class="btn-action" id="btnYtSub"
-                        onclick="startSocialTask('yt','https://www.youtube.com/@Gen-Z-l1c')">Join</button>
+                        onclick="startSocialTask('yt')">Subscribe</button>
                 </div>
             </div>
 
@@ -2173,10 +2173,10 @@
                     <div class="task-info">
                         <div class="task-title">Join Official Telegram</div>
                         <div class="task-sub">Daily updates &amp; puzzle clues</div>
-                        <div class="task-reward">+2,500</div>
+                        <div class="task-reward">+20,000</div>
                     </div>
                     <button class="btn-action" id="btnTgSub"
-                        onclick="startSocialTask('tg','https://t.me/genzgame1')">Join</button>
+                        onclick="startSocialTask('tg')">Join</button>
                 </div>
             </div>
 
@@ -2728,7 +2728,9 @@
             too_fast: '⏳ Too fast, please wait a moment',
             not_joined: '⚠️ Please join the Telegram channel first',
             ad_limit: '✅ Daily ad limit reached. Come back tomorrow!',
-            ad_wait: '⏳ Please wait a minute before the next ad',
+            social_wait: '🔍 Still checking. You can claim 1 hour after joining',
+            social_not_started: '⚠️ Please tap Join / Subscribe first',
+            ad_wait: '⏳ Next ad unlocks 1 hour after the last one',
             ad_not_started: '⚠️ Ad was not started properly, please try again',
             energy_ok: '⚡ Your energy is not low yet',
             network: '⚠️ Could not reach the server. Check your internet connection',
@@ -2764,6 +2766,7 @@
             if (!s) return;
             tokens = s.tokens; diamonds = s.diamonds; friends = s.friends; energy = s.energy;
             dailyStreak = s.streak; serverState = s;
+            if (s.now) serverState._off = Number(s.now) - Date.now();   // phone aur server ki ghadi ka farak
             // abhi server pe na pahunche taps display me jodo
             const pt = pendingTaps();
             if (pt > 0) {
@@ -2867,6 +2870,9 @@
             else {
                 if (window.kxBoot) kxBoot();
                 flushTaps();                                        // pichhli baar ke bache taps (backup) bhejo
+                if (j.welcome) {                                    // naya user: welcome bonus popup
+                    try { showDailyPopup({ day: '🎁 Welcome', type: 'token', amount: Number(j.welcome) }, null); } catch (e) { }
+                }
                 maybeShowAdConsent();
             }
         })();
@@ -2959,40 +2965,73 @@
             if (energy < 1000) { energy = Math.min(1000, energy + 1); updateHUD(); }
         }, 3000);
 
-        async function startSocialTask(key, link) {
-            const ids = { yt: 'btnYtSub', tg: 'btnTgSub' };
-            const btn = document.getElementById(ids[key]);
-            if (!btn) return;
-            if (serverState.tasks && serverState.tasks[key]) return showToast('✅ Task already completed!', '#4ade80');
-            const s = await api('social_start', { key: key });
-            if (s.error) return apiErr(s);
-            if (window.Telegram?.WebApp) window.Telegram.WebApp.openLink(link);
-            else window.open(link, '_blank');
-            btn.innerText = 'Checking...'; btn.disabled = true;
-            setTimeout(() => {
-                btn.innerText = 'Claim'; btn.disabled = false;
-                btn.onclick = async () => {
-                    btn.disabled = true;
-                    const j = await api('social_claim', { key: key });
-                    if (j.error) { btn.disabled = false; return apiErr(j); }
-                    btn.innerText = '✓ Done';
-                    triggerHaptic('rigid');
-                    showDailyPopup({ day: ({ yt: 'YouTube Subscribe', tg: 'Telegram Join' })[key], type: 'token', amount: j.amount, label: j.amount.toLocaleString() + ' 🪙' }, null);
-                };
-            }, 10000);
+        // ==========================================
+        // SOCIAL TASKS (YouTube / Telegram)
+        // Join dabao → link khulta hai → 1 ghanta "Checking…" → phir "Claim".
+        // Start time aur 1 ghante ki shart SERVER rakhta hai (reload karne par bhi timer chalta rehta hai).
+        // Telegram join server bot se asli me check bhi karta hai.
+        // ==========================================
+        const SOCIAL = {
+            yt: { btn: 'btnYtSub', link: 'https://www.youtube.com/@Gen-Z-l1c', label: 'Subscribe', name: 'YouTube Subscribe' },
+            tg: { btn: 'btnTgSub', link: 'https://t.me/genzgame1', label: 'Join', name: 'Telegram Join' }
+        };
+        let _socialTimer = null, _socialBusy = {};
+        function serverNow() { return Date.now() + (Number(serverState && serverState._off) || 0); }
+        function socialWaitLeft(key) {
+            const st = Number(serverState && serverState.social && serverState.social[key]) || 0;
+            if (!st) return null;                                      // abhi shuru nahi kiya
+            const gap = Number(serverState.social.wait) || 3600000;
+            return Math.max(0, st + gap - serverNow());
         }
-
+        async function startSocialTask(key) {
+            const t = SOCIAL[key];
+            if (!t || _socialBusy[key]) return;
+            if (serverState.tasks && serverState.tasks[key]) return showToast('✅ Task already completed!', '#4ade80');
+            const left = socialWaitLeft(key);
+            if (left === 0) return claimSocialTask(key);               // 1 ghanta ho gaya → Claim
+            // link kholo (pehli baar ho to server timer shuru karta hai; dobara dabane par timer reset nahi hota)
+            if (window.Telegram?.WebApp) {
+                if (key === 'tg') window.Telegram.WebApp.openTelegramLink(t.link); else window.Telegram.WebApp.openLink(t.link);
+            } else window.open(t.link, '_blank');
+            if (left === null) {
+                _socialBusy[key] = true;
+                const s = await api('social_start', { key: key });
+                _socialBusy[key] = false;
+                if (s.error) apiErr(s);
+                else showToast('⏳ We will verify your ' + (key === 'yt' ? 'subscription' : 'join') + '. Come back in 1 hour to claim!', '#fbbf24');
+            }
+            syncSocialButtons();
+        }
+        async function claimSocialTask(key) {
+            const t = SOCIAL[key], btn = document.getElementById(t.btn);
+            _socialBusy[key] = true; if (btn) { btn.disabled = true; btn.innerText = 'Verifying…'; }
+            const j = await api('social_claim', { key: key });
+            _socialBusy[key] = false;
+            if (j.error) { syncSocialButtons(); return apiErr(j); }
+            triggerHaptic('rigid');
+            syncSocialButtons();
+            showDailyPopup({ day: t.name, type: 'token', amount: j.amount, label: j.amount.toLocaleString() + ' 🪙' }, null);
+        }
         function syncSocialButtons() {
-            [['yt', 'btnYtSub'], ['tg', 'btnTgSub']].forEach(([k, id]) => {
-                const b = document.getElementById(id);
-                if (b && serverState.tasks && serverState.tasks[k]) { b.innerText = '✓ Done'; b.disabled = true; }
+            let pending = false;
+            Object.keys(SOCIAL).forEach(k => {
+                const t = SOCIAL[k], b = document.getElementById(t.btn);
+                if (!b) return;
+                if (serverState.tasks && serverState.tasks[k]) { b.innerText = '✓ Done'; b.disabled = true; return; }
+                if (_socialBusy[k]) return;
+                const left = socialWaitLeft(k);
+                if (left === null) { b.innerText = t.label; b.disabled = false; }
+                else if (left > 0) { b.innerText = '🔍 Checking ' + fmtWait(left); b.disabled = false; pending = true; }
+                else { b.innerText = 'Claim'; b.disabled = false; }
             });
+            clearTimeout(_socialTimer);
+            if (pending) _socialTimer = setTimeout(syncSocialButtons, 1000);
         }
 
         // ==========================================
         // REWARDED ADS (Monetag) — sirf optional, sirf button dabane par
-        // - Tasks: "Watch an ad" +5,000 G-Points, din me max 5, do ad ke beech 60s
-        // - Energy kam (<200) ho to: ad dekh ke energy full, din me max 3
+        // - Tasks: "Watch an ad" +5,000 G-Points, din me max 5, do ad ke beech 1 ghanta
+        // - Energy kam (<200) ho to: ad dekh ke energy full, din me max 5
         // - Reward + limit SERVER deta/check karta hai (ad_start → ad poora → ad_reward)
         // - Pehli baar ek consent message
         // ==========================================
@@ -3003,11 +3042,15 @@
             const f = window['show_' + MONETAG_ZONE_ID];
             return typeof f === 'function' ? f : null;
         }
+        function fmtWait(ms) {                                   // 3599000 → "59:59", 61000 → "1:01"
+            const s = Math.ceil(ms / 1000), m = Math.floor(s / 60);
+            return m + ':' + String(s % 60).padStart(2, '0');
+        }
         function adInfo() {
             const a = (serverState && serverState.ads) || {};
             return {
                 pts: Number(a.pts) || 0, en: Number(a.en) || 0, last: Number(a.last) || 0,
-                maxPts: Number(a.maxPts) || 5, maxEn: Number(a.maxEn) || 3, gap: Number(a.gap) || 60000, reward: Number(a.reward) || 5000
+                maxPts: Number(a.maxPts) || 5, maxEn: Number(a.maxEn) || 5, gap: Number(a.gap) || 3600000, reward: Number(a.reward) || 5000
             };
         }
         function updateAdUI() {
@@ -3017,11 +3060,11 @@
             card.style.display = show ? '' : 'none';
             if (!show) { eb.style.display = 'none'; return; }
             const a = adInfo(), left = Math.max(0, a.maxPts - a.pts);
-            const wait = Math.max(0, a.last + a.gap - Date.now());
+            const wait = Math.max(0, a.last + a.gap - serverNow());   // server ki ghadi se
             const btn = document.getElementById('btnAdPts'), sub = document.getElementById('adTaskSub');
             document.getElementById('adTaskReward').innerText = '+' + a.reward.toLocaleString();
             if (left < 1) { btn.disabled = true; btn.innerText = '✓ Done'; sub.innerText = 'Daily limit reached · back tomorrow'; }
-            else if (wait > 0) { btn.disabled = true; btn.innerText = Math.ceil(wait / 1000) + 's'; sub.innerText = left + ' left today'; }
+            else if (wait > 0) { btn.disabled = true; btn.innerText = fmtWait(wait); sub.innerText = left + ' left today · next in ' + fmtWait(wait); }
             else { btn.disabled = adBusy; btn.innerText = adBusy ? '…' : 'Watch'; sub.innerText = left + ' left today'; }
             clearTimeout(_adTimer);
             if (left > 0 && wait > 0) _adTimer = setTimeout(updateAdUI, 1000);   // countdown
@@ -3369,7 +3412,7 @@
                 return showToast('⚠️ BOT_USERNAME is not set (admin config)', '#f87171');
             }
             const link = 'https://t.me/' + BOT_USERNAME + (BOT_APP_SHORTNAME ? '/' + BOT_APP_SHORTNAME : '') + '?startapp=gz_' + tgUser.id;
-            const msg = '🚀 Tap to earn G-Points and trade keys with me on Gen-Z!';
+            const msg = '🚀 Tap to earn G-Points and trade keys with me on Gen-Z! 🎁 Join now and get a 50,000 G-Points welcome bonus.';
             const url = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(msg);
             if (window.Telegram?.WebApp) window.Telegram.WebApp.openTelegramLink(url);
             else window.open(url, '_blank');
@@ -4564,7 +4607,13 @@ begin
       'en',  case when (u.tasks_done->'_ad'->>'d')::bigint = (extract(epoch from rs) * 1000)::bigint
                   then coalesce((u.tasks_done->'_ad'->>'e')::int, 0) else 0 end,
       'last', coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0),
-      'maxPts', 5, 'maxEn', 3, 'gap', 60000, 'reward', 5000)
+      'maxPts', 5, 'maxEn', 5, 'gap', 3600000, 'reward', 5000),
+    -- social tasks: Join kab dabaya (ms), claim 1 ghante baad
+    'social', jsonb_build_object(
+      'yt', coalesce((u.tasks_done->>'_s_yt')::bigint, 0),
+      'tg', coalesce((u.tasks_done->>'_s_tg')::bigint, 0),
+      'wait', 3600000),
+    'now', public._ms()
   );
 end $$;
 
@@ -4624,12 +4673,18 @@ begin
     end if;
   end if;
 
+  -- naya user: welcome bonus 50,000 (sirf ek baar, account bante hi)
+  if is_new and p_action = 'init' then
+    u.tokens := u.tokens + 50000;
+    res := res || jsonb_build_object('welcome', 50000);
+  end if;
+
   -- referral: sirf naya user, signed start_param se, self-ref nahi
   if is_new and p_action = 'init' then
     sp := coalesce(a->>'start_param', '');
     -- 'ref_' purane links, 'gz_' naye links (naya prefix = Telegram ka naya link preview card)
-    if sp like 'ref\_%' or sp like 'gz\_%' then
-      ref := regexp_replace(regexp_replace(sp, '^(ref|gz)_', ''), '\D', '', 'g');
+    if sp ~ '^(ref|gz)_[0-9]{1,20}$' then                         -- sirf saaf link: gz_<numeric id>
+      ref := regexp_replace(sp, '^(ref|gz)_', '');
       if ref <> '' and ref <> uid and exists (select 1 from public.users where id = ref) then
         u.referred_by := ref;
         update public.users set diamonds = diamonds + 1, friends = friends + 1, last_active = now()
@@ -4711,7 +4766,10 @@ begin
       if k not in ('yt', 'tg') then
         return jsonb_build_object('error', 'bad_key', 'state', public._state(u));
       end if;
-      u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb) || jsonb_build_object('_s_' || k, public._ms());
+      -- pehle se shuru hai to timer reset nahi (Join dobara dabane par bhi)
+      if not coalesce(u.tasks_done, '{}'::jsonb) ? ('_s_' || k) then
+        u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb) || jsonb_build_object('_s_' || k, public._ms());
+      end if;
 
     when 'social_claim' then
       k := p_data->>'key';
@@ -4722,8 +4780,11 @@ begin
         return jsonb_build_object('error', 'already_claimed', 'state', public._state(u));
       end if;
       started := coalesce((u.tasks_done->>('_s_' || k))::bigint, 0);
-      if started = 0 or public._ms() - started < 8000 then
-        return jsonb_build_object('error', 'too_fast', 'state', public._state(u));
+      if started = 0 then
+        return jsonb_build_object('error', 'social_not_started', 'state', public._state(u));
+      end if;
+      if public._ms() - started < 3600000 then                      -- Join ke 1 ghante baad hi claim
+        return jsonb_build_object('error', 'social_wait', 'state', public._state(u));
       end if;
       if k = 'tg' then
         ok := public._tg_member(uid);
@@ -4733,13 +4794,13 @@ begin
       end if;
       -- NOTE: YouTube subscribe bina Google login ke verify nahi hota (sirf time-gate)
       u.tasks_done := (u.tasks_done - ('_s_' || k)) || jsonb_build_object(k, true);
-      amt := case k when 'yt' then 3000 else 2500 end;
+      amt := case k when 'yt' then 20000 else 20000 end;
       u.tokens := u.tokens + amt;
       res := jsonb_build_object('amount', amt);
 
     -- ---------------------------------------------------- rewarded ads (optional)
-    -- 'pts'    = +5000 G-Points, din me max 5, do ad ke beech 60s
-    -- 'energy' = energy full, din me max 3, sirf jab energy kam ho
+    -- 'pts'    = +5000 G-Points, din me max 5, do ad ke beech 1 ghanta
+    -- 'energy' = energy full, din me max 5, sirf jab energy kam ho
     -- ad_start ad dikhane se pehle, ad_reward poora dekhne ke baad. Limit SERVER check karta hai.
     when 'ad_start', 'ad_reward' then
       k := p_data->>'kind';
@@ -4753,10 +4814,10 @@ begin
                't', coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0)));
       end if;
       if k = 'pts' and (u.tasks_done->'_ad'->>'p')::int >= 5
-         or k = 'energy' and (u.tasks_done->'_ad'->>'e')::int >= 3 then
+         or k = 'energy' and (u.tasks_done->'_ad'->>'e')::int >= 5 then
         return jsonb_build_object('error', 'ad_limit', 'state', public._state(u));
       end if;
-      if k = 'pts' and public._ms() - coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0) < 60000 then
+      if k = 'pts' and public._ms() - coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0) < 3600000 then
         return jsonb_build_object('error', 'ad_wait', 'state', public._state(u));
       end if;
       if k = 'energy' and u.energy >= 200 then
