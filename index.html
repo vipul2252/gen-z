@@ -3070,6 +3070,10 @@
             return _tadsCtl;
         }
         // 'watched' | 'skipped' | 'noad'
+        // Reward kab: (1) TADS ka onShowReward aaye, YA (2) ad screen kam se kam TADS_MIN_VIEW_MS khuli rahi aur band hui.
+        // Ad screen ka band hona: TADS jo naye element body me jodta hai, unke hatne/chhupne se pata chalta hai.
+        const TADS_MIN_VIEW_MS = 5000;
+        let _tadsDbg = '';
         function tadsShow() {
             return new Promise(resolve => {
                 const c = tadsController();
@@ -3077,18 +3081,41 @@
                     _tadsLastErr = !window.tads ? 'TADS script load nahi hua' : (!c ? 'tads.init fail' : 'showAd function nahi mila');
                     return resolve('noad');
                 }
-                let done = false, shown = false;
-                const finish = r => { if (done) return; done = true; clearTimeout(t); resolve(r); };
-                _tadsWait = finish;
-                const t = setTimeout(() => { _tadsWait = null; finish(shown ? 'skipped' : 'noad'); }, 90000);
+                const t0 = Date.now(), base = new Set(Array.from(document.body.children));
+                let done = false, rewardEv = false, resolvedAt = 0, poll = null;
+                const sec = ms => (ms / 1000).toFixed(1) + 's';
+                const finish = r => {
+                    if (done) return; done = true; clearTimeout(t); clearInterval(poll); _tadsWait = null;
+                    _tadsDbg = `${r} · showAd ${resolvedAt ? 'resolve @' + sec(resolvedAt - t0) : 'pending'} · end @${sec(Date.now() - t0)} · rewardEvent ${rewardEv ? 'yes' : 'no'}`;
+                    resolve(r);
+                };
+                // reward event aaye to bhi ad band hone ka intezaar (kuch SDK ise ad dikhte hi bhej dete hain)
+                _tadsWait = r => { if (r === 'watched') { rewardEv = true; _tadsWait = _tadsWaitKeep; } else finish(r); };
+                const _tadsWaitKeep = _tadsWait;
+                const t = setTimeout(() => finish(resolvedAt ? 'skipped' : 'noad'), 120000);
+                const isOpen = el => {
+                    if (!el.isConnected) return false;
+                    const s = getComputedStyle(el), b = el.getBoundingClientRect();
+                    return s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity) > 0.05 && b.width > 40 && b.height > 40;
+                };
+                const watchClose = () => {
+                    let seenOverlay = false;
+                    poll = setInterval(() => {
+                        const extra = Array.from(document.body.children).filter(el => !base.has(el) && el.id !== '_toast');
+                        const open = extra.some(isOpen);
+                        if (open) { seenOverlay = true; return; }
+                        // overlay nahi dikh raha: ya to band ho gaya, ya kabhi bana hi nahi (tab showAd resolve = band)
+                        if ((seenOverlay || resolvedAt || rewardEv) && Date.now() - t0 > 1500) {
+                            clearInterval(poll);
+                            setTimeout(() => finish(rewardEv || Date.now() - t0 >= TADS_MIN_VIEW_MS ? 'watched' : 'skipped'), 800);
+                        }
+                    }, 400);
+                };
                 try {
-                    Promise.resolve(c.showAd()).then(() => {
-                        shown = true;
-                        // ad band hone ke baad reward aane ke liye thoda ruko, phir "beech me band kiya"
-                        const onBack = () => setTimeout(() => { if (_tadsWait === finish) { _tadsWait = null; finish('skipped'); } }, 2500);
-                        if (document.visibilityState === 'visible') setTimeout(onBack, 20000); else document.addEventListener('visibilitychange', onBack, { once: true });
-                    }).catch(e => { _tadsLastErr = 'showAd error: ' + ((e && (e.message || e.error || e.description)) || String(e)); _tadsWait = null; finish('noad'); });
-                } catch (e) { _tadsLastErr = 'showAd exception: ' + (e && e.message); _tadsWait = null; finish('noad'); }
+                    watchClose();
+                    Promise.resolve(c.showAd()).then(() => { resolvedAt = Date.now(); })
+                        .catch(e => { _tadsLastErr = 'showAd error: ' + ((e && (e.message || e.error || e.description)) || String(e)); finish('noad'); });
+                } catch (e) { _tadsLastErr = 'showAd exception: ' + (e && e.message); finish('noad'); }
             });
         }
         function monetagFn() {
@@ -3163,6 +3190,7 @@
                 if (kind === 'energy') await flushTaps();             // pehle bache taps server pe, phir refill
                 const s = await api('ad_start', { kind: kind });
                 if (s.error) { apiErr(s); return; }
+                const adStartAt = Date.now();
                 // 1) TADS (main)  2) TADS ka ad na mile to Monetag (backup)
                 let watched = false, skipped = false;
                 const tr = TADS_WIDGET_ID ? await tadsShow() : 'noad';
@@ -3177,6 +3205,7 @@
                     } catch (e) { }
                 }
                 if (!watched) {
+                    if (skipped && isTadsDebugAdmin() && _tadsDbg) { showToast('🛠 TADS (admin): ' + _tadsDbg, '#fbbf24'); return; }
                     if (!skipped && isTadsDebugAdmin() && _tadsLastErr) {          // sirf admin ko asli wajah
                         showToast('🛠 TADS (admin): ' + _tadsLastErr, '#fbbf24');
                         return;
@@ -3184,7 +3213,11 @@
                     showToast(skipped ? '⏭ Ad was closed early, no reward this time' : '⚠️ No ad available right now, try again later', '#fbbf24');
                     return;
                 }
+                // server ad_start ke 4s baad hi reward deta hai
+                const since = Date.now() - adStartAt;
+                if (since < 4500) await new Promise(r => setTimeout(r, 4500 - since));
                 const j = await api('ad_reward', { kind: kind });
+                if (isTadsDebugAdmin() && _tadsDbg) setTimeout(() => showToast('🛠 TADS (admin): ' + _tadsDbg, '#fbbf24'), 3200);
                 if (j.error) { apiErr(j); return; }
                 triggerHaptic('rigid');
                 if (j.kind === 'energy') showToast('⚡ Energy refilled!', '#4ade80');
