@@ -39,6 +39,8 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Monetag SDK (sirf optional rewarded ads; load na ho to game normal chalta hai) — sirf Rewarded interstitial -->
     <script src="https://libtl.com/sdk.js" data-zone="12007470" data-sdk="show_12007470" async></script>
+    <!-- TADS SDK (main ad network: Fullscreen rewarded, gambling categories band) -->
+    <script src="https://w.tads.me/widget.js" async></script>
     <!-- Ed25519 keypair (wallet) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tweetnacl/1.0.3/nacl-fast.min.js"></script>
 
@@ -2129,6 +2131,8 @@
             🎁 Claim Today's Bonus
         </button>
         <div class="daily-next-timer" id="txtDailyTimer"></div>
+        <button class="btn-action" id="btnDaily2x" style="display:none;width:100%;margin:10px 0 4px;padding:12px;white-space:normal;"
+            onclick="watchAd('daily2x')">📺 Watch an ad to double today's bonus</button>
 
         <!-- Day Lines List -->
         <div class="daily-list-header">
@@ -2197,6 +2201,8 @@
             </div>
             <div class="puzzle-grid" id="puzzleBoard"></div>
             <button class="btn-puzzle-start" id="btnStartPuzzle" onclick="startPuzzleGame()">▶ START PUZZLE</button>
+            <button class="btn-action" id="btnPuzzle2x" style="display:none;width:100%;margin-top:10px;padding:12px;white-space:normal;"
+                onclick="watchAd('puzzle2x')">📺 Watch an ad to double your puzzle reward (+10,000)</button>
             <div id="puzzleLockMsg" class="lock-msg" style="display:none;">
                 🇮🇳 Next puzzle unlocks at <b>7:00 AM IST</b><br>
                 ⏳ Time remaining: <b id="txtCooldownTimer">00:00:00</b>
@@ -2510,7 +2516,8 @@
             <div style="font-size:.88rem;line-height:1.5;color:#cbd5e1;text-align:left;">
                 • This game shows <b>optional</b> ads.<br>
                 • An ad plays only when you tap a <b>"Watch"</b> button.<br>
-                • Watch to the end to get the bonus: <b>+5,000 G-Points</b> (Tasks) or an <b>energy refill</b>.<br>
+                • Watch to the end to get the bonus: <b>+5,000 G-Points</b>, an <b>energy refill</b>, or <b>2x</b> daily / puzzle rewards.<br>
+                • No need to click the ad. Just wait for the timer and close it.<br>
                 • Everything in the game works without ads.<br>
                 • G-Points are in-game points only, with no cash value.
             </div>
@@ -2558,7 +2565,9 @@
         const MASTER_ADMIN_ID = 5678080775;             // apna Telegram numeric user ID
         // >>> LAUNCH SE PEHLE ZAROOR BADLO <<<
         const BOT_USERNAME = 'Genz20_bot';      // bina @ ke, e.g. 'MyGameBot'
-        const MONETAG_ZONE_ID = '12007470';            // Monetag → Telegram Mini App main zone. Khali = Monetag band
+        const TADS_WIDGET_ID = '12626';               // TADS → Widgets → #ID (Fullscreen). Khali = TADS band
+        const TADS_DEBUG = false;                      // test ke liye true (test ads), live par false
+        const MONETAG_ZONE_ID = '12007470';            // backup: TADS ka ad na mile tab. Khali = Monetag band            // Monetag → Telegram Mini App main zone. Khali = Monetag band
                                                        // (zone badle to <head> wali libtl.com script ki dono values bhi badlo)
         const BOT_APP_SHORTNAME = 'play';                  // agar BotFather me Mini App ka short name hai to likho, warna khali chhodo
 
@@ -2733,6 +2742,7 @@
             ad_wait: '⏳ Next ad unlocks 1 hour after the last one',
             ad_not_started: '⚠️ Ad was not started properly, please try again',
             energy_ok: '⚡ Your energy is not low yet',
+            not_eligible: '✅ Already doubled today, or nothing to double yet',
             network: '⚠️ Could not reach the server. Check your internet connection',
             db: '⚠️ Server error, please try again in a moment'
         };
@@ -3035,8 +3045,44 @@
         // - Reward + limit SERVER deta/check karta hai (ad_start → ad poora → ad_reward)
         // - Pehli baar ek consent message
         // ==========================================
-        const ADS_ON = !!MONETAG_ZONE_ID;
+        const ADS_ON = !!(TADS_WIDGET_ID || MONETAG_ZONE_ID);
         let adBusy = false, _adTimer = null;
+        // ---- TADS fullscreen rewarded ----
+        // showAd() button click se hi; reward sirf onShowReward (poora dekha) par. Click par kuch nahi.
+        let _tadsCtl = null, _tadsWait = null;
+        function tadsController() {
+            if (_tadsCtl) return _tadsCtl;
+            if (!TADS_WIDGET_ID || !window.tads || typeof window.tads.init !== 'function') return null;
+            try {
+                const ex = window.tads.controllers && window.tads.controllers[TADS_WIDGET_ID];
+                _tadsCtl = ex || window.tads.init({
+                    widgetId: TADS_WIDGET_ID, type: 'fullscreen', debug: TADS_DEBUG,
+                    onShowReward: () => { if (_tadsWait) { const w = _tadsWait; _tadsWait = null; w('watched'); } },
+                    onClickReward: () => { },
+                    onAdsNotFound: () => { if (_tadsWait) { const w = _tadsWait; _tadsWait = null; w('noad'); } }
+                });
+            } catch (e) { _tadsCtl = null; }
+            return _tadsCtl;
+        }
+        // 'watched' | 'skipped' | 'noad'
+        function tadsShow() {
+            return new Promise(resolve => {
+                const c = tadsController();
+                if (!c || typeof c.showAd !== 'function') return resolve('noad');
+                let done = false, shown = false;
+                const finish = r => { if (done) return; done = true; clearTimeout(t); resolve(r); };
+                _tadsWait = finish;
+                const t = setTimeout(() => { _tadsWait = null; finish(shown ? 'skipped' : 'noad'); }, 90000);
+                try {
+                    Promise.resolve(c.showAd()).then(() => {
+                        shown = true;
+                        // ad band hone ke baad reward aane ke liye thoda ruko, phir "beech me band kiya"
+                        const onBack = () => setTimeout(() => { if (_tadsWait === finish) { _tadsWait = null; finish('skipped'); } }, 2500);
+                        if (document.visibilityState === 'visible') setTimeout(onBack, 20000); else document.addEventListener('visibilitychange', onBack, { once: true });
+                    }).catch(() => { _tadsWait = null; finish('noad'); });
+                } catch (e) { _tadsWait = null; finish('noad'); }
+            });
+        }
         function monetagFn() {
             if (!MONETAG_ZONE_ID) return null;
             const f = window['show_' + MONETAG_ZONE_ID];
@@ -3058,6 +3104,7 @@
             if (!card || !eb) return;
             const show = ADS_ON && IN_TELEGRAM && !!(serverState && serverState.ads);
             card.style.display = show ? '' : 'none';
+            update2xButtons(show);
             if (!show) { eb.style.display = 'none'; return; }
             const a = adInfo(), left = Math.max(0, a.maxPts - a.pts);
             const wait = Math.max(0, a.last + a.gap - serverNow());   // server ki ghadi se
@@ -3069,6 +3116,22 @@
             clearTimeout(_adTimer);
             if (left > 0 && wait > 0) _adTimer = setTimeout(updateAdUI, 1000);   // countdown
             updateAdEnergyBtn();
+        }
+        // Daily Bonus 2x / Puzzle 2x: server batata hai kab mil sakta hai (d2 = kitna, p2 = haan/na)
+        function update2xButtons(show) {
+            const ads = (serverState && serverState.ads) || {};
+            const d = document.getElementById('btnDaily2x'), p = document.getElementById('btnPuzzle2x');
+            const d2 = Number(ads.d2) || 0, p2 = !!ads.p2;
+            if (d) {
+                d.style.display = show && d2 > 0 ? '' : 'none';
+                d.disabled = adBusy;
+                d.innerText = adBusy ? '…' : `📺 Watch an ad to double today's bonus (+${d2.toLocaleString()})`;
+            }
+            if (p) {
+                p.style.display = show && p2 ? '' : 'none';
+                p.disabled = adBusy;
+                p.innerText = adBusy ? '…' : '📺 Watch an ad to double your puzzle reward (+10,000)';
+            }
         }
         function updateAdEnergyBtn() {
             const eb = document.getElementById('btnAdEnergy');
@@ -3083,14 +3146,17 @@
             if (adBusy) return;
             if (!IN_TELEGRAM) return apiErr({ error: 'not_telegram' });
             const mtShow = monetagFn();
-            if (!mtShow) return showToast('⚠️ Ads are not available right now, try again later', '#f87171');
+            if (!tadsController() && !mtShow) return showToast('⚠️ Ads are not available right now, try again later', '#f87171');
             adBusy = true; updateAdUI();
             try {
                 if (kind === 'energy') await flushTaps();             // pehle bache taps server pe, phir refill
                 const s = await api('ad_start', { kind: kind });
                 if (s.error) { apiErr(s); return; }
+                // 1) TADS (main)  2) TADS ka ad na mile to Monetag (backup)
                 let watched = false, skipped = false;
-                {
+                const tr = TADS_WIDGET_ID ? await tadsShow() : 'noad';
+                if (tr === 'watched') watched = true; else if (tr === 'skipped') skipped = true;
+                if (!watched && !skipped && mtShow) {
                     try {
                         const res = await mtShow({ ymid: String((tgUser && tgUser.id) || '') + '-' + Date.now() });
                         // Monetag ka promise ad jaldi band karne par bhi poora hota hai: sirf 'valued' = poora dekha
@@ -3106,8 +3172,10 @@
                 const j = await api('ad_reward', { kind: kind });
                 if (j.error) { apiErr(j); return; }
                 triggerHaptic('rigid');
-                if (j.kind === 'pts') showToast(`✅ +${Number(j.amount).toLocaleString()} G-Points added`, '#4ade80');
-                else showToast('⚡ Energy refilled!', '#4ade80');
+                if (j.kind === 'energy') showToast('⚡ Energy refilled!', '#4ade80');
+                else if (j.kind === 'daily2x') showToast(`🎉 Daily bonus doubled! +${Number(j.amount).toLocaleString()} G-Points`, '#4ade80');
+                else if (j.kind === 'puzzle2x') showToast(`🧩 Puzzle reward doubled! +${Number(j.amount).toLocaleString()} G-Points`, '#4ade80');
+                else showToast(`✅ +${Number(j.amount).toLocaleString()} G-Points added`, '#4ade80');
             } finally {
                 adBusy = false; updateAdUI();
             }
@@ -4599,7 +4667,7 @@ begin
     'claimedToday', coalesce(u.last_daily = today, false),
     'puzzleDone',  coalesce(u.puzzle_at     >= rs, false),
     'puzzleTried', coalesce(u.puzzle_try_at >= rs, false),
-    'tasks', coalesce(u.tasks_done, '{}'::jsonb) - '_pz' - '_s_yt' - '_s_tg' - '_tp' - '_tb' - '_ad' - '_as',
+    'tasks', coalesce(u.tasks_done, '{}'::jsonb) - '_pz' - '_s_yt' - '_s_tg' - '_tp' - '_tb' - '_ad' - '_as' - '_dl',
     'nextReset', (extract(epoch from rs) * 1000)::bigint + 86400000,
     -- rewarded ads: aaj kitne dekhe (7 AM IST reset), aakhri reward kab mila
     'ads', jsonb_build_object(
@@ -4608,7 +4676,14 @@ begin
       'en',  case when (u.tasks_done->'_ad'->>'d')::bigint = (extract(epoch from rs) * 1000)::bigint
                   then coalesce((u.tasks_done->'_ad'->>'e')::int, 0) else 0 end,
       'last', coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0),
-      'maxPts', 5, 'maxEn', 5, 'gap', 3600000, 'reward', 5000),
+      'maxPts', 5, 'maxEn', 5, 'gap', 3600000, 'reward', 5000,
+      -- 2x: aaj ka daily bonus (claim kiya, token wala, abhi double nahi kiya) = kitna milega
+      'd2', case when u.last_daily = today and coalesce((u.tasks_done->>'_dl')::bigint, 0) > 0
+                      and coalesce(u.tasks_done->'_ad'->>'dd', '') <> today
+                 then (u.tasks_done->>'_dl')::bigint else 0 end,
+      -- 2x: aaj puzzle jeeta aur abhi double nahi kiya
+      'p2', coalesce(u.puzzle_at >= rs, false)
+            and coalesce((u.tasks_done->'_ad'->>'pz')::bigint, 0) <> (extract(epoch from rs) * 1000)::bigint),
     -- social tasks: Join kab dabaya (ms), claim 1 ghante baad
     'social', jsonb_build_object(
       'yt', coalesce((u.tasks_done->>'_s_yt')::bigint, 0),
@@ -4647,7 +4722,7 @@ declare
   today text := to_char((now() at time zone 'Asia/Kolkata')::date, 'YYYY-MM-DD');
   yday  text := to_char((now() at time zone 'Asia/Kolkata')::date - 1, 'YYYY-MM-DD');
   rs timestamptz := public._reset_ts();
-  gained int; res jsonb := '{}'::jsonb; fresh public.users%rowtype;
+  gained int; res jsonb := '{}'::jsonb; fresh public.users%rowtype; bonus bigint;
   taps numeric; ms numeric; maxrate int; applied int;
   idx int; amt bigint; k text; sp text; ref text;
   started bigint; took bigint; ok boolean;
@@ -4729,10 +4804,12 @@ begin
       if idx = 10 then
         u.diamonds := u.diamonds + 1;
         res := jsonb_build_object('day', 11, 'type', 'diamond', 'amount', 1);
+        u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb) || jsonb_build_object('_dl', 0);
       else
         amt := daily[idx + 1];
         u.tokens := u.tokens + amt;
         res := jsonb_build_object('day', idx + 1, 'type', 'token', 'amount', amt);
+        u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb) || jsonb_build_object('_dl', amt);   -- 2x ke liye
       end if;
       u.streak := u.streak + 1;
       u.last_daily := today;
@@ -4805,14 +4882,25 @@ begin
     -- ad_start ad dikhane se pehle, ad_reward poora dekhne ke baad. Limit SERVER check karta hai.
     when 'ad_start', 'ad_reward' then
       k := p_data->>'kind';
-      if k not in ('pts', 'energy') then
+      if k not in ('pts', 'energy', 'daily2x', 'puzzle2x') then
         return jsonb_build_object('error', 'bad_key', 'state', public._state(u));
       end if;
       amt := (extract(epoch from rs) * 1000)::bigint;               -- aaj ka reset (7 AM IST)
       if coalesce((u.tasks_done->'_ad'->>'d')::bigint, 0) <> amt then
         u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb)
           || jsonb_build_object('_ad', jsonb_build_object('d', amt, 'p', 0, 'e', 0,
-               't', coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0)));
+               't', coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0),
+               'dd', coalesce(u.tasks_done->'_ad'->>'dd', ''),          -- daily 2x calendar din se chalta hai
+               'pz', coalesce((u.tasks_done->'_ad'->>'pz')::bigint, 0)));
+      end if;
+      -- 2x: din me ek baar, sirf jab base reward aaj mil chuka ho
+      if k = 'daily2x' and not (u.last_daily = today and coalesce((u.tasks_done->>'_dl')::bigint, 0) > 0
+                               and coalesce(u.tasks_done->'_ad'->>'dd', '') <> today) then
+        return jsonb_build_object('error', 'not_eligible', 'state', public._state(u));
+      end if;
+      if k = 'puzzle2x' and not (coalesce(u.puzzle_at >= rs, false)
+                                and coalesce((u.tasks_done->'_ad'->>'pz')::bigint, 0) <> amt) then
+        return jsonb_build_object('error', 'not_eligible', 'state', public._state(u));
       end if;
       if k = 'pts' and (u.tasks_done->'_ad'->>'p')::int >= 5
          or k = 'energy' and (u.tasks_done->'_ad'->>'e')::int >= 5 then
@@ -4838,7 +4926,18 @@ begin
         if took < 4000 then                                         -- ad itni jaldi khatam nahi hota
           return jsonb_build_object('error', 'too_fast', 'state', public._state(u));
         end if;
-        u.tasks_done := (u.tasks_done - '_as') || jsonb_build_object('_ad',
+        u.tasks_done := u.tasks_done - '_as';
+        if k = 'daily2x' then
+          bonus := (u.tasks_done->>'_dl')::bigint;
+          u.tokens := u.tokens + bonus;
+          u.tasks_done := u.tasks_done || jsonb_build_object('_ad', (u.tasks_done->'_ad') || jsonb_build_object('dd', today));
+          res := jsonb_build_object('kind', k, 'amount', bonus);
+        elsif k = 'puzzle2x' then
+          u.tokens := u.tokens + 10000;
+          u.tasks_done := u.tasks_done || jsonb_build_object('_ad', (u.tasks_done->'_ad') || jsonb_build_object('pz', amt));
+          res := jsonb_build_object('kind', k, 'amount', 10000);
+        else
+        u.tasks_done := u.tasks_done || jsonb_build_object('_ad',
           (u.tasks_done->'_ad') || jsonb_build_object(
             case when k = 'pts' then 'p' else 'e' end,
             (u.tasks_done->'_ad'->>(case when k = 'pts' then 'p' else 'e' end))::int + 1,
@@ -4849,6 +4948,7 @@ begin
         else
           u.energy := 1000; u.energy_ts := now();
           res := jsonb_build_object('kind', k, 'energy', 1000);
+        end if;
         end if;
       end if;
 
