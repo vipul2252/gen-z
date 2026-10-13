@@ -3052,6 +3052,10 @@
         // ---- TADS fullscreen rewarded ----
         // showAd() button click se hi; reward sirf onShowReward (poora dekha) par. Click par kuch nahi.
         let _tadsCtl = null, _tadsWait = null, _tadsLastErr = '';
+        function adminDebugAlert(msg) {
+            try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.showAlert) { Telegram.WebApp.showAlert(msg); return; } } catch (e) { }
+            showToast(msg, '#fbbf24');
+        }
         function isTadsDebugAdmin() {
             try { return TADS_DEBUG_ADMIN && String(tgUser && tgUser.id) === String(MASTER_ADMIN_ID); } catch (e) { return false; }
         }
@@ -3081,31 +3085,36 @@
                     _tadsLastErr = !window.tads ? 'TADS script load nahi hua' : (!c ? 'tads.init fail' : 'showAd function nahi mila');
                     return resolve('noad');
                 }
-                const t0 = Date.now(), base = new Set(Array.from(document.body.children));
-                let done = false, rewardEv = false, resolvedAt = 0, poll = null;
+                const t0 = Date.now(), known = new WeakSet(document.querySelectorAll('*'));
+                let done = false, rewardEv = false, resolvedAt = 0, poll = null, seenOverlay = false;
                 const sec = ms => (ms / 1000).toFixed(1) + 's';
                 const finish = r => {
                     if (done) return; done = true; clearTimeout(t); clearInterval(poll); _tadsWait = null;
-                    _tadsDbg = `${r} · showAd ${resolvedAt ? 'resolve @' + sec(resolvedAt - t0) : 'pending'} · end @${sec(Date.now() - t0)} · rewardEvent ${rewardEv ? 'yes' : 'no'}`;
+                    _tadsDbg = `${r} · showAd ${resolvedAt ? 'resolve @' + sec(resolvedAt - t0) : 'pending'} · end @${sec(Date.now() - t0)} · rewardEvent ${rewardEv ? 'yes' : 'no'} · overlay ${seenOverlay ? 'yes' : 'no'}`;
                     resolve(r);
                 };
                 // reward event aaye to bhi ad band hone ka intezaar (kuch SDK ise ad dikhte hi bhej dete hain)
                 _tadsWait = r => { if (r === 'watched') { rewardEv = true; _tadsWait = _tadsWaitKeep; } else finish(r); };
                 const _tadsWaitKeep = _tadsWait;
                 const t = setTimeout(() => finish(resolvedAt ? 'skipped' : 'noad'), 120000);
-                const isOpen = el => {
-                    if (!el.isConnected) return false;
-                    const s = getComputedStyle(el), b = el.getBoundingClientRect();
-                    return s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity) > 0.05 && b.width > 40 && b.height > 40;
+                // ad screen khuli hai? screen ke kuch points par sabse upar jo element hai, wo ad dikhne se pehle ka nahi hai
+                const overlayOpen = () => {
+                    const W = window.innerWidth, H = window.innerHeight;
+                    const pts = [[W / 2, H / 2], [W / 2, H * 0.3], [W / 2, H * 0.7], [W * 0.25, H / 2]];
+                    let hits = 0;
+                    for (const [x, y] of pts) {
+                        const el = document.elementFromPoint(x, y);
+                        if (el && !known.has(el) && !(el.closest && el.closest('#_toast'))) hits++;
+                    }
+                    return hits >= 2;
                 };
                 const watchClose = () => {
-                    let seenOverlay = false;
                     poll = setInterval(() => {
-                        const extra = Array.from(document.body.children).filter(el => !base.has(el) && el.id !== '_toast');
-                        const open = extra.some(isOpen);
-                        if (open) { seenOverlay = true; return; }
+                        if (overlayOpen()) { seenOverlay = true; return; }
                         // overlay nahi dikh raha: ya to band ho gaya, ya kabhi bana hi nahi (tab showAd resolve = band)
-                        if ((seenOverlay || resolvedAt || rewardEv) && Date.now() - t0 > 1500) {
+                        // overlay dikha tha aur ab band, YA overlay pakda hi nahi gaya to showAd/reward ke 4s baad tak ruko
+                        const el = Date.now() - t0;
+                        if ((seenOverlay && el > 1500) || (!seenOverlay && (resolvedAt || rewardEv) && el > 6000)) {
                             clearInterval(poll);
                             setTimeout(() => finish(rewardEv || Date.now() - t0 >= TADS_MIN_VIEW_MS ? 'watched' : 'skipped'), 800);
                         }
@@ -3205,9 +3214,9 @@
                     } catch (e) { }
                 }
                 if (!watched) {
-                    if (skipped && isTadsDebugAdmin() && _tadsDbg) { showToast('🛠 TADS (admin): ' + _tadsDbg, '#fbbf24'); return; }
+                    if (skipped && isTadsDebugAdmin() && _tadsDbg) { adminDebugAlert('🛠 TADS (admin): ' + _tadsDbg); return; }
                     if (!skipped && isTadsDebugAdmin() && _tadsLastErr) {          // sirf admin ko asli wajah
-                        showToast('🛠 TADS (admin): ' + _tadsLastErr, '#fbbf24');
+                        adminDebugAlert('🛠 TADS (admin): ' + _tadsLastErr);
                         return;
                     }
                     showToast(skipped ? '⏭ Ad was closed early, no reward this time' : '⚠️ No ad available right now, try again later', '#fbbf24');
@@ -3217,7 +3226,7 @@
                 const since = Date.now() - adStartAt;
                 if (since < 4500) await new Promise(r => setTimeout(r, 4500 - since));
                 const j = await api('ad_reward', { kind: kind });
-                if (isTadsDebugAdmin() && _tadsDbg) setTimeout(() => showToast('🛠 TADS (admin): ' + _tadsDbg, '#fbbf24'), 3200);
+                if (isTadsDebugAdmin() && _tadsDbg) setTimeout(() => adminDebugAlert('🛠 TADS (admin): ' + _tadsDbg), 3200);
                 if (j.error) { apiErr(j); return; }
                 triggerHaptic('rigid');
                 if (j.kind === 'energy') showToast('⚡ Energy refilled!', '#4ade80');
