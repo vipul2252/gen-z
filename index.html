@@ -3077,7 +3077,19 @@
         // Reward kab: (1) TADS ka onShowReward aaye, YA (2) ad screen kam se kam TADS_MIN_VIEW_MS khuli rahi aur band hui.
         // Ad screen ka band hona: TADS jo naye element body me jodta hai, unke hatne/chhupne se pata chalta hai.
         const TADS_MIN_VIEW_MS = 5000;
+        const TADS_CLOSE_AFTER_MS = 15000;   // ad dikhne ke itne baad hamara apna "✕ Close" button (timer ke saath)
         let _tadsDbg = '';
+        const _tadsAdRoots = new Set();      // jo ad screen hamne band ki (agli baar naya ad pakadne ke liye)
+        function tadsNewRoots(known) {       // ad ke naye top-level elements (body/html ke seedhe bachche)
+            const out = [];
+            for (const par of [document.body, document.documentElement]) {
+                for (const el of Array.from(par.children)) {
+                    if (el.id === '_tadsClose' || el.id === '_toast' || el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'HEAD' || el.tagName === 'BODY') continue;
+                    if (!known.has(el) || _tadsAdRoots.has(el)) out.push(el);
+                }
+            }
+            return out;
+        }
         function tadsShow() {
             return new Promise(resolve => {
                 const c = tadsController();
@@ -3085,18 +3097,50 @@
                     _tadsLastErr = !window.tads ? 'TADS script load nahi hua' : (!c ? 'tads.init fail' : 'showAd function nahi mila');
                     return resolve('noad');
                 }
-                const t0 = Date.now(), known = new WeakSet(document.querySelectorAll('*'));
-                let done = false, rewardEv = false, resolvedAt = 0, poll = null, seenOverlay = false;
+                const t0 = Date.now();
+                const roots = Array.from(_tadsAdRoots);
+                const known = new WeakSet(Array.from(document.querySelectorAll('*')).filter(e => !roots.some(r => r.contains(e))));
+                let done = false, rewardEv = false, resolvedAt = 0, poll = null, seenOverlay = false, shownAt = 0, pill = null, pillTick = null, ownClose = false;
+                const removePill = () => { clearInterval(pillTick); if (pill) { pill.remove(); pill = null; } };
+                // hamara apna timer + close: ad dikhte hi 15s ka countdown, phir "✕ Close"
+                const showPill = () => {
+                    if (pill) return;
+                    pill = document.createElement('div'); pill.id = '_tadsClose';
+                    pill.style.cssText = 'position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:10px;z-index:2147483647;' +
+                        'background:rgba(0,0,0,.72);color:#fff;font:700 14px/1 Inter,system-ui,sans-serif;padding:9px 13px;border-radius:999px;' +
+                        'border:1px solid rgba(255,255,255,.35);user-select:none;-webkit-user-select:none;pointer-events:none';
+                    document.body.appendChild(pill);
+                    const tick = () => {
+                        const left = TADS_CLOSE_AFTER_MS - (Date.now() - shownAt);
+                        if (left > 0) { pill.textContent = '⏱ ' + Math.ceil(left / 1000) + 's'; return; }
+                        clearInterval(pillTick);
+                        pill.textContent = '✕ Close'; pill.style.pointerEvents = 'auto'; pill.style.cursor = 'pointer'; pill.style.background = 'rgba(0,0,0,.85)';
+                        pill.onclick = ev => {
+                            ev.preventDefault(); ev.stopPropagation();
+                            ownClose = true;
+                            let rs = tadsNewRoots(known);
+                            if (!rs.length) {   // ad kisi andar wale element me laga ho: beech wale element se upar ka naya ancestor
+                                let el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+                                while (el && el.parentElement && !known.has(el.parentElement)) el = el.parentElement;
+                                if (el && !known.has(el)) rs = [el];
+                            }
+                            for (const el of rs) { _tadsAdRoots.add(el); el.remove(); }
+                            removePill();
+                            finish('watched');
+                        };
+                    };
+                    tick(); pillTick = setInterval(tick, 250);
+                };
                 const sec = ms => (ms / 1000).toFixed(1) + 's';
                 const finish = r => {
-                    if (done) return; done = true; clearTimeout(t); clearInterval(poll); _tadsWait = null;
-                    _tadsDbg = `${r} · showAd ${resolvedAt ? 'resolve @' + sec(resolvedAt - t0) : 'pending'} · end @${sec(Date.now() - t0)} · rewardEvent ${rewardEv ? 'yes' : 'no'} · overlay ${seenOverlay ? 'yes' : 'no'}`;
+                    if (done) return; done = true; clearTimeout(t); clearInterval(poll); _tadsWait = null; removePill();
+                    _tadsDbg = `${r} · showAd ${resolvedAt ? 'resolve @' + sec(resolvedAt - t0) : 'pending'} · end @${sec(Date.now() - t0)} · rewardEvent ${rewardEv ? 'yes' : 'no'} · overlay ${seenOverlay ? 'yes' : 'no'}${ownClose ? ' · ownClose' : ''}`;
                     resolve(r);
                 };
                 // reward event aaye to bhi ad band hone ka intezaar (kuch SDK ise ad dikhte hi bhej dete hain)
                 _tadsWait = r => { if (r === 'watched') { rewardEv = true; _tadsWait = _tadsWaitKeep; } else finish(r); };
                 const _tadsWaitKeep = _tadsWait;
-                const t = setTimeout(() => finish(resolvedAt ? 'skipped' : 'noad'), 120000);
+                const t = setTimeout(function chk() { if (seenOverlay && overlayOpen()) return setTimeout(chk, 5000); finish(resolvedAt ? 'skipped' : 'noad'); }, 120000);
                 // ad screen khuli hai? screen ke kuch points par sabse upar jo element hai, wo ad dikhne se pehle ka nahi hai
                 const overlayOpen = () => {
                     const W = window.innerWidth, H = window.innerHeight;
@@ -3104,13 +3148,14 @@
                     let hits = 0;
                     for (const [x, y] of pts) {
                         const el = document.elementFromPoint(x, y);
-                        if (el && !known.has(el) && !(el.closest && el.closest('#_toast'))) hits++;
+                        if (el && !known.has(el) && !(el.closest && el.closest('#_toast,#_tadsClose'))) hits++;
                     }
                     return hits >= 2;
                 };
                 const watchClose = () => {
                     poll = setInterval(() => {
-                        if (overlayOpen()) { seenOverlay = true; return; }
+                        if (overlayOpen()) { if (!seenOverlay) { seenOverlay = true; shownAt = Date.now(); showPill(); } return; }
+                        removePill();
                         // overlay nahi dikh raha: ya to band ho gaya, ya kabhi bana hi nahi (tab showAd resolve = band)
                         // overlay dikha tha aur ab band, YA overlay pakda hi nahi gaya to showAd/reward ke 4s baad tak ruko
                         const el = Date.now() - t0;
