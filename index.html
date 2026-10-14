@@ -38,8 +38,8 @@
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Monetag SDK (sirf optional rewarded ads; load na ho to game normal chalta hai) — sirf Rewarded interstitial -->
-    <!-- Monetag band (real-money/gambling ads aa rahe the). Wapas chalu: neeche wali line ka comment hatao + MONETAG_ZONE_ID = '12007470'
-    <script src="https://libtl.com/sdk.js" data-zone="12007470" data-sdk="show_12007470" async></script> -->
+    <!-- Monetag = sirf BACKUP: TADS ke paas ad na ho tabhi chalta hai. Band karna: is line ko comment karo + MONETAG_ZONE_ID = '' -->
+    <script src="https://libtl.com/sdk.js" data-zone="12007470" data-sdk="show_12007470" async></script>
     <!-- TADS SDK (main ad network: Fullscreen rewarded, gambling categories band) -->
     <script src="https://w.tads.me/widget.js" async></script>
     <!-- Ed25519 keypair (wallet) -->
@@ -2569,7 +2569,7 @@
         const TADS_WIDGET_ID = '12626';               // TADS → Widgets → #ID (Fullscreen). Khali = TADS band
         const TADS_DEBUG = false;                      // sabke liye test ads (live par false)
         const TADS_DEBUG_ADMIN = false;                // true = sirf admin ko TADS test ads + debug alert (testing ke liye)
-        const MONETAG_ZONE_ID = '';                    // band. Backup chahiye to '12007470' (aur <head> wali script bhi chalu karo)
+        const MONETAG_ZONE_ID = '12007470';            // BACKUP: TADS ad na de tab hi Monetag. Band: '' (aur <head> wali script comment)
                                                        // (zone badle to <head> wali libtl.com script ki dono values bhi badlo)
         const BOT_APP_SHORTNAME = 'play';                  // agar BotFather me Mini App ka short name hai to likho, warna khali chhodo
 
