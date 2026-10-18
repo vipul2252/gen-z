@@ -2566,7 +2566,6 @@
         const MASTER_ADMIN_ID = 5678080775;             // apna Telegram numeric user ID
         // >>> LAUNCH SE PEHLE ZAROOR BADLO <<<
         const BOT_USERNAME = 'Genz20_bot';      // bina @ ke, e.g. 'MyGameBot'
-        const TADS_TGB_ID = '12716';                  // TADS TGB (static) — Fullscreen na mile to popup me ye. Khali = band
         const TADS_WIDGET_ID = '12626';               // TADS → Widgets → #ID (Fullscreen). Khali = TADS band
         const TADS_DEBUG = false;                      // sabke liye test ads (live par false)
         const TADS_DEBUG_ADMIN = false;                // true = sirf admin ko TADS test ads + debug alert (testing ke liye)
@@ -3173,60 +3172,6 @@
                 } catch (e) { _tadsLastErr = 'showAd exception: ' + (e && e.message); finish('noad'); }
             });
         }
-
-        // ---- TADS TGB (static) backup: Fullscreen ad na mile to apne popup me ek TGB ad + 15s timer ----
-        let _tgbCtl = null;
-        function tgbShow() {
-            return new Promise(resolve => {
-                if (!TADS_TGB_ID || !window.tads || typeof window.tads.init !== 'function') return resolve('noad');
-                let done = false, noFill = false, shownAt = 0, tick = null, chk = null, to = null;
-                const wrap = document.createElement('div');
-                wrap.id = '_tgbWrap';
-                wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:rgba(5,8,18,.92);display:flex;align-items:center;justify-content:center;padding:16px;visibility:hidden';
-                wrap.innerHTML =
-                    '<div style="width:100%;max-width:420px;background:#111827;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:12px;position:relative">' +
-                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-                    '<span style="font-size:.75rem;color:#9ca3af;font-weight:700">Ad</span>' +
-                    '<button id="_tgbClose" disabled style="background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:7px 12px;font:700 13px Inter,system-ui,sans-serif">⏱ 15s</button></div>' +
-                    '<div id="tads-container-' + TADS_TGB_ID + '" style="min-height:60px"></div></div>';
-                document.body.appendChild(wrap);
-                const box = wrap.querySelector('#tads-container-' + TADS_TGB_ID), btn = wrap.querySelector('#_tgbClose');
-                const finish = r => {
-                    if (done) return; done = true;
-                    clearInterval(tick); clearInterval(chk); clearTimeout(to);
-                    wrap.remove(); _tgbCtl = null; resolve(r);
-                };
-                const filled = () => { const r = box.getBoundingClientRect(); return box.children.length > 0 && r.height > 40; };
-                const startTimer = () => {
-                    if (shownAt) return;
-                    shownAt = Date.now(); wrap.style.visibility = 'visible';
-                    tick = setInterval(() => {
-                        const left = TADS_CLOSE_AFTER_MS - (Date.now() - shownAt);
-                        if (left > 0) { btn.textContent = '⏱ ' + Math.ceil(left / 1000) + 's'; return; }
-                        clearInterval(tick); btn.disabled = false; btn.textContent = '✕ Close'; btn.style.cursor = 'pointer';
-                        btn.onclick = () => finish('watched');
-                    }, 250);
-                };
-                try {
-                    if (window.tads.controllers && window.tads.controllers[TADS_TGB_ID]) delete window.tads.controllers[TADS_TGB_ID];
-                    _tgbCtl = window.tads.init({
-                        widgetId: TADS_TGB_ID, type: 'static', debug: TADS_DEBUG || isTadsDebugAdmin(),
-                        onClickReward: () => { },
-                        onAdsNotFound: () => { noFill = true; _tadsLastErr = 'TGB: onAdsNotFound'; if (!shownAt) finish('noad'); }
-                    });
-                } catch (e) { _tadsLastErr = 'TGB init error: ' + (e && e.message); return finish('noad'); }
-                const c = _tgbCtl;
-                const go = () => { try { const r = c && typeof c.showAd === 'function' ? c.showAd() : null; if (r && r.catch) r.catch(() => { }); } catch (e) { } };
-                try {
-                    if (c && typeof c.loadAd === 'function') {
-                        Promise.resolve(c.loadAd()).then(go).catch(e => { _tadsLastErr = 'TGB loadAd: ' + ((e && e.message) || e); if (!shownAt) finish('noad'); });
-                    } else go();
-                } catch (e) { _tadsLastErr = 'TGB show error: ' + (e && e.message); return finish('noad'); }
-                // ad box me kuch aaya tabhi popup dikhao + timer chalu
-                chk = setInterval(() => { if (!noFill && filled()) { clearInterval(chk); startTimer(); } }, 300);
-                to = setTimeout(() => { if (!shownAt) { _tadsLastErr = _tadsLastErr || 'TGB: 6s me ad nahi aaya'; finish('noad'); } }, 6000);
-            });
-        }
         function monetagFn() {
             if (!MONETAG_ZONE_ID) return null;
             const f = window['show_' + MONETAG_ZONE_ID];
@@ -3290,7 +3235,7 @@
             if (adBusy) return;
             if (!IN_TELEGRAM) return apiErr({ error: 'not_telegram' });
             const mtShow = monetagFn();
-            if (!tadsController() && !mtShow && !(TADS_TGB_ID && window.tads)) {
+            if (!tadsController() && !mtShow) {
                 if (isTadsDebugAdmin()) return showToast('🛠 TADS (admin): ' + (window.tads ? 'tads.init fail' : 'TADS script load nahi hua (w.tads.me)'), '#fbbf24');
                 return showToast('⚠️ Ads are not available right now, try again later', '#f87171');
             }
@@ -3304,11 +3249,6 @@
                 let watched = false, skipped = false;
                 const tr = TADS_WIDGET_ID ? await tadsShow() : 'noad';
                 if (tr === 'watched') watched = true; else if (tr === 'skipped') skipped = true;
-                // Fullscreen ad nahi mila → TADS TGB (static) popup
-                if (!watched && !skipped && TADS_TGB_ID) {
-                    const g = await tgbShow();
-                    if (g === 'watched') watched = true; else if (g === 'skipped') skipped = true;
-                }
                 if (!watched && !skipped && mtShow) {
                     try {
                         const res = await mtShow({ ymid: String((tgUser && tgUser.id) || '') + '-' + Date.now() });
