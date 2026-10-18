@@ -2273,7 +2273,7 @@
         <div class="wallet-hero">
             <div class="wallet-planet">🏆</div>
             <div class="wallet-h3">Leaderboard</div>
-            <div class="wallet-p">Top players by G-Points. Tap, play daily and invite friends to climb!</div>
+            <div class="wallet-p">Ranked by 💎 Diamonds, then 📺 ads watched, then 🪙 G-Points. Invite friends and keep your daily streak to climb!</div>
         </div>
         <div class="wallet-card" id="lbMe" style="display:flex;align-items:center;gap:12px;">
             <div style="font-size:1.6rem;font-weight:900;color:var(--gold,#f5c842);min-width:58px;text-align:center;" id="lbMeRank">#–</div>
@@ -3635,7 +3635,7 @@
                 }
                 _lbLoadedAt = Date.now();
                 document.getElementById('lbMeRank').innerText = j.me && j.me.rank ? '#' + j.me.rank : '#–';
-                document.getElementById('lbMeScore').innerText = Number(j.me ? j.me.tokens : 0).toLocaleString() + ' 🪙  ·  ' + Number(j.me && j.me.diamonds || 0).toLocaleString() + ' 💎';
+                document.getElementById('lbMeScore').innerText = Number(j.me && j.me.diamonds || 0).toLocaleString() + ' 💎  ·  ' + Number(j.me && j.me.ads || 0).toLocaleString() + ' 📺  ·  ' + Number(j.me ? j.me.tokens : 0).toLocaleString() + ' 🪙';
                 document.getElementById('lbTotal').innerText = Number(j.total || 0).toLocaleString() + ' players';
                 const medal = n => n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : '#' + n;
                 list.innerHTML = (j.top || []).map(p =>
@@ -3643,8 +3643,8 @@
                     (p.is_me ? 'background:rgba(245,200,66,.12);border:1px solid rgba(245,200,66,.35);' : '') + '">' +
                     '<div style="min-width:34px;text-align:center;font-weight:900;">' + medal(p.rank) + '</div>' +
                     '<div style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;">' + _esc(p.name) + (p.is_me ? ' (You)' : '') + '</div>' +
-                    '<div style="text-align:right;line-height:1.25;"><div style="font-weight:800;">' + Number(p.tokens).toLocaleString() + ' 🪙</div>' +
-                    '<div style="font-size:.75rem;font-weight:700;color:#7dd3fc;">' + Number(p.diamonds || 0).toLocaleString() + ' 💎</div></div></div>'
+                    '<div style="text-align:right;line-height:1.25;"><div style="font-weight:800;color:#7dd3fc;">' + Number(p.diamonds || 0).toLocaleString() + ' 💎</div>' +
+                    '<div style="font-size:.75rem;font-weight:700;color:var(--muted);">' + Number(p.ads || 0).toLocaleString() + ' 📺 · ' + Number(p.tokens).toLocaleString() + ' 🪙</div></div></div>'
                 ).join('') || '<div style="text-align:center;color:var(--muted);padding:18px 0;">No players yet</div>';
             } catch (e) {
                 list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:18px 0;">⚠️ Could not load, try again</div>';
@@ -4655,6 +4655,7 @@ alter table public.users add column if not exists referred_by text;
 -- 'Watch Ad for 2X' hata diya: uska column bhi
 alter table public.users drop column if exists pending_double;
 alter table public.users add column if not exists created_at timestamptz not null default now();
+alter table public.users add column if not exists ads_total int not null default 0;   -- kul kitne ad poore dekhe (leaderboard)
 -- purana Solana/TON wallet feature hata diya: saved addresses bhi delete
 alter table public.users drop column if exists wallet;
 
@@ -5029,6 +5030,7 @@ begin
           return jsonb_build_object('error', 'too_fast', 'state', public._state(u));
         end if;
         u.tasks_done := u.tasks_done - '_as';
+        u.ads_total := coalesce(u.ads_total, 0) + 1;               -- leaderboard ke liye ginti
         if k = 'daily2x' then
           bonus := (u.tasks_done->>'_dl')::bigint;
           u.tokens := u.tokens + bonus;
@@ -5063,7 +5065,7 @@ begin
     friends = u.friends, energy = u.energy, energy_ts = u.energy_ts,
     streak = u.streak, last_daily = u.last_daily, puzzle_at = u.puzzle_at,
     puzzle_try_at = u.puzzle_try_at,
-    tasks_done = u.tasks_done, referred_by = u.referred_by,
+    tasks_done = u.tasks_done, referred_by = u.referred_by, ads_total = u.ads_total,
     last_active = now()
   where id = uid;
 
@@ -5481,11 +5483,13 @@ declare v jsonb;
 begin
   v := jsonb_build_object(
     'total', (select count(*) from public.users where not banned and not (id = any(public._admin_ids()))),
-    'top', coalesce((select jsonb_agg(jsonb_build_object('rank', q.rn, 'name', q.name, 'tokens', q.tokens, 'diamonds', q.diamonds, 'id', q.id)
+    'top', coalesce((select jsonb_agg(jsonb_build_object('rank', q.rn, 'name', q.name, 'tokens', q.tokens, 'diamonds', q.diamonds,
+                                                         'ads', q.ads_total, 'id', q.id)
                                       order by q.rn)
-            from (select id, name, tokens, diamonds, row_number() over (order by tokens desc, id) as rn
+            from (select id, name, tokens, diamonds, ads_total,
+                         row_number() over (order by diamonds desc, ads_total desc, tokens desc, id) as rn
                     from public.users where not banned and not (id = any(public._admin_ids()))
-                   order by tokens desc, id limit 50) q), '[]'::jsonb));
+                   order by diamonds desc, ads_total desc, tokens desc, id limit 50) q), '[]'::jsonb));
   insert into public.kx_cache(k, v, at) values ('lb', v, now())
     on conflict (k) do update set v = excluded.v, at = excluded.at;
   return v;
@@ -5899,9 +5903,12 @@ begin
     end if;
   end if;
   -- admin ka koi rank nahi (leaderboard me nahi gina jaata)
-  select jsonb_build_object('tokens', u.tokens, 'diamonds', u.diamonds,
+  select jsonb_build_object('tokens', u.tokens, 'diamonds', u.diamonds, 'ads', u.ads_total,
          'rank', case when uid = any(public._admin_ids()) then null else
-                 (select count(*) + 1 from public.users x where not x.banned and x.tokens > u.tokens
+                 (select count(*) + 1 from public.users x where not x.banned
+                     and (x.diamonds > u.diamonds
+                          or (x.diamonds = u.diamonds and x.ads_total > u.ads_total)
+                          or (x.diamonds = u.diamonds and x.ads_total = u.ads_total and x.tokens > u.tokens))
                      and not (x.id = any(public._admin_ids()))) end)
     into me from public.users u where u.id = uid;
   return jsonb_build_object('me', me, 'total', c->'total',
