@@ -2566,10 +2566,10 @@
         const MASTER_ADMIN_ID = 5678080775;             // apna Telegram numeric user ID
         // >>> LAUNCH SE PEHLE ZAROOR BADLO <<<
         const BOT_USERNAME = 'Genz20_bot';      // bina @ ke, e.g. 'MyGameBot'
-        const TADS_TGB_ID = '12716';                  // TADS TGB (static) — Fullscreen na mile to popup me ye. Khali = band
+        const TADS_TGB_ID = '';                       // TADS TGB band. Wapas chalu: '12716'
         const TADS_WIDGET_ID = '12626';               // TADS → Widgets → #ID (Fullscreen). Khali = TADS band
         const TADS_DEBUG = false;                      // sabke liye test ads (live par false)
-        const TADS_DEBUG_ADMIN = false;                // true = sirf admin ko TADS test ads + debug alert (testing ke liye)
+        const TADS_DEBUG_ADMIN = true;                 // true = sirf admin ko asli ad ke saath debug alert (wajah dikhe). Baad me false
         const MONETAG_ZONE_ID = '';                    // BAND (casino/adult ads). Wapas: '12007470' + <head> wali script chalu
                                                        // (zone badle to <head> wali libtl.com script ki dono values bhi badlo)
         const BOT_APP_SHORTNAME = 'play';                  // agar BotFather me Mini App ka short name hai to likho, warna khali chhodo
@@ -3066,7 +3066,7 @@
             try {
                 const ex = window.tads.controllers && window.tads.controllers[TADS_WIDGET_ID];
                 _tadsCtl = ex || window.tads.init({
-                    widgetId: TADS_WIDGET_ID, type: 'fullscreen', debug: TADS_DEBUG || isTadsDebugAdmin(),
+                    widgetId: TADS_WIDGET_ID, type: 'fullscreen', debug: TADS_DEBUG,
                     onShowReward: () => { if (_tadsWait) { const w = _tadsWait; _tadsWait = null; w('watched'); } },
                     onClickReward: () => { },
                     onAdsNotFound: () => { _tadsLastErr = 'onAdsNotFound (TADS ke paas ad nahi)'; if (_tadsWait) { const w = _tadsWait; _tadsWait = null; w('noad'); } }
@@ -3210,7 +3210,7 @@
                 try {
                     if (window.tads.controllers && window.tads.controllers[TADS_TGB_ID]) delete window.tads.controllers[TADS_TGB_ID];
                     _tgbCtl = window.tads.init({
-                        widgetId: TADS_TGB_ID, type: 'static', debug: TADS_DEBUG || isTadsDebugAdmin(),
+                        widgetId: TADS_TGB_ID, type: 'static', debug: TADS_DEBUG,
                         onClickReward: () => { },
                         onAdsNotFound: () => { noFill = true; _tadsLastErr = 'TGB: onAdsNotFound'; if (!shownAt) finish('noad'); }
                     });
@@ -3306,7 +3306,9 @@
                 if (tr === 'watched') watched = true; else if (tr === 'skipped') skipped = true;
                 // Fullscreen ad nahi mila → TADS TGB (static) popup
                 if (!watched && !skipped && TADS_TGB_ID) {
+                    const fsErr = _tadsLastErr; _tadsLastErr = '';
                     const g = await tgbShow();
+                    _tadsLastErr = 'Fullscreen: ' + (fsErr || tr) + ' | TGB: ' + (_tadsLastErr || g);
                     if (g === 'watched') watched = true; else if (g === 'skipped') skipped = true;
                 }
                 if (!watched && !skipped && mtShow) {
