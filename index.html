@@ -2293,6 +2293,13 @@
 
     <!-- TAB: KEY FUTURES MARKET -->
     <div class="tab-content" id="tabMarket">
+        <div class="kx-wrap" style="margin-bottom:10px;">
+            <div class="kx-side" id="mkSeg">
+                <button class="buy" id="mkSegCx" onclick="cxSetMode('crypto')">🪙 Crypto</button>
+                <button class="buy" id="mkSegKx" onclick="cxSetMode('keys')">🔑 Keys</button>
+            </div>
+        </div>
+        <div id="mkKeys" style="width:100%;flex-direction:column;align-items:center;display:none;">
         <div class="kx-wrap" id="mkListView">
             <div class="wallet-hero" style="margin-bottom:0;padding:18px;">
                 <div style="display:inline-block;margin-bottom:10px;padding:5px 12px;border-radius:999px;background:rgba(250,204,21,0.12);border:1px solid rgba(250,204,21,0.45);color:var(--gold);font-size:0.78rem;font-weight:700;letter-spacing:0.2px;">🎮 Simulation game, in-game points only</div>
@@ -2363,6 +2370,110 @@
                 <div id="kdTrades"></div>
             </div>
         </div>
+        </div>
+
+        <!-- ===== CRYPTO FUTURES (live Binance price, G-Points only) ===== -->
+        <div id="mkCrypto" style="width:100%;flex-direction:column;align-items:center;display:none;">
+        <div class="kx-wrap" id="cxListView">
+            <div class="wallet-hero" style="margin-bottom:0;padding:16px;">
+                <div style="display:inline-block;margin-bottom:8px;padding:5px 12px;border-radius:999px;background:rgba(250,204,21,0.12);border:1px solid rgba(250,204,21,0.45);color:var(--gold);font-size:0.76rem;font-weight:700;">🎮 Simulation: live prices, in-game G-Points only</div>
+                <div class="wallet-h3">Crypto Futures</div>
+                <div class="wallet-p">Top 20 coins at live market prices. Go Long or Short with G-Points, 1x to 100x, with Market, Limit, Stop, TP and SL orders.</div>
+            </div>
+            <div class="kx-card" id="cxAdCard" style="display:none;align-items:center;gap:12px;">
+                <div style="font-size:1.8rem;">🎁</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:900;">Free Trading Credit <span style="color:var(--green);">+5,000</span></div>
+                    <div style="font-size:.72rem;color:var(--muted);" id="cxAdSub">Optional ad · 5 per day</div>
+                </div>
+                <button class="chip on" id="cxAdBtn" style="padding:9px 14px;font-size:.8rem;" onclick="watchAd('cx')">📺 Watch</button>
+            </div>
+            <div class="kx-card" id="cxSum" style="display:none;"></div>
+            <div class="kx-list" id="cxList"><div class="kx-empty">Loading prices…</div></div>
+            <div class="kx-card"><div class="kx-lbl">My positions</div><div id="cxPosAll"><div class="kx-empty">No open positions</div></div></div>
+            <div class="kx-card"><div class="kx-lbl">Open orders</div><div id="cxOrdAll"><div class="kx-empty">No open orders</div></div></div>
+            <div class="kx-card"><div class="kx-lbl">History</div><div id="cxHist"><div class="kx-empty">No trades yet</div></div></div>
+            <div class="kx-note">Prices come from the live crypto market. Trading uses G-Points only: they are in-game points with no cash value and cannot be withdrawn or exchanged for money or crypto.</div>
+        </div>
+
+        <div class="kx-wrap" id="cxDetailView" style="display:none;">
+            <div class="kx-top">
+                <button class="kx-back" onclick="cxBack()">←</button>
+                <div class="kx-av" id="cxdAv">B</div>
+                <div class="kx-mid">
+                    <div class="kx-sym" id="cxdSym">—</div>
+                    <div class="kx-name" id="cxdName"></div>
+                </div>
+                <div class="kx-right">
+                    <div class="kx-big" id="cxdPrice">—</div>
+                    <div class="kx-chg" id="cxdChg"></div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:.7rem;color:var(--muted);">✏️ Drawing tools: left side of the chart</span>
+                <div class="chips" id="cxTvSize">
+                    <button class="chip" data-h="320" onclick="cxTvSize(320)">S</button>
+                    <button class="chip" data-h="440" onclick="cxTvSize(440)">M</button>
+                    <button class="chip" data-h="580" onclick="cxTvSize(580)">L</button>
+                </div>
+            </div>
+            <div class="kx-card" style="padding:6px;height:440px;transition:height .2s;" id="cxTv"></div>
+            <div class="kx-card" style="display:flex;flex-direction:column;gap:10px;">
+                <div class="kx-side">
+                    <button class="buy on" id="cxLong" onclick="cxSetSide('long')">Long ↑</button>
+                    <button class="sell" id="cxShort" onclick="cxSetSide('short')">Short ↓</button>
+                </div>
+                <div class="chips" id="cxTypes">
+                    <button class="chip on" data-t="market" onclick="cxSetType('market')">Market</button>
+                    <button class="chip" data-t="limit" onclick="cxSetType('limit')">Limit</button>
+                    <button class="chip" data-t="stop" onclick="cxSetType('stop')">Stop</button>
+                </div>
+                <div id="cxPxRow" style="display:none;flex-direction:column;gap:6px;">
+                    <div style="display:flex;justify-content:space-between;font-size:.74rem;color:var(--muted);">
+                        <span id="cxPxLbl">Limit price</span><button class="chip" style="padding:2px 8px;" onclick="cxUseLast()">Use last price</button>
+                    </div>
+                    <input class="kx-input" id="cxPx" type="number" inputmode="decimal" min="0" step="any" placeholder="0" oninput="cxQuote()">
+                    <div class="kx-note" style="text-align:left;" id="cxPxHint"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:.74rem;color:var(--muted);">
+                    <span>Margin (G-Points)</span><span id="cxAvail"></span>
+                </div>
+                <input class="kx-input" id="cxMargin" type="number" inputmode="numeric" min="0" placeholder="0" oninput="cxQuote()">
+                <div class="chips">
+                    <button class="chip" onclick="cxSetMargin(100)">100</button>
+                    <button class="chip" onclick="cxSetMargin(1000)">1K</button>
+                    <button class="chip" onclick="cxSetMargin(10000)">10K</button>
+                    <button class="chip" onclick="cxSetMargin('25%')">25%</button>
+                    <button class="chip" onclick="cxSetMargin('50%')">50%</button>
+                    <button class="chip" onclick="cxSetMargin('max')">MAX</button>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:.74rem;color:var(--muted);">
+                    <span>Leverage</span><b id="cxLevTxt" style="color:var(--sky);font-size:1rem;">10x</b>
+                </div>
+                <input class="kx-range" id="cxLev" type="range" min="1" max="100" step="1" value="10" oninput="cxQuote()">
+                <div class="chips">
+                    <button class="chip" onclick="cxSetLev(1)">1x</button>
+                    <button class="chip" onclick="cxSetLev(5)">5x</button>
+                    <button class="chip" onclick="cxSetLev(10)">10x</button>
+                    <button class="chip" onclick="cxSetLev(25)">25x</button>
+                    <button class="chip" onclick="cxSetLev(50)">50x</button>
+                    <button class="chip" onclick="cxSetLev(100)">100x</button>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:800;cursor:pointer;">
+                    <input type="checkbox" id="cxTpslOn" onchange="cxQuote()"> Take Profit / Stop Loss
+                </label>
+                <div id="cxTpslRow" style="display:none;" class="kx-grid">
+                    <div><div style="font-size:.7rem;color:var(--green);margin-bottom:4px;">TP price</div><input class="kx-input" id="cxTp" type="number" inputmode="decimal" step="any" placeholder="optional" oninput="cxQuote()"></div>
+                    <div><div style="font-size:.7rem;color:var(--red);margin-bottom:4px;">SL price</div><input class="kx-input" id="cxSl" type="number" inputmode="decimal" step="any" placeholder="optional" oninput="cxQuote()"></div>
+                </div>
+                <div class="kx-quote" id="cxQuoteBox"></div>
+                <button class="kx-go" id="cxGo" onclick="cxPlace()">Long</button>
+                <div class="kx-note" style="text-align:left;">Orders fill at the next live price update (a few seconds). <b>Limit</b>: Long fills when the price drops to your price, Short when it rises to it. <b>Stop</b>: Stop-buy (Long) fills when the price rises to your trigger, Stop-sell (Short) when it falls to it. Liquidation when 90% of the margin is lost. Fee: 0.05% of position size on open and on close.</div>
+            </div>
+            <div class="kx-card"><div class="kx-lbl" id="cxdPosLbl">Your position</div><div id="cxPosOne"></div></div>
+            <div class="kx-card"><div class="kx-lbl">Open orders (this coin)</div><div id="cxOrdOne"></div></div>
+        </div>
+        </div>
     </div>
 
     <!-- TAB: MY WALLET -->
@@ -2380,6 +2491,34 @@
                 </div>
                 <div class="kx-addr" id="wlBackup" style="display:none;margin-top:8px;color:var(--gold);"></div>
                 <div class="kx-note" style="text-align:left;margin-top:8px;">This key is saved in your Telegram account, so there is no seed phrase to remember.</div>
+            </div>
+            <!-- 🎁 G-Points bhejo (code se) -->
+            <div class="kx-card" id="xfCard" style="display:flex;flex-direction:column;gap:10px;">
+                <div class="kx-lbl" style="margin:0;">🎁 Send G-Points</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                    <div><div style="font-size:.7rem;color:var(--muted);">Your code (share it to receive)</div>
+                        <b id="xfMy" style="font-size:1.25rem;letter-spacing:1.5px;color:var(--gold);user-select:text;-webkit-user-select:text;">—</b></div>
+                    <button class="kx-btn2" onclick="xfCopy()">📋 Copy</button>
+                </div>
+                <input class="kx-input" id="xfCode" placeholder="Friend's code, e.g. GZ7K2P9Q" maxlength="12" autocomplete="off" style="text-transform:uppercase;" oninput="xfHideConfirm()">
+                <input class="kx-input" id="xfAmt" type="number" inputmode="numeric" min="1" placeholder="Amount (G-Points)" oninput="xfHideConfirm()">
+                <div class="chips">
+                    <button class="chip" onclick="xfSetAmt(1000)">1K</button>
+                    <button class="chip" onclick="xfSetAmt(10000)">10K</button>
+                    <button class="chip" onclick="xfSetAmt(100000)">100K</button>
+                    <button class="chip" onclick="xfSetAmt('max')">MAX</button>
+                </div>
+                <button class="kx-go" id="xfGo" onclick="xfCheck()">Send</button>
+                <div id="xfConfirm" class="kx-warn" style="display:none;font-size:.82rem;">
+                    <div id="xfConfirmTxt" style="margin-bottom:8px;"></div>
+                    <div style="display:flex;gap:8px;">
+                        <button class="kx-go" style="padding:10px;" onclick="xfSend()">✅ Confirm</button>
+                        <button class="kx-btn2" style="flex:1;" onclick="xfHideConfirm()">Cancel</button>
+                    </div>
+                </div>
+                <div class="kx-note" style="text-align:left;">Transfers are instant and can't be undone. Check the code before sending. Buying or selling G-Points for real money is not allowed: G-Points are in-game points with no cash value.</div>
+                <div class="kx-lbl" style="margin:4px 0 0;">Transfers</div>
+                <div id="xfHist"><div class="kx-empty">No transfers yet</div></div>
             </div>
             <div class="kx-grid">
                 <div class="kx-stat"><span>G-Points</span><b id="wlPts">0</b></div>
@@ -2569,7 +2708,7 @@
         const TADS_TGB_ID = '';                       // TADS TGB band. Wapas chalu: '12716'
         const TADS_WIDGET_ID = '12626';               // TADS → Widgets → #ID (Fullscreen). Khali = TADS band
         const TADS_DEBUG = false;                      // sabke liye test ads (live par false)
-        const TADS_DEBUG_ADMIN = true;                 // true = sirf admin ko asli ad ke saath debug alert (wajah dikhe). Baad me false
+        const TADS_DEBUG_ADMIN = false;                // true = sirf admin ko asli ad ke saath debug alert (wajah dikhe)
         const MONETAG_ZONE_ID = '';                    // BAND (casino/adult ads). Wapas: '12007470' + <head> wali script chalu
                                                        // (zone badle to <head> wali libtl.com script ki dono values bhi badlo)
         const BOT_APP_SHORTNAME = 'play';                  // agar BotFather me Mini App ka short name hai to likho, warna khali chhodo
@@ -3260,6 +3399,7 @@
             clearTimeout(_adTimer);
             if (left > 0 && wait > 0) _adTimer = setTimeout(updateAdUI, 1000);   // countdown
             updateAdEnergyBtn();
+            if (window.cxAdCard) cxAdCard();
         }
         // Daily Bonus 2x / Puzzle 2x: server batata hai kab mil sakta hai (d2 = kitna, p2 = haan/na)
         function update2xButtons(show) {
@@ -3339,6 +3479,7 @@
                 if (j.kind === 'energy') showToast('⚡ Energy refilled!', '#4ade80');
                 else if (j.kind === 'daily2x') showToast(`🎉 Daily bonus doubled! +${Number(j.amount).toLocaleString()} G-Points`, '#4ade80');
                 else if (j.kind === 'puzzle2x') showToast(`🧩 Puzzle reward doubled! +${Number(j.amount).toLocaleString()} G-Points`, '#4ade80');
+                else if (j.kind === 'cx') { showToast(`🎁 +${Number(j.amount).toLocaleString()} G-Points for trading!`, '#4ade80'); if (window.cxQuote) cxQuote(); }
                 else showToast(`✅ +${Number(j.amount).toLocaleString()} G-Points added`, '#4ade80');
             } finally {
                 adBusy = false; updateAdUI();
@@ -3644,7 +3785,7 @@
                 return showToast('⚠️ BOT_USERNAME is not set (admin config)', '#f87171');
             }
             const link = 'https://t.me/' + BOT_USERNAME + (BOT_APP_SHORTNAME ? '/' + BOT_APP_SHORTNAME : '') + '?startapp=gz_' + tgUser.id;
-            const msg = '🚀 Tap to earn G-Points and trade keys with me on Gen-Z! 🎁 Join now and get a 50,000 G-Points welcome bonus.';
+            const msg = '🚀 Tap to collect G-Points, solve the daily puzzle and trade crypto futures with me on Gen-Z! 🎮 Free game inside Telegram.';
             const url = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(msg);
             if (window.Telegram?.WebApp) window.Telegram.WebApp.openTelegramLink(url);
             else window.open(url, '_blank');
@@ -3669,8 +3810,12 @@
             }
             triggerHaptic('light');
             if (tabId === 'tabWallet') loadLeaderboard();
-            if (tabId === 'tabMarket' && window.loadMarket) { if (window.kxCurOpen && window.kxCurOpen()) loadKey(); else loadMarket(); }
+            if (tabId === 'tabMarket') {
+                if (window.cxMode === 'crypto' && window.cxShow) cxShow();
+                else if (window.loadMarket) { if (window.kxCurOpen && window.kxCurOpen()) loadKey(); else loadMarket(); }
+            } else if (window.cxStop) cxStop();
             if (tabId === 'tabMyWallet' && window.loadPortfolio) loadPortfolio();
+            if (tabId === 'tabMyWallet' && window.xfLoad) xfLoad();
             if (tabId === 'tabAdmin' && window.loadAdmin) loadAdmin();
         }
 
@@ -4391,7 +4536,9 @@
                 : '<div class="kx-empty">No trades yet</div>';
         }
         function goKey(id) {
+            if (window.cxMode !== 'keys' && window.cxSetMode) { window.cxMode = 'keys'; try { localStorage.setItem('gz_mk_mode', 'keys'); } catch (e) { } }
             switchTab('tabMarket', document.getElementById('navMarket'));
+            if (window.cxSetMode) cxSetMode('keys');
             const open = () => openKey(id);
             if (kxKeys.find(k => k.id === id)) open(); else loadMarket(true).then(open);
         }
@@ -4612,13 +4759,629 @@
             if (document.visibilityState !== 'visible' || kxBusy) return;
             const act = document.querySelector('.tab-content.active-content');
             if (!act) return;
-            if (act.id === 'tabMarket') {
+            if (act.id === 'tabMarket' && window.cxMode !== 'crypto') {
                 if (window.kxCurOpen()) { if (kxTick % 2 === 0) loadKey(true); }
                 else if (kxTick % 5 === 0) loadMarket(true);
             }
             else if (act.id === 'tabMyWallet' && kxTick % 2 === 0) loadPortfolio(true);
         }, 3000);
         if (!IN_TELEGRAM) initKeypair();
+    </script>
+
+    <!-- ===== G-POINTS TRANSFER (code se, koi limit nahi) ===== -->
+    <script>
+        const XF_API = SUPABASE_URL + '/rest/v1/rpc/xfer';
+        let xfData = null, xfBusy = false, xfPending = null;
+        const XF_ERR = {
+            no_user: '⚠️ No player with this code', self: '⚠️ That is your own code', bad_amount: '⚠️ Enter a valid amount',
+            insufficient: '⚠️ Not enough G-Points', too_fast: '⏳ Wait a second and try again', banned: '⛔ Account blocked',
+            unauthorized: '⚠️ Please open from Telegram', not_registered: '⚠️ Open the game once first',
+            network: '📡 Network error, try again', setup: '⚙️ Transfers are being set up, try later', db: '⚠️ Something went wrong, try again'
+        };
+        async function xfCall(action, extra) {
+            if (!IN_TELEGRAM) return { error: 'not_telegram' };
+            if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { error: 'setup' };
+            try {
+                const r = await fetch(XF_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+                    body: JSON.stringify({ p_action: action, p_init: getInitData(), p_data: extra || {} })
+                });
+                const j = await r.json();
+                if (!r.ok) return { error: (j && j.code === 'PGRST202') ? 'setup' : 'db' };
+                if (j && j.points !== undefined && j.points !== null) {
+                    tokens = Number(j.points) + pendingTaps() * getTapLevelInfo(diamonds).coinsPerTap;
+                    updateHUD();
+                }
+                return j || {};
+            } catch (e) { return { error: 'network' }; }
+        }
+        function xfErr(j) { showToast(XF_ERR[j.error] || ('⚠️ ' + j.error), '#fbbf24'); }
+        function xfEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+        function xfAgo(t) {
+            const s = Math.max(0, (Date.now() - t) / 1000);
+            return s < 60 ? 'now' : s < 3600 ? Math.floor(s / 60) + 'm' : s < 86400 ? Math.floor(s / 3600) + 'h' : Math.floor(s / 86400) + 'd';
+        }
+        // naya mila hua transfer: toast (ek baar)
+        function xfNotify(j) {
+            let seen = 0; try { seen = +localStorage.getItem('gz_xf_seen') || 0; } catch (e) { }
+            const inc = (j.hist || []).filter(x => x.dir === 'in' && x.id > seen);
+            if (seen && inc.length) {
+                const tot = inc.reduce((a, x) => a + Number(x.amount), 0);
+                showToast('🎁 You received ' + tot.toLocaleString() + ' G-Points' + (inc.length === 1 ? ' from ' + inc[0].name : ''), '#4ade80');
+            }
+            const mx = Math.max(seen, ...(j.hist || []).map(x => x.id));
+            try { localStorage.setItem('gz_xf_seen', mx || seen || 1); } catch (e) { }
+        }
+        function xfRender() {
+            const j = xfData || {};
+            document.getElementById('xfMy').innerText = j.code || '—';
+            const hist = j.hist || [];
+            document.getElementById('xfHist').innerHTML = hist.length ? hist.map(x =>
+                '<div class="kx-row"><div>' + (x.dir === 'in' ? '⬇️ From ' : '⬆️ To ') + '<b>' + xfEsc(x.name) + '</b>' +
+                '<br><span style="color:var(--muted);font-size:.7rem;">' + xfAgo(x.t) + '</span></div>' +
+                '<b class="' + (x.dir === 'in' ? 'up' : 'down') + '">' + (x.dir === 'in' ? '+' : '−') + Number(x.amount).toLocaleString() + '</b></div>'
+            ).join('') : '<div class="kx-empty">No transfers yet</div>';
+        }
+        async function xfLoad() {
+            const j = await xfCall('me');
+            if (j.error) { if (j.error !== 'not_telegram') xfErr(j); return; }
+            xfNotify(j); xfData = j; xfRender();
+        }
+        window.xfLoad = xfLoad;
+        function xfCopy() {
+            const c = xfData && xfData.code; if (!c) return;
+            const done = () => showToast('📋 Code copied: ' + c, '#4ade80');
+            try { navigator.clipboard.writeText(c).then(done, () => showToast('Your code: ' + c, '#4ade80')); }
+            catch (e) { showToast('Your code: ' + c, '#4ade80'); }
+        }
+        function xfSetAmt(v) {
+            document.getElementById('xfAmt').value = v === 'max' ? Math.max(0, Math.floor(tokens)) : v;
+            xfHideConfirm();
+        }
+        function xfHideConfirm() { xfPending = null; document.getElementById('xfConfirm').style.display = 'none'; }
+        async function xfCheck() {
+            if (xfBusy) return;
+            const code = document.getElementById('xfCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const amt = Math.floor(+document.getElementById('xfAmt').value || 0);
+            if (!code) return showToast('⚠️ Enter your friend\'s code', '#fbbf24');
+            if (amt < 1) return xfErr({ error: 'bad_amount' });
+            if (amt > tokens) return xfErr({ error: 'insufficient' });
+            xfBusy = true;
+            try {
+                const j = await xfCall('lookup', { code });
+                if (j.error) return xfErr(j);
+                xfPending = { code, amt };
+                document.getElementById('xfConfirmTxt').innerHTML = 'Send <b>' + amt.toLocaleString() + ' G-Points</b> to <b>' + xfEsc(j.to) + '</b> (' + xfEsc(j.code) + ')?<br><span style="font-size:.72rem;">This can\'t be undone.</span>';
+                document.getElementById('xfConfirm').style.display = '';
+            } finally { xfBusy = false; }
+        }
+        async function xfSend() {
+            if (xfBusy || !xfPending) return;
+            xfBusy = true;
+            try {
+                await flushTaps();
+                const j = await xfCall('send', { code: xfPending.code, amount: xfPending.amt });
+                if (j.error) return xfErr(j);
+                triggerHaptic('success');
+                showToast('✅ Sent ' + Number(j.sent).toLocaleString() + ' G-Points to ' + j.to, '#4ade80');
+                document.getElementById('xfAmt').value = '';
+                xfHideConfirm(); xfData = j; xfNotify(j); xfRender();
+                if (window.loadPortfolio) loadPortfolio(true);
+            } finally { xfBusy = false; }
+        }
+        window.xfCopy = xfCopy; window.xfSetAmt = xfSetAmt; window.xfHideConfirm = xfHideConfirm; window.xfCheck = xfCheck; window.xfSend = xfSend;
+        // game khulte hi (thodi der baad): kisi ne bheja ho to bata do
+        if (IN_TELEGRAM) setTimeout(() => { xfLoad(); }, 4000);
+    </script>
+
+    <!-- ===== CRYPTO FUTURES (live Binance price, trading sirf G-Points) ===== -->
+    <script>
+        const CX_API = SUPABASE_URL + '/rest/v1/rpc/cx';
+        const CX_FEE = 0.0005;
+        const CX_COINS = [
+            ['BTC', 'Bitcoin'], ['ETH', 'Ethereum'], ['BNB', 'BNB'], ['SOL', 'Solana'], ['XRP', 'XRP'],
+            ['DOGE', 'Dogecoin'], ['ADA', 'Cardano'], ['TRX', 'TRON'], ['AVAX', 'Avalanche'], ['LINK', 'Chainlink'],
+            ['TON', 'Toncoin'], ['SHIB', 'Shiba Inu'], ['DOT', 'Polkadot'], ['BCH', 'Bitcoin Cash'], ['LTC', 'Litecoin'],
+            ['NEAR', 'NEAR Protocol'], ['UNI', 'Uniswap'], ['APT', 'Aptos'], ['SUI', 'Sui'], ['PEPE', 'Pepe']
+        ];
+        const CX_NAME = Object.fromEntries(CX_COINS);
+        let cxMode = 'crypto';
+        try { cxMode = localStorage.getItem('gz_mk_mode') || 'crypto'; } catch (e) { }
+        window.cxMode = cxMode;
+        let cxData = null, cxSel = null, cxSide = 'long', cxType = 'market', cxBusy = false;
+        let cxLive = {};                 // 'BTC' -> {p, o}  (browser me live price)
+        let cxWs = null, cxWsRetry = 0, cxPoll = null, cxRenderT = null, cxSeenHist = null, cxSeenRej = {};
+
+        const CX_ERR = {
+            insufficient: '⚠️ Not enough G-Points (margin + fee)',
+            min_margin: '⚠️ Minimum margin is 100',
+            bad_lev: '⚠️ Leverage must be 1x to 100x',
+            bad_price: '⚠️ Enter a valid price',
+            limit_side: '⚠️ Limit Long must be below the current price, Limit Short above it. Use Market to trade now',
+            stop_side: '⚠️ Stop-buy must be above the current price, Stop-sell below it',
+            bad_tpsl: '⚠️ TP/SL on the wrong side. Long: TP above, SL below. Short: TP below, SL above',
+            opposite_open: '⚠️ You have the opposite position on this coin. Close it first',
+            too_many_orders: '⚠️ Max 20 open orders',
+            price_stale: '⏳ Prices are updating, try again in a few seconds',
+            too_fast: '⏳ Slow down a little',
+            not_found: '⚠️ Not found (maybe already filled or closed)',
+            bad_coin: '⚠️ Coin not available',
+            bad_input: '⚠️ Check your inputs',
+            not_registered: '⚠️ Open the game once first',
+            banned: '⛔ Account blocked',
+            unauthorized: '⚠️ Please open from Telegram',
+            setup: '⚙️ Crypto trading is being set up, try later',
+            network: '📡 Network error, try again',
+            db: '⚠️ Something went wrong, try again'
+        };
+        function cxErr(j) { showToast(CX_ERR[j.error] || ('⚠️ ' + j.error), '#fbbf24'); }
+
+        async function cxCall(action, extra) {
+            if (!IN_TELEGRAM) return { error: 'not_telegram' };
+            if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { error: 'setup' };
+            try {
+                const r = await fetch(CX_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+                    body: JSON.stringify({ p_action: action, p_init: getInitData(), p_data: extra || {} })
+                });
+                const j = await r.json();
+                if (!r.ok) return { error: (j && j.code === 'PGRST202') ? 'setup' : 'db' };
+                if (j && j.points !== undefined && j.points !== null) {
+                    tokens = Number(j.points) + pendingTaps() * getTapLevelInfo(diamonds).coinsPerTap;
+                    updateHUD();
+                }
+                return j || {};
+            } catch (e) { return { error: 'network' }; }
+        }
+
+        // ---------- format ----------
+        function cxFmt(p) {
+            p = Number(p);
+            if (!isFinite(p) || p <= 0) return '—';
+            if (p >= 1000) return p.toLocaleString('en-US', { maximumFractionDigits: 2 });
+            if (p >= 1) return p.toLocaleString('en-US', { maximumFractionDigits: 4 });
+            if (p >= 0.01) return p.toFixed(5);
+            return p.toPrecision(4);
+        }
+        function cxG(n) { return Math.round(Number(n) || 0).toLocaleString('en-US'); }
+        function cxPx(s) {
+            if (cxLive[s] && cxLive[s].p > 0) return cxLive[s].p;
+            const c = cxData && (cxData.coins || []).find(x => x.s === s);
+            return c ? Number(c.p) : 0;
+        }
+        function cxOpen24(s) {
+            if (cxLive[s] && cxLive[s].o > 0) return cxLive[s].o;
+            const c = cxData && (cxData.coins || []).find(x => x.s === s);
+            return c ? Number(c.o) : 0;
+        }
+        function cxChgHtml(s) {
+            const p = cxPx(s), o = cxOpen24(s);
+            if (!(p > 0 && o > 0)) return '';
+            const ch = (p / o - 1) * 100;
+            return '<span class="' + (ch >= 0 ? 'up' : 'down') + '">' + (ch >= 0 ? '+' : '') + ch.toFixed(2) + '%</span>';
+        }
+        function cxAvColor(s) {
+            let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360;
+            return 'linear-gradient(135deg,hsl(' + h + ',80%,60%),hsl(' + ((h + 60) % 360) + ',80%,55%))';
+        }
+        function cxPnl(ps) {
+            const m = cxPx(ps.s);
+            if (!(m > 0)) return { pnl: 0, roe: 0, m: 0 };
+            const pnl = Number(ps.qty) * (m - Number(ps.entry)) * (ps.side === 'long' ? 1 : -1);
+            return { pnl, roe: pnl / Number(ps.margin) * 100, m };
+        }
+
+        // ---------- live price (Binance public stream; sirf dikhane ke liye) ----------
+        function cxWsStart() {
+            if (cxWs || !window.WebSocket) return;
+            const streams = CX_COINS.map(c => c[0].toLowerCase() + 'usdt@miniTicker').join('/');
+            try { cxWs = new WebSocket('wss://data-stream.binance.vision/stream?streams=' + streams); }
+            catch (e) { cxWs = null; cxPollStart(); return; }
+            cxWs.onmessage = ev => {
+                try {
+                    const d = JSON.parse(ev.data).data;
+                    if (d && d.s && d.s.endsWith('USDT')) cxLive[d.s.slice(0, -4)] = { p: +d.c, o: +d.o };
+                    cxWsRetry = 0;
+                    cxSchedRender();
+                } catch (e) { }
+            };
+            cxWs.onclose = () => {
+                cxWs = null;
+                if (cxActive()) { cxPollStart(); setTimeout(cxWsStart, Math.min(30000, 2000 * (++cxWsRetry))); }
+            };
+            cxWs.onerror = () => { try { cxWs && cxWs.close(); } catch (e) { } };
+        }
+        function cxPollStart() {
+            if (cxPoll) return;
+            const url = 'https://data-api.binance.vision/api/v3/ticker/24hr?type=MINI&symbols=' +
+                encodeURIComponent(JSON.stringify(CX_COINS.map(c => c[0] + 'USDT')));
+            const run = async () => {
+                if (cxWs && cxWs.readyState === 1) { clearInterval(cxPoll); cxPoll = null; return; }
+                if (!cxActive()) return;
+                try {
+                    const r = await fetch(url); const a = await r.json();
+                    (a || []).forEach(d => { if (d.symbol) cxLive[d.symbol.slice(0, -4)] = { p: +d.lastPrice, o: +d.openPrice }; });
+                    cxSchedRender();
+                } catch (e) { }
+            };
+            run(); cxPoll = setInterval(run, 5000);
+        }
+        function cxStop() {
+            try { if (cxWs) { cxWs.onclose = null; cxWs.close(); } } catch (e) { }
+            cxWs = null;
+            if (cxPoll) { clearInterval(cxPoll); cxPoll = null; }
+        }
+        window.cxStop = cxStop;
+        function cxActive() {
+            const t = document.getElementById('tabMarket');
+            return cxMode === 'crypto' && t && t.classList.contains('active-content');
+        }
+        function cxSchedRender() {
+            if (cxRenderT) return;
+            cxRenderT = setTimeout(() => { cxRenderT = null; cxRenderLive(); }, 700);
+        }
+
+        // ---------- mode / navigation ----------
+        function cxSetMode(m) {
+            cxMode = m; window.cxMode = m;
+            try { localStorage.setItem('gz_mk_mode', m); } catch (e) { }
+            document.getElementById('mkSegCx').classList.toggle('on', m === 'crypto');
+            document.getElementById('mkSegKx').classList.toggle('on', m === 'keys');
+            document.getElementById('mkCrypto').style.display = m === 'crypto' ? 'flex' : 'none';
+            document.getElementById('mkKeys').style.display = m === 'keys' ? 'flex' : 'none';
+            if (m === 'crypto') cxShow();
+            else { cxStop(); if (window.kxCurOpen && window.kxCurOpen()) loadKey(); else if (window.loadMarket) loadMarket(); }
+        }
+        window.cxSetMode = cxSetMode;
+        function cxShow() {
+            document.getElementById('mkCrypto').style.display = 'flex';
+            document.getElementById('mkKeys').style.display = 'none';
+            document.getElementById('mkSegCx').classList.add('on');
+            document.getElementById('mkSegKx').classList.remove('on');
+            cxWsStart();
+            cxLoad();
+            cxAdCard();
+        }
+        window.cxShow = cxShow;
+        function cxOpenCoin(s) {
+            cxSel = s;
+            document.getElementById('cxListView').style.display = 'none';
+            document.getElementById('cxDetailView').style.display = 'flex';
+            document.getElementById('cxdSym').innerText = s + '/USDT';
+            document.getElementById('cxdName').innerText = CX_NAME[s] || s;
+            const av = document.getElementById('cxdAv'); av.innerText = s.slice(0, 4); av.style.background = cxAvColor(s);
+            cxChart(s);
+            cxSetType(cxType);
+            cxRenderLive(); cxRenderDetail();
+            const tc = document.getElementById('tabMarket'); if (tc) tc.scrollTop = 0;
+        }
+        window.cxOpenCoin = cxOpenCoin;
+        function cxBack() {
+            cxSel = null;
+            document.getElementById('cxDetailView').style.display = 'none';
+            document.getElementById('cxListView').style.display = 'flex';
+            document.getElementById('cxTv').innerHTML = '';
+            cxRenderAll();
+        }
+        window.cxBack = cxBack;
+
+        // ---------- TradingView chart ----------
+        // chart ki height: S / M / L (yaad rehti hai)
+        function cxTvSize(hgt) {
+            hgt = [320, 440, 580].includes(+hgt) ? +hgt : 440;
+            try { localStorage.setItem('gz_tv_h', hgt); } catch (e) { }
+            document.getElementById('cxTv').style.height = hgt + 'px';
+            document.querySelectorAll('#cxTvSize .chip').forEach(b => b.classList.toggle('on', +b.dataset.h === hgt));
+        }
+        window.cxTvSize = cxTvSize;
+        function cxChart(s) {
+            let hgt = 440; try { hgt = +localStorage.getItem('gz_tv_h') || 440; } catch (e) { }
+            cxTvSize(hgt);
+            const box = document.getElementById('cxTv');
+            box.innerHTML = '<div class="tradingview-widget-container" style="height:100%;width:100%">' +
+                '<div class="tradingview-widget-container__widget" style="height:calc(100% - 22px);width:100%"></div>' +
+                '<div class="tradingview-widget-copyright" style="font-size:.62rem;text-align:center;line-height:22px;"><a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank" style="color:var(--muted);">Chart by TradingView</a></div></div>';
+            const sc = document.createElement('script');
+            sc.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+            sc.async = true;
+            sc.textContent = JSON.stringify({
+                autosize: true, symbol: 'BINANCE:' + s + 'USDT', interval: '15', timezone: 'Asia/Kolkata',
+                theme: 'dark', style: '1', locale: 'en', backgroundColor: 'rgba(11,15,26,1)',
+                allow_symbol_change: false, hide_side_toolbar: false, save_image: false, calendar: false,
+                support_host: 'https://www.tradingview.com'
+            });
+            box.firstChild.appendChild(sc);
+        }
+
+        // ---------- data ----------
+        async function cxLoad(silent, lite) {
+            if (cxBusy && silent) return;
+            const j = await cxCall('state', lite ? { lite: '1' } : {});
+            if (j.error) { if (!silent && j.error !== 'not_telegram') cxErr(j); if (j.error === 'not_telegram') cxRenderAll(); return; }
+            if (lite && cxData) {
+                // naya trade band hua ho tabhi poora data (history) mangao
+                const knownH = (cxData.hist && cxData.hist[0] && cxData.hist[0].id) || null;
+                if ((j.hid || null) !== knownH) return cxLoad(true, false);
+                j.coins = cxData.coins; j.hist = cxData.hist;
+            } else if (lite) return cxLoad(true, false);
+            cxData = j;
+            cxRenderAll();
+        }
+        window.cxLoad = cxLoad;
+
+        // naye fill / close / reject ka toast
+        function cxCheckEvents(j) {
+            const hist = j.hist || [];
+            if (cxSeenHist === null) cxSeenHist = hist.length ? hist[0].t : 0;
+            else {
+                hist.filter(h => h.t > cxSeenHist).reverse().forEach(h => {
+                    const pnl = Number(h.payout) - Number(h.margin);
+                    const why = { tp: 'Take Profit', sl: 'Stop Loss', liq: 'Liquidated', close: 'Closed' }[h.reason] || 'Closed';
+                    showToast((h.reason === 'liq' ? '💥 ' : (pnl >= 0 ? '✅ ' : '🔻 ')) + h.s + ' ' + h.side + ' ' + why + ': ' +
+                        (pnl >= 0 ? '+' : '') + cxG(pnl) + ' G-Points', pnl >= 0 ? '#4ade80' : '#f87171');
+                });
+                if (hist.length) cxSeenHist = Math.max(cxSeenHist, hist[0].t);
+            }
+            (j.rej || []).forEach(r => {
+                if (cxSeenRej[r.id]) return; cxSeenRej[r.id] = 1;
+                showToast('⚠️ ' + r.s + ' order cancelled: opposite position open. G-Points refunded', '#fbbf24');
+            });
+            if (cxData) {
+                const before = new Set((cxData.orders || []).map(o => o.id));
+                const now = new Set((j.orders || []).map(o => o.id));
+                const filled = [...before].filter(id => !now.has(id)).length;
+                if (filled && (j.pos || []).length) triggerHaptic('success');
+            }
+        }
+
+        // ---------- render ----------
+        function cxRenderAll() { cxRenderList(); cxRenderPortfolio(); if (cxSel) cxRenderDetail(); }
+
+        function cxRenderList() {
+            const box = document.getElementById('cxList');
+            box.innerHTML = CX_COINS.map(([s, n]) =>
+                '<div class="kx-item" onclick="cxOpenCoin(\'' + s + '\')">' +
+                '<div class="kx-av" style="background:' + cxAvColor(s) + '">' + s.slice(0, 4) + '</div>' +
+                '<div class="kx-mid"><div class="kx-sym">' + s + '<span style="color:var(--muted);font-weight:700;font-size:.7rem;">/USDT</span></div>' +
+                '<div class="kx-name">' + n + '</div></div>' +
+                '<div class="kx-right"><div class="kx-price" data-cxp="' + s + '">' + cxFmt(cxPx(s)) + '</div>' +
+                '<div class="kx-chg" data-cxc="' + s + '">' + cxChgHtml(s) + '</div></div></div>'
+            ).join('');
+        }
+
+        function cxPosHtml(ps) {
+            const { pnl, roe, m } = cxPnl(ps);
+            const cls = pnl >= 0 ? 'up' : 'down';
+            return '<div class="kx-pos" data-pos="' + ps.id + '">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<div><b style="cursor:pointer;" onclick="cxOpenCoin(\'' + ps.s + '\')">' + ps.s + '</b> <span class="kx-lev" style="background:' +
+                (ps.side === 'long' ? 'rgba(74,222,128,.15);color:var(--green)' : 'rgba(248,113,113,.15);color:var(--red)') + ';">' +
+                (ps.side === 'long' ? 'Long' : 'Short') + ' ' + ps.lev + 'x</span></div>' +
+                '<div style="text-align:right;"><b class="' + cls + '" data-pnl="' + ps.id + '">' + (pnl >= 0 ? '+' : '') + cxG(pnl) + '</b>' +
+                ' <span class="' + cls + '" style="font-size:.7rem;" data-roe="' + ps.id + '">(' + (roe >= 0 ? '+' : '') + roe.toFixed(1) + '%)</span></div></div>' +
+                '<div class="kx-pos-g">' +
+                '<div>Margin<br><b style="color:var(--text)">' + cxG(ps.margin) + '</b></div>' +
+                '<div>Entry<br><b style="color:var(--text)">' + cxFmt(ps.entry) + '</b></div>' +
+                '<div>Mark<br><b style="color:var(--text)" data-mark="' + ps.id + '">' + cxFmt(m) + '</b></div>' +
+                '<div>Liq.<br><b style="color:var(--gold)">' + cxFmt(ps.liq) + '</b></div>' +
+                '<div>TP<br><b class="up">' + (ps.tp ? cxFmt(ps.tp) : '—') + '</b></div>' +
+                '<div>SL<br><b class="down">' + (ps.sl ? cxFmt(ps.sl) : '—') + '</b></div></div>' +
+                (ps.closing ? '<div class="kx-warn">⏳ Closing ' + (ps.pct || 100) + '% at the next price update…</div>' :
+                    '<div class="chips">' +
+                    '<button class="chip" onclick="cxClose(' + ps.id + ',25)">Close 25%</button>' +
+                    '<button class="chip" onclick="cxClose(' + ps.id + ',50)">50%</button>' +
+                    '<button class="chip" style="color:var(--red);border-color:rgba(248,113,113,.5);" onclick="cxClose(' + ps.id + ',100)">Close all</button>' +
+                    '<button class="chip" onclick="cxTpslEdit(' + ps.id + ')">TP/SL</button></div>' +
+                    '<div id="cxEd' + ps.id + '" style="display:none;" class="kx-grid">' +
+                    '<input class="kx-input" id="cxEdTp' + ps.id + '" type="number" inputmode="decimal" step="any" placeholder="TP price" value="' + (ps.tp || '') + '">' +
+                    '<input class="kx-input" id="cxEdSl' + ps.id + '" type="number" inputmode="decimal" step="any" placeholder="SL price" value="' + (ps.sl || '') + '">' +
+                    '<button class="chip on" style="grid-column:span 2;padding:9px;" onclick="cxTpslSave(' + ps.id + ')">Save TP / SL (empty = remove)</button></div>') +
+                '</div>';
+        }
+
+        function cxOrdHtml(o) {
+            const t = { market: 'Market', limit: 'Limit', stop: o.side === 'long' ? 'Stop-buy' : 'Stop-sell' }[o.type];
+            return '<div class="kx-row"><div><b>' + o.s + '</b> <span class="' + (o.side === 'long' ? 'up' : 'down') + '">' +
+                (o.side === 'long' ? 'Long' : 'Short') + '</span> · ' + t +
+                (o.trig ? ' @ ' + cxFmt(o.trig) : ' (filling…)') + '<br><span style="color:var(--muted);font-size:.7rem;">' +
+                cxG(o.margin) + ' × ' + o.lev + 'x' + (o.tp ? ' · TP ' + cxFmt(o.tp) : '') + (o.sl ? ' · SL ' + cxFmt(o.sl) : '') + '</span></div>' +
+                '<button class="chip" onclick="cxCancel(' + o.id + ')">Cancel</button></div>';
+        }
+
+        function cxRenderPortfolio() {
+            const d = cxData || {};
+            const pos = d.pos || [], ord = d.orders || [], hist = d.hist || [];
+            document.getElementById('cxPosAll').innerHTML = pos.length ? pos.map(cxPosHtml).join('') : '<div class="kx-empty">No open positions</div>';
+            document.getElementById('cxOrdAll').innerHTML = ord.length ? ord.map(cxOrdHtml).join('') : '<div class="kx-empty">No open orders</div>';
+            document.getElementById('cxHist').innerHTML = hist.length ? hist.map(h => {
+                const pnl = Number(h.payout) - Number(h.margin);
+                const why = { tp: 'TP', sl: 'SL', liq: 'Liquidated', close: 'Closed' }[h.reason] || h.reason;
+                return '<div class="kx-row"><div><b>' + h.s + '</b> <span class="' + (h.side === 'long' ? 'up' : 'down') + '">' +
+                    (h.side === 'long' ? 'Long' : 'Short') + '</span> · ' + why + '<br><span style="color:var(--muted);font-size:.7rem;">' +
+                    cxFmt(h.entry) + ' → ' + cxFmt(h.exit) + '</span></div><b class="' + (pnl >= 0 ? 'up' : 'down') + '">' +
+                    (pnl >= 0 ? '+' : '') + cxG(pnl) + '</b></div>';
+            }).join('') : '<div class="kx-empty">No trades yet</div>';
+            const sum = document.getElementById('cxSum');
+            if (pos.length) {
+                const tot = pos.reduce((a, p) => a + cxPnl(p).pnl, 0), mg = pos.reduce((a, p) => a + Number(p.margin), 0);
+                sum.style.display = '';
+                sum.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;"><div><div class="kx-lbl" style="margin:0;">Open P&amp;L</div>' +
+                    '<div style="font-size:.72rem;color:var(--muted);">' + pos.length + ' position' + (pos.length > 1 ? 's' : '') + ' · margin ' + cxG(mg) + '</div></div>' +
+                    '<b class="' + (tot >= 0 ? 'up' : 'down') + '" style="font-size:1.2rem;" id="cxSumPnl">' + (tot >= 0 ? '+' : '') + cxG(tot) + '</b></div>';
+            } else sum.style.display = 'none';
+        }
+
+        function cxRenderDetail() {
+            if (!cxSel) return;
+            const d = cxData || {};
+            const pos = (d.pos || []).filter(p => p.s === cxSel), ord = (d.orders || []).filter(o => o.s === cxSel);
+            document.getElementById('cxPosOne').innerHTML = pos.length ? pos.map(cxPosHtml).join('') : '<div class="kx-empty">No position on ' + cxSel + '</div>';
+            document.getElementById('cxOrdOne').innerHTML = ord.length ? ord.map(cxOrdHtml).join('') : '<div class="kx-empty">No open orders</div>';
+            cxQuote();
+        }
+
+        // sirf price wale hisse badlo (pura list dobara nahi)
+        function cxRenderLive() {
+            document.querySelectorAll('[data-cxp]').forEach(el => { el.innerText = cxFmt(cxPx(el.dataset.cxp)); });
+            document.querySelectorAll('[data-cxc]').forEach(el => { el.innerHTML = cxChgHtml(el.dataset.cxc); });
+            const pos = (cxData && cxData.pos) || [];
+            pos.forEach(ps => {
+                const { pnl, roe, m } = cxPnl(ps), cls = pnl >= 0 ? 'up' : 'down';
+                document.querySelectorAll('[data-pnl="' + ps.id + '"]').forEach(el => { el.className = cls; el.innerText = (pnl >= 0 ? '+' : '') + cxG(pnl); });
+                document.querySelectorAll('[data-roe="' + ps.id + '"]').forEach(el => { el.className = cls; el.innerText = '(' + (roe >= 0 ? '+' : '') + roe.toFixed(1) + '%)'; });
+                document.querySelectorAll('[data-mark="' + ps.id + '"]').forEach(el => { el.innerText = cxFmt(m); });
+            });
+            const sp = document.getElementById('cxSumPnl');
+            if (sp) { const tot = pos.reduce((a, p) => a + cxPnl(p).pnl, 0); sp.className = tot >= 0 ? 'up' : 'down'; sp.innerText = (tot >= 0 ? '+' : '') + cxG(tot); }
+            if (cxSel) {
+                document.getElementById('cxdPrice').innerText = cxFmt(cxPx(cxSel));
+                document.getElementById('cxdChg').innerHTML = cxChgHtml(cxSel);
+                if (cxType === 'market') cxQuote();
+            }
+        }
+
+        // ---------- order form ----------
+        function cxSetSide(s) {
+            cxSide = s;
+            document.getElementById('cxLong').classList.toggle('on', s === 'long');
+            document.getElementById('cxShort').classList.toggle('on', s === 'short');
+            cxSetType(cxType);
+        }
+        window.cxSetSide = cxSetSide;
+        function cxSetType(t) {
+            cxType = t;
+            document.querySelectorAll('#cxTypes .chip').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+            const row = document.getElementById('cxPxRow');
+            row.style.display = t === 'market' ? 'none' : 'flex';
+            const L = cxSide === 'long';
+            document.getElementById('cxPxLbl').innerText = t === 'limit' ? 'Limit price' : (L ? 'Stop-buy trigger price' : 'Stop-sell trigger price');
+            document.getElementById('cxPxHint').innerText = t === 'limit'
+                ? (L ? 'Buys (Long) when the price drops to this level. Must be below the current price.' : 'Sells (Short) when the price rises to this level. Must be above the current price.')
+                : (L ? 'Opens a Long when the price rises to this level (breakout). Must be above the current price.' : 'Opens a Short when the price falls to this level (breakdown). Must be below the current price.');
+            cxQuote();
+        }
+        window.cxSetType = cxSetType;
+        function cxUseLast() { const p = cxPx(cxSel); if (p > 0) { document.getElementById('cxPx').value = +p.toPrecision(6); cxQuote(); } }
+        window.cxUseLast = cxUseLast;
+        function cxSetLev(l) { document.getElementById('cxLev').value = l; cxQuote(); }
+        window.cxSetLev = cxSetLev;
+        function cxSetMargin(v) {
+            const lev = +document.getElementById('cxLev').value || 1;
+            const max = Math.floor(Math.max(0, tokens) / (1 + lev * CX_FEE));
+            let m = v === 'max' ? max : v === '25%' ? max * 0.25 : v === '50%' ? max * 0.5 : v;
+            document.getElementById('cxMargin').value = Math.floor(Math.min(m, max));
+            cxQuote();
+        }
+        window.cxSetMargin = cxSetMargin;
+
+        function cxQuote() {
+            if (!cxSel) return;
+            const lev = +document.getElementById('cxLev').value || 1;
+            document.getElementById('cxLevTxt').innerText = lev + 'x';
+            document.getElementById('cxAvail').innerText = 'Available: ' + cxG(tokens);
+            document.getElementById('cxTpslRow').style.display = document.getElementById('cxTpslOn').checked ? 'grid' : 'none';
+            const mg = Math.floor(+document.getElementById('cxMargin').value || 0);
+            const last = cxPx(cxSel);
+            const ref = cxType === 'market' ? last : (+document.getElementById('cxPx').value || 0);
+            const size = mg * lev, fee = Math.ceil(size * CX_FEE);
+            const liq = ref > 0 ? (cxSide === 'long' ? ref * (1 - 0.9 / lev) : ref * (1 + 0.9 / lev)) : 0;
+            document.getElementById('cxQuoteBox').innerHTML =
+                '<div><span>Position size</span><b>' + cxG(size) + ' G</b></div>' +
+                '<div><span>' + (cxType === 'market' ? 'Est. entry (next price)' : 'Entry at about') + '</span><b>' + cxFmt(ref) + '</b></div>' +
+                '<div><span>Est. liquidation</span><b style="color:var(--gold)">' + cxFmt(liq) + '</b></div>' +
+                '<div><span>Open fee</span><b>' + cxG(fee) + ' G</b></div>' +
+                '<div><span>Total cost</span><b>' + cxG(mg + fee) + ' G</b></div>';
+            const tName = cxType === 'market' ? 'Market' : cxType === 'limit' ? 'Limit' : (cxSide === 'long' ? 'Stop-buy' : 'Stop-sell');
+            const go = document.getElementById('cxGo');
+            go.className = 'kx-go' + (cxSide === 'short' ? ' sell' : '');
+            go.innerText = (cxSide === 'long' ? 'Long ' : 'Short ') + cxSel + ' · ' + tName;
+            go.disabled = cxBusy || mg < 100 || mg + fee > tokens || !(ref > 0);
+        }
+        window.cxQuote = cxQuote;
+
+        async function cxPlace() {
+            if (cxBusy || !cxSel) return;
+            const lev = +document.getElementById('cxLev').value || 1;
+            const mg = Math.floor(+document.getElementById('cxMargin').value || 0);
+            const body = { sym: cxSel, side: cxSide, type: cxType, margin: mg, lev: lev };
+            if (cxType !== 'market') body.price = document.getElementById('cxPx').value;
+            if (document.getElementById('cxTpslOn').checked) {
+                body.tp = document.getElementById('cxTp').value; body.sl = document.getElementById('cxSl').value;
+            }
+            cxBusy = true; cxQuote();
+            try {
+                await flushTaps();
+                const j = await cxCall('place', body);
+                if (j.error) { cxErr(j); return; }
+                triggerHaptic('rigid');
+                showToast(cxType === 'market' ? '✅ Order sent, fills at the next price update' : '✅ ' + (cxType === 'limit' ? 'Limit' : 'Stop') + ' order placed', '#4ade80');
+                cxCheckEvents(j); cxData = j; cxRenderAll();
+                setTimeout(() => cxLoad(true), 2500); setTimeout(() => cxLoad(true), 7000);
+            } finally { cxBusy = false; cxQuote(); }
+        }
+        window.cxPlace = cxPlace;
+
+        async function cxSimple(action, body, okMsg) {
+            if (cxBusy) return;
+            cxBusy = true;
+            try {
+                const j = await cxCall(action, body);
+                if (j.error) { cxErr(j); return; }
+                if (okMsg) showToast(okMsg, '#4ade80');
+                cxCheckEvents(j); cxData = j; cxRenderAll();
+                setTimeout(() => cxLoad(true), 2500); setTimeout(() => cxLoad(true), 7000);
+            } finally { cxBusy = false; }
+        }
+        function cxClose(id, pct) { cxSimple('close', { id: id, pct: pct }, '⏳ Closing at the next price update'); }
+        function cxCancel(id) { cxSimple('cancel', { id: id }, '✅ Order cancelled, G-Points refunded'); }
+        function cxTpslEdit(id) { const e = document.getElementById('cxEd' + id); if (e) e.style.display = e.style.display === 'none' ? 'grid' : 'none'; }
+        function cxTpslSave(id) {
+            cxSimple('tpsl', { id: id, tp: document.getElementById('cxEdTp' + id).value, sl: document.getElementById('cxEdSl' + id).value }, '✅ TP / SL saved');
+        }
+        window.cxClose = cxClose; window.cxCancel = cxCancel; window.cxTpslEdit = cxTpslEdit; window.cxTpslSave = cxTpslSave;
+
+        // 🎁 Free Trading Credit (rewarded ad): +5000, din me 5, beech me 1 ghanta
+        let _cxAdT = null;
+        function cxAdCard() {
+            const card = document.getElementById('cxAdCard');
+            if (!card) return;
+            const a = (typeof serverState !== 'undefined' && serverState && serverState.ads) || null;
+            const show = typeof ADS_ON !== 'undefined' && ADS_ON && IN_TELEGRAM && !!a && a.maxCx !== undefined;
+            card.style.display = show ? 'flex' : 'none';
+            if (!show) return;
+            const left = Math.max(0, (Number(a.maxCx) || 5) - (Number(a.cx) || 0));
+            const wait = Math.max(0, (Number(a.cxLast) || 0) + 3600000 - serverNow());
+            const btn = document.getElementById('cxAdBtn'), sub = document.getElementById('cxAdSub');
+            clearTimeout(_cxAdT);
+            if (left < 1) { btn.disabled = true; btn.innerText = '✓ Done'; sub.innerText = 'Daily limit reached · back tomorrow'; }
+            else if (wait > 0) {
+                btn.disabled = true; btn.innerText = fmtWait(wait); sub.innerText = left + ' left today · next in ' + fmtWait(wait);
+                _cxAdT = setTimeout(cxAdCard, 1000);
+            }
+            else { btn.disabled = adBusy; btn.innerText = adBusy ? '…' : '📺 Watch'; sub.innerText = 'Optional ad · ' + left + ' left today'; }
+        }
+        window.cxAdCard = cxAdCard;
+
+        // auto refresh (tab khula ho tab): orders / positions har 4 sec
+        setInterval(() => {
+            if (document.visibilityState !== 'visible' || !cxActive() || cxBusy) return;
+            const ed = document.activeElement;
+            if (ed && ed.id && /^cxEd(Tp|Sl)/.test(ed.id)) return;          // TP/SL likh rahe ho tab refresh nahi
+            if ([...document.querySelectorAll('[id^="cxEd"]')].some(e => /^cxEd\d+$/.test(e.id) && e.style.display !== 'none')) return;
+            cxLoad(true, true);
+        }, 6000);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && cxActive()) { cxWsStart(); cxLoad(true); }
+        });
+        // first paint (agar Market tab pehle se khula ho)
+        cxSetSide('long');
+        document.getElementById('mkSegCx').classList.toggle('on', cxMode === 'crypto');
+        document.getElementById('mkSegKx').classList.toggle('on', cxMode === 'keys');
+        document.getElementById('mkCrypto').style.display = cxMode === 'crypto' ? 'flex' : 'none';
+        document.getElementById('mkKeys').style.display = cxMode === 'keys' ? 'flex' : 'none';
+        cxRenderList();
     </script>
 
     <!-- Replace every 🪙 emoji (static + dynamic text) with the G coin icon -->
@@ -4842,6 +5605,10 @@ begin
                   then coalesce((u.tasks_done->'_ad'->>'e')::int, 0) else 0 end,
       'last', coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0),
       'maxPts', 5, 'maxEn', 5, 'gap', 3600000, 'reward', 5000,
+      -- Crypto trading credit: +5000, din me 5, beech me 1 ghanta
+      'cx', case when (u.tasks_done->'_ad'->>'d')::bigint = (extract(epoch from rs) * 1000)::bigint
+                 then coalesce((u.tasks_done->'_ad'->>'c')::int, 0) else 0 end,
+      'cxLast', coalesce((u.tasks_done->'_ad'->>'tc')::bigint, 0), 'maxCx', 5,
       -- 2x: aaj ka daily bonus (claim kiya, token wala, abhi double nahi kiya) = kitna milega
       'd2', case when u.last_daily = today and coalesce((u.tasks_done->>'_dl')::bigint, 0) > 0
                       and coalesce(u.tasks_done->'_ad'->>'dd', '') <> today
@@ -4914,11 +5681,7 @@ begin
     end if;
   end if;
 
-  -- naya user: welcome bonus 50,000 (sirf ek baar, account bante hi)
-  if is_new and p_action = 'init' then
-    u.tokens := u.tokens + 50000;
-    res := res || jsonb_build_object('welcome', 50000);
-  end if;
+  -- welcome bonus band hai (pehle naye user ko 50,000 milte the)
 
   -- referral: sirf naya user, signed start_param se, self-ref nahi
   if is_new and p_action = 'init' then
@@ -5047,7 +5810,7 @@ begin
     -- ad_start ad dikhane se pehle, ad_reward poora dekhne ke baad. Limit SERVER check karta hai.
     when 'ad_start', 'ad_reward' then
       k := p_data->>'kind';
-      if k not in ('pts', 'energy', 'daily2x', 'puzzle2x') then
+      if k not in ('pts', 'energy', 'daily2x', 'puzzle2x', 'cx') then
         return jsonb_build_object('error', 'bad_key', 'state', public._state(u));
       end if;
       amt := (extract(epoch from rs) * 1000)::bigint;               -- aaj ka reset (7 AM IST)
@@ -5055,6 +5818,7 @@ begin
         u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb)
           || jsonb_build_object('_ad', jsonb_build_object('d', amt, 'p', 0, 'e', 0,
                't', coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0),
+               'c', 0, 'tc', coalesce((u.tasks_done->'_ad'->>'tc')::bigint, 0),
                'dd', coalesce(u.tasks_done->'_ad'->>'dd', ''),          -- daily 2x calendar din se chalta hai
                'pz', coalesce((u.tasks_done->'_ad'->>'pz')::bigint, 0)));
       end if;
@@ -5072,6 +5836,12 @@ begin
         return jsonb_build_object('error', 'ad_limit', 'state', public._state(u));
       end if;
       if k = 'pts' and public._ms() - coalesce((u.tasks_done->'_ad'->>'t')::bigint, 0) < 3600000 then
+        return jsonb_build_object('error', 'ad_wait', 'state', public._state(u));
+      end if;
+      if k = 'cx' and coalesce((u.tasks_done->'_ad'->>'c')::int, 0) >= 5 then
+        return jsonb_build_object('error', 'ad_limit', 'state', public._state(u));
+      end if;
+      if k = 'cx' and public._ms() - coalesce((u.tasks_done->'_ad'->>'tc')::bigint, 0) < 3600000 then
         return jsonb_build_object('error', 'ad_wait', 'state', public._state(u));
       end if;
       if k = 'energy' and u.energy >= 200 then
@@ -5102,6 +5872,11 @@ begin
           u.tokens := u.tokens + 10000;
           u.tasks_done := u.tasks_done || jsonb_build_object('_ad', (u.tasks_done->'_ad') || jsonb_build_object('pz', amt));
           res := jsonb_build_object('kind', k, 'amount', 10000);
+        elsif k = 'cx' then
+          u.tokens := u.tokens + 5000;
+          u.tasks_done := u.tasks_done || jsonb_build_object('_ad', (u.tasks_done->'_ad') || jsonb_build_object(
+            'c', coalesce((u.tasks_done->'_ad'->>'c')::int, 0) + 1, 'tc', public._ms()));
+          res := jsonb_build_object('kind', k, 'amount', 5000);
         else
         u.tasks_done := u.tasks_done || jsonb_build_object('_ad',
           (u.tasks_done->'_ad') || jsonb_build_object(
@@ -5314,6 +6089,14 @@ begin
     select id from public.kx_positions where status <> 'open'
       and coalesce(closed_at, opened_at) < now() - interval '30 days' order by id limit 50000);
   delete from public.kx_candles where iv = '1h' and bucket < now() - interval '90 days';
+  -- pg_cron har run ka log rakhta hai (5 sec job = ~17,000 rows/din) → 500 MB bachane ke liye saaf
+  begin
+    execute $q$delete from cron.job_run_details where end_time < now() - interval '6 hours'$q$;
+  exception when others then null; end;
+  begin
+    delete from public.cx_orders where status <> 'open' and done_at < now() - interval '30 days';
+    delete from public.cx_hist where ts < now() - interval '60 days';
+  exception when others then null; end;
 exception when others then
   null;   -- cleanup fail ho to bhi game chalta rahe
 end $$;
@@ -5996,6 +6779,542 @@ grant execute on function public.kx(text, text, jsonb)   to anon, authenticated;
 revoke all on function public.leaderboard(text)       from public;
 grant execute on function public.leaderboard(text)       to anon, authenticated;
 
+-- =====================================================================
+-- CRYPTO FUTURES — Binance ka LIVE price, trading sirf G-Points se (simulation)
+-- Order types: Market, Limit, Stop (stop-buy / stop-sell) + TP / SL, 1x-100x
+-- Har order/close AGLE price update par fill hota hai (purane price ka fayda koi nahi utha sakta)
+-- =====================================================================
+create table if not exists public.cx_coins (
+  sym      text primary key,                  -- BTC, ETH ... (Binance par <sym>USDT)
+  name     text not null,
+  ord      int  not null default 0,
+  price    numeric,
+  open24   numeric,                           -- 24 ghante pehle ka price (change % ke liye)
+  price_ts timestamptz,                       -- ye price kab maanga gaya
+  active   boolean not null default true
+);
+insert into public.cx_coins(sym, name, ord) values
+  ('BTC','Bitcoin',1), ('ETH','Ethereum',2), ('BNB','BNB',3), ('SOL','Solana',4), ('XRP','XRP',5),
+  ('DOGE','Dogecoin',6), ('ADA','Cardano',7), ('TRX','TRON',8), ('AVAX','Avalanche',9), ('LINK','Chainlink',10),
+  ('TON','Toncoin',11), ('SHIB','Shiba Inu',12), ('DOT','Polkadot',13), ('BCH','Bitcoin Cash',14), ('LTC','Litecoin',15),
+  ('NEAR','NEAR Protocol',16), ('UNI','Uniswap',17), ('APT','Aptos',18), ('SUI','Sui',19), ('PEPE','Pepe',20)
+on conflict (sym) do update set name = excluded.name, ord = excluded.ord;
+
+create table if not exists public.cx_orders (
+  id         bigserial primary key,
+  user_id    text not null references public.users(id) on delete cascade,
+  sym        text not null references public.cx_coins(sym),
+  side       text not null check (side in ('long', 'short')),
+  otype      text not null check (otype in ('market', 'limit', 'stop')),
+  trig       numeric,                         -- limit / stop price
+  margin     bigint not null,
+  lev        int    not null,
+  fee        bigint not null,                 -- open fee (order lagate hi kat'ta hai, cancel par wapas)
+  tp         numeric,
+  sl         numeric,
+  status     text not null default 'open',    -- open / filled / cancelled / rejected
+  note       text,
+  fill_px    numeric,
+  created_at timestamptz not null default clock_timestamp(),
+  done_at    timestamptz
+);
+create index if not exists cx_orders_open on public.cx_orders(sym) where status = 'open';
+create index if not exists cx_orders_user on public.cx_orders(user_id, id desc);
+
+create table if not exists public.cx_positions (
+  id         bigserial primary key,
+  user_id    text not null references public.users(id) on delete cascade,
+  sym        text not null references public.cx_coins(sym),
+  side       text not null check (side in ('long', 'short')),
+  qty        numeric not null,                -- kitne coin (G-Points / price)
+  entry      numeric not null,
+  margin     bigint  not null,
+  liq        numeric not null,
+  tp         numeric,
+  sl         numeric,
+  close_pct  int,                             -- close maanga: agle price par band hoga
+  close_at   timestamptz,
+  opened_at  timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index if not exists cx_pos_one on public.cx_positions(user_id, sym);   -- ek coin par ek position
+
+create table if not exists public.cx_hist (
+  id      bigserial primary key,
+  user_id text not null references public.users(id) on delete cascade,
+  sym     text not null,
+  side    text not null,
+  qty     numeric not null,
+  entry   numeric not null,
+  exit    numeric not null,
+  margin  bigint not null,
+  payout  bigint not null,                    -- kitne G-Points wapas mile (pnl = payout - margin)
+  reason  text not null,                      -- close / tp / sl / liq
+  ts      timestamptz not null default now()
+);
+create index if not exists cx_hist_user on public.cx_hist(user_id, id desc);
+
+alter table public.cx_coins     enable row level security;
+alter table public.cx_orders    enable row level security;
+alter table public.cx_positions enable row level security;
+alter table public.cx_hist      enable row level security;
+revoke all on public.cx_coins, public.cx_orders, public.cx_positions, public.cx_hist from anon, authenticated;
+alter table public.users add column if not exists cx_last timestamptz;
+
+create or replace function public._cx_num(t text) returns numeric
+language plpgsql immutable as $$
+begin
+  if t is null or btrim(t) = '' then return null; end if;
+  return btrim(t)::numeric;
+exception when others then return null;
+end $$;
+
+create or replace function public._cx_liq(p_side text, p_entry numeric, p_margin numeric, p_qty numeric) returns numeric
+language sql immutable as $$
+  -- margin ka 90% doobne par liquidation
+  select case when p_side = 'long' then p_entry - 0.9 * p_margin / p_qty
+              else p_entry + 0.9 * p_margin / p_qty end
+$$;
+
+create or replace function public._cx_url() returns text
+language sql stable as $$
+  select 'https://data-api.binance.vision/api/v3/ticker/24hr?type=MINI&symbols=%5B'
+      || string_agg('%22' || sym || 'USDT%22', ',' order by ord) || '%5D'
+    from public.cx_coins where active
+$$;
+
+-- Binance ka jawab (array) cx_coins me daalo
+create or replace function public._cx_apply(p jsonb, p_ts timestamptz) returns int
+language plpgsql as $$
+declare e jsonb; s text; px numeric; n int := 0;
+begin
+  if jsonb_typeof(p) <> 'array' then return 0; end if;
+  for e in select * from jsonb_array_elements(p) loop
+    s := e->>'symbol';
+    if s is null or right(s, 4) <> 'USDT' then continue; end if;
+    px := public._cx_num(e->>'lastPrice');
+    if px is null or px <= 0 then continue; end if;
+    update public.cx_coins set price = px, open24 = public._cx_num(e->>'openPrice'), price_ts = p_ts
+     where sym = left(s, length(s) - 4)
+       and (price_ts is null or price_ts < p_ts);
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
+-- Price lao: 'http' extension (turant) ya 'pg_net' (agle tick par jawab)
+create or replace function public._cx_fetch() returns text
+language plpgsql as $$
+declare st int; c text; t0 timestamptz := clock_timestamp(); pend jsonb; rid bigint;
+begin
+  if exists (select 1 from pg_extension where extname = 'http') then
+    begin
+      execute 'select extensions.http_set_curlopt(''CURLOPT_TIMEOUT'', ''4'')';
+      execute 'select status, content from extensions.http_get($1)' into st, c using public._cx_url();
+      if st = 200 then
+        perform public._cx_apply(c::jsonb, t0);
+        return 'http';
+      end if;
+    exception when others then
+      raise notice 'cx http: %', sqlerrm;
+    end;
+  end if;
+  if exists (select 1 from pg_extension where extname = 'pg_net') then
+    select v into pend from public.kx_cache where k = 'cx_req';
+    if pend is not null then
+      st := null;
+      begin
+        execute 'select status_code, content from net._http_response where id = $1' into st, c using (pend->>'id')::bigint;
+      exception when others then st := null; end;
+      if st = 200 then perform public._cx_apply(c::jsonb, (pend->>'at')::timestamptz); end if;
+      if st is null and clock_timestamp() - (pend->>'at')::timestamptz < interval '15 seconds' then
+        return 'wait';                                   -- jawab abhi aaya nahi
+      end if;
+    end if;
+    execute 'select net.http_get($1)' into rid using public._cx_url();
+    insert into public.kx_cache(k, v, at) values ('cx_req', jsonb_build_object('id', rid, 'at', clock_timestamp()), now())
+      on conflict (k) do update set v = excluded.v, at = excluded.at;
+    return 'net';
+  end if;
+  return 'none';
+end $$;
+
+-- Order fill (user row pehle lock hona chahiye)
+create or replace function public._cx_fill(p_oid bigint) returns void
+language plpgsql as $$
+declare o public.cx_orders%rowtype; c public.cx_coins%rowtype; p public.cx_positions%rowtype;
+        px numeric; q numeric; nq numeric; ne numeric; nm bigint;
+begin
+  select * into o from public.cx_orders where id = p_oid for update;
+  if not found or o.status <> 'open' then return; end if;
+  select * into c from public.cx_coins where sym = o.sym;
+  px := c.price;
+  if px is null or px <= 0 then return; end if;
+  select * into p from public.cx_positions where user_id = o.user_id and sym = o.sym for update;
+  if found and p.side <> o.side then
+    update public.cx_orders set status = 'rejected', note = 'opposite position open', done_at = now() where id = o.id;
+    update public.users set tokens = tokens + o.margin + o.fee where id = o.user_id;
+    return;
+  end if;
+  q := (o.margin * o.lev)::numeric / px;
+  if found then
+    nq := p.qty + q;
+    ne := (p.qty * p.entry + q * px) / nq;
+    nm := p.margin + o.margin;
+    update public.cx_positions
+       set qty = nq, entry = ne, margin = nm, liq = public._cx_liq(p.side, ne, nm, nq),
+           tp = coalesce(o.tp, p.tp), sl = coalesce(o.sl, p.sl), updated_at = now()
+     where id = p.id;
+  else
+    insert into public.cx_positions(user_id, sym, side, qty, entry, margin, liq, tp, sl)
+    values (o.user_id, o.sym, o.side, q, px, o.margin, public._cx_liq(o.side, px, o.margin, q), o.tp, o.sl);
+  end if;
+  update public.cx_orders set status = 'filled', fill_px = px, done_at = now() where id = o.id;
+end $$;
+
+-- Position band (pura ya kuch %). Liquidation par kuch wapas nahi.
+create or replace function public._cx_close(p_pid bigint, p_pct int, p_px numeric, p_reason text) returns void
+language plpgsql as $$
+declare p public.cx_positions%rowtype; pct int; qc numeric; mc bigint; pnl numeric; fee numeric; pay bigint;
+begin
+  select * into p from public.cx_positions where id = p_pid for update;
+  if not found then return; end if;
+  pct := least(100, greatest(1, coalesce(p_pct, 100)));
+  if p_reason <> 'close' then pct := 100; end if;
+  qc := case when pct = 100 then p.qty else p.qty * pct / 100.0 end;
+  mc := case when pct = 100 then p.margin else round(p.margin * pct / 100.0)::bigint end;
+  pnl := qc * (p_px - p.entry) * (case when p.side = 'long' then 1 else -1 end);
+  fee := qc * p_px * 0.0005;
+  pay := case when p_reason = 'liq' then 0 else greatest(0, floor(mc + pnl - fee))::bigint end;
+  update public.users set tokens = tokens + pay where id = p.user_id;
+  insert into public.cx_hist(user_id, sym, side, qty, entry, exit, margin, payout, reason)
+  values (p.user_id, p.sym, p.side, qc, p.entry, p_px, mc, pay, p_reason);
+  if pct = 100 or p.qty - qc <= 0 or p.margin - mc <= 0 then
+    delete from public.cx_positions where id = p.id;
+  else
+    update public.cx_positions
+       set qty = p.qty - qc, margin = p.margin - mc,
+           liq = public._cx_liq(p.side, p.entry, p.margin - mc, p.qty - qc),
+           close_pct = null, close_at = null, updated_at = now()
+     where id = p.id;
+  end if;
+end $$;
+
+-- Orders fill + TP / SL / liquidation / close requests
+create or replace function public._cx_process() returns int
+language plpgsql as $$
+declare o record; ps record; px numeric; n int := 0;
+begin
+  for o in select x.id, x.user_id from public.cx_orders x join public.cx_coins c on c.sym = x.sym
+            where x.status = 'open' and c.price > 0 and c.price_ts > x.created_at
+              and (x.otype = 'market'
+                or (x.otype = 'limit' and ((x.side = 'long' and c.price <= x.trig) or (x.side = 'short' and c.price >= x.trig)))
+                or (x.otype = 'stop'  and ((x.side = 'long' and c.price >= x.trig) or (x.side = 'short' and c.price <= x.trig))))
+            order by x.id
+  loop
+    begin
+      perform 1 from public.users where id = o.user_id for update;     -- lock order: user -> order -> position
+      perform public._cx_fill(o.id);
+      n := n + 1;
+    exception when others then
+      raise notice 'cx fill %: %', o.id, sqlerrm;
+    end;
+  end loop;
+
+  for ps in select p.id, p.user_id, p.side, p.liq, p.tp, p.sl, p.close_pct, p.close_at, c.price, c.price_ts
+              from public.cx_positions p join public.cx_coins c on c.sym = p.sym
+             where c.price > 0
+             order by p.id
+  loop
+    begin
+      px := ps.price;
+      if (ps.side = 'long' and px <= ps.liq) or (ps.side = 'short' and px >= ps.liq) then
+        perform 1 from public.users where id = ps.user_id for update;
+        perform public._cx_close(ps.id, 100, px, 'liq'); n := n + 1;
+      elsif ps.close_at is not null and ps.price_ts > ps.close_at then
+        perform 1 from public.users where id = ps.user_id for update;
+        perform public._cx_close(ps.id, ps.close_pct, px, 'close'); n := n + 1;
+      elsif ps.tp is not null and ((ps.side = 'long' and px >= ps.tp) or (ps.side = 'short' and px <= ps.tp)) then
+        perform 1 from public.users where id = ps.user_id for update;
+        perform public._cx_close(ps.id, 100, px, 'tp'); n := n + 1;
+      elsif ps.sl is not null and ((ps.side = 'long' and px <= ps.sl) or (ps.side = 'short' and px >= ps.sl)) then
+        perform 1 from public.users where id = ps.user_id for update;
+        perform public._cx_close(ps.id, 100, px, 'sl'); n := n + 1;
+      end if;
+    exception when others then
+      raise notice 'cx pos %: %', ps.id, sqlerrm;
+    end;
+  end loop;
+  return n;
+end $$;
+
+-- Background: har 5 second (pg_cron). Do tick ek saath na chalein.
+create or replace function public.cx_tick() returns text
+language plpgsql security definer
+set search_path = public, extensions, pg_temp as $$
+declare r text;
+begin
+  if not pg_try_advisory_xact_lock(4207734) then return 'busy'; end if;
+  r := public._cx_fetch();
+  perform public._cx_process();
+  return r;
+end $$;
+
+-- ---------------------------------------------------------------- CRYPTO API (browser se)
+create or replace function public.cx(p_action text, p_init text, p_data jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql security definer
+set search_path = public, extensions, pg_temp as $$
+declare
+  a jsonb; uid text; u public.users%rowtype; c public.cx_coins%rowtype; p public.cx_positions%rowtype;
+  o public.cx_orders%rowtype; s text; sd text; ot text; tr numeric; mg numeric; lev int;
+  ref numeric; fee bigint; vtp numeric; vsl numeric; oid bigint; pct int; res jsonb := '{}'::jsonb; last_ts timestamptz;
+  lite boolean := false;
+begin
+  a := public._verify_init(p_init);
+  if a is null then return jsonb_build_object('error', 'unauthorized'); end if;
+  uid := a->>'id';
+  p_data := coalesce(p_data, '{}'::jsonb);
+
+  -- cron na chal raha ho to: price 12s se purana ho tab yahin se update
+  if p_action = 'state' then
+    select max(price_ts) into last_ts from public.cx_coins;
+    if last_ts is null or last_ts < now() - interval '12 seconds' then
+      begin perform public.cx_tick(); exception when others then null; end;
+    end if;
+  end if;
+
+  if p_action in ('place', 'cancel', 'close', 'tpsl') then
+    select * into u from public.users where id = uid for update;
+  else
+    select * into u from public.users where id = uid;
+  end if;
+  if not found then return jsonb_build_object('error', 'not_registered'); end if;
+  if u.banned then return jsonb_build_object('error', 'banned'); end if;
+  if p_action in ('place', 'cancel', 'close', 'tpsl') then
+    if u.cx_last is not null and now() - u.cx_last < interval '1 second' then
+      return jsonb_build_object('error', 'too_fast');
+    end if;
+    update public.users set cx_last = now(), last_active = now() where id = uid;
+  end if;
+
+  if p_action = 'state' then
+    lite := coalesce(p_data->>'lite', '') = '1';     -- auto-refresh: coins + history nahi (data bachao)
+
+  elsif p_action = 'place' then
+    s := upper(coalesce(p_data->>'sym', ''));
+    select * into c from public.cx_coins where sym = s and active;
+    if not found then return jsonb_build_object('error', 'bad_coin'); end if;
+    if c.price is null or c.price_ts < now() - interval '90 seconds' then
+      return jsonb_build_object('error', 'price_stale');
+    end if;
+    sd := p_data->>'side';
+    ot := coalesce(p_data->>'type', 'market');
+    mg := floor(public._cx_num(p_data->>'margin'));
+    lev := floor(public._cx_num(p_data->>'lev'))::int;
+    if sd not in ('long', 'short') or ot not in ('market', 'limit', 'stop') or mg is null or lev is null then
+      return jsonb_build_object('error', 'bad_input');
+    end if;
+    if mg < 100 then return jsonb_build_object('error', 'min_margin'); end if;
+    if lev < 1 or lev > 100 then return jsonb_build_object('error', 'bad_lev'); end if;
+    tr := null;
+    if ot <> 'market' then
+      tr := public._cx_num(p_data->>'price');
+      if tr is null or tr <= 0 then return jsonb_build_object('error', 'bad_price'); end if;
+      -- jo order turant lag jaye wo Market hona chahiye
+      if ot = 'limit' and ((sd = 'long' and tr >= c.price) or (sd = 'short' and tr <= c.price)) then
+        return jsonb_build_object('error', 'limit_side', 'price', c.price);
+      end if;
+      if ot = 'stop' and ((sd = 'long' and tr <= c.price) or (sd = 'short' and tr >= c.price)) then
+        return jsonb_build_object('error', 'stop_side', 'price', c.price);
+      end if;
+    end if;
+    ref := coalesce(tr, c.price);
+    vtp := public._cx_num(p_data->>'tp');
+    vsl := public._cx_num(p_data->>'sl');
+    if (vtp is not null and (vtp <= 0 or (sd = 'long' and vtp <= ref) or (sd = 'short' and vtp >= ref)))
+       or (vsl is not null and (vsl <= 0 or (sd = 'long' and vsl >= ref) or (sd = 'short' and vsl <= ref))) then
+      return jsonb_build_object('error', 'bad_tpsl', 'price', ref);
+    end if;
+    if exists (select 1 from public.cx_positions where user_id = uid and sym = s and side <> sd) then
+      return jsonb_build_object('error', 'opposite_open');
+    end if;
+    if (select count(*) from public.cx_orders where user_id = uid and status = 'open') >= 20 then
+      return jsonb_build_object('error', 'too_many_orders');
+    end if;
+    fee := ceil(mg * lev * 0.0005)::bigint;
+    if u.tokens < mg + fee then return jsonb_build_object('error', 'insufficient'); end if;
+    update public.users set tokens = tokens - mg::bigint - fee where id = uid;
+    insert into public.cx_orders(user_id, sym, side, otype, trig, margin, lev, fee, tp, sl)
+    values (uid, s, sd, ot, tr, mg::bigint, lev, fee, vtp, vsl) returning id into oid;
+    res := jsonb_build_object('order', oid);
+
+  elsif p_action = 'cancel' then
+    select * into o from public.cx_orders
+     where id = public._cx_num(p_data->>'id')::bigint and user_id = uid for update;
+    if not found or o.status <> 'open' then return jsonb_build_object('error', 'not_found'); end if;
+    update public.cx_orders set status = 'cancelled', done_at = now() where id = o.id;
+    update public.users set tokens = tokens + o.margin + o.fee where id = uid;
+
+  elsif p_action = 'close' then
+    pct := coalesce(floor(public._cx_num(p_data->>'pct'))::int, 100);
+    if pct < 1 or pct > 100 then return jsonb_build_object('error', 'bad_input'); end if;
+    update public.cx_positions set close_pct = pct, close_at = clock_timestamp()
+     where id = public._cx_num(p_data->>'id')::bigint and user_id = uid;
+    if not found then return jsonb_build_object('error', 'not_found'); end if;
+
+  elsif p_action = 'tpsl' then
+    select * into p from public.cx_positions
+     where id = public._cx_num(p_data->>'id')::bigint and user_id = uid for update;
+    if not found then return jsonb_build_object('error', 'not_found'); end if;
+    select * into c from public.cx_coins where sym = p.sym;
+    vtp := public._cx_num(p_data->>'tp');
+    vsl := public._cx_num(p_data->>'sl');
+    if (vtp is not null and (vtp <= 0 or (p.side = 'long' and vtp <= c.price) or (p.side = 'short' and vtp >= c.price)))
+       or (vsl is not null and (vsl <= 0 or (p.side = 'long' and vsl >= c.price) or (p.side = 'short' and vsl <= c.price))) then
+      return jsonb_build_object('error', 'bad_tpsl', 'price', c.price);
+    end if;
+    update public.cx_positions set tp = vtp, sl = vsl, updated_at = now() where id = p.id;
+
+  else
+    return jsonb_build_object('error', 'unknown_action');
+  end if;
+
+  return jsonb_build_object('ok', true, 'fee', 0.0005,
+    'points', (select tokens from public.users where id = uid),
+    'now', public._ms(),
+    'hid', (select max(id) from public.cx_hist where user_id = uid),
+    'coins', case when lite then null else coalesce((select jsonb_agg(jsonb_build_object('s', x.sym, 'n', x.name, 'p', x.price, 'o', x.open24,
+                               't', (extract(epoch from x.price_ts) * 1000)::bigint) order by x.ord)
+                         from public.cx_coins x where x.active), '[]'::jsonb) end,
+    'pos', coalesce((select jsonb_agg(jsonb_build_object('id', q.id, 's', q.sym, 'side', q.side, 'qty', q.qty,
+                             'entry', q.entry, 'margin', q.margin, 'liq', q.liq, 'tp', q.tp, 'sl', q.sl,
+                             'closing', q.close_at is not null, 'pct', q.close_pct,
+                             'lev', round(q.qty * q.entry / q.margin, 1)) order by q.id)
+                       from public.cx_positions q where q.user_id = uid), '[]'::jsonb),
+    'orders', coalesce((select jsonb_agg(jsonb_build_object('id', q.id, 's', q.sym, 'side', q.side, 'type', q.otype,
+                                'trig', q.trig, 'margin', q.margin, 'lev', q.lev, 'tp', q.tp, 'sl', q.sl,
+                                't', (extract(epoch from q.created_at) * 1000)::bigint) order by q.id desc)
+                          from public.cx_orders q where q.user_id = uid and q.status = 'open'), '[]'::jsonb),
+    'hist', case when lite then null else coalesce((select jsonb_agg(jsonb_build_object('id', q.id, 's', q.sym, 'side', q.side, 'entry', q.entry, 'exit', q.exit,
+                              'margin', q.margin, 'payout', q.payout, 'reason', q.reason,
+                              't', (extract(epoch from q.ts) * 1000)::bigint) order by q.id desc)
+                        from (select * from public.cx_hist where user_id = uid order by id desc limit 30) q), '[]'::jsonb) end,
+    'rej', coalesce((select jsonb_agg(jsonb_build_object('id', q.id, 's', q.sym, 'note', q.note))
+                       from public.cx_orders q where q.user_id = uid and q.status = 'rejected'
+                        and q.done_at > now() - interval '2 minutes'), '[]'::jsonb)
+  ) || res;
+exception when others then
+  return jsonb_build_object('error', 'db', 'msg', sqlerrm);
+end $$;
+revoke all on function public.cx(text, text, jsonb) from public;
+grant execute on function public.cx(text, text, jsonb) to anon, authenticated;
+revoke all on function public.cx_tick() from public, anon, authenticated;
+
+-- =====================================================================
+-- G-POINTS TRANSFER (user se user, code se) — koi limit nahi
+-- Har user ka code: GZ + 6 akshar. Dono users ka row id ke order me lock (deadlock nahi)
+-- =====================================================================
+alter table public.users add column if not exists xfer_code text;
+create unique index if not exists users_xfer_code on public.users(xfer_code) where xfer_code is not null;
+
+create table if not exists public.xfers (
+  id      bigserial primary key,
+  from_id text not null references public.users(id) on delete cascade,
+  to_id   text not null references public.users(id) on delete cascade,
+  amount  bigint not null check (amount > 0),
+  ts      timestamptz not null default now()
+);
+create index if not exists xfers_from on public.xfers(from_id, id desc);
+create index if not exists xfers_to   on public.xfers(to_id, id desc);
+alter table public.xfers enable row level security;
+revoke all on public.xfers from anon, authenticated;
+
+create or replace function public._xfer_code(p_uid text) returns text
+language plpgsql as $$
+declare c text; al text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; i int; tries int := 0;
+begin
+  select xfer_code into c from public.users where id = p_uid;
+  if c is not null then return c; end if;
+  loop
+    c := 'GZ';
+    for i in 1..6 loop c := c || substr(al, 1 + floor(random() * length(al))::int, 1); end loop;
+    begin
+      update public.users set xfer_code = c where id = p_uid and xfer_code is null;
+      select xfer_code into c from public.users where id = p_uid;
+      return c;
+    exception when unique_violation then
+      tries := tries + 1;
+      if tries > 20 then raise; end if;
+    end;
+  end loop;
+end $$;
+
+create or replace function public.xfer(p_action text, p_init text, p_data jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql security definer
+set search_path = public, extensions, pg_temp as $$
+declare a jsonb; uid text; u public.users%rowtype; r public.users%rowtype; code text; amt numeric; res jsonb := '{}'::jsonb;
+begin
+  a := public._verify_init(p_init);
+  if a is null then return jsonb_build_object('error', 'unauthorized'); end if;
+  uid := a->>'id';
+  p_data := coalesce(p_data, '{}'::jsonb);
+  select * into u from public.users where id = uid;
+  if not found then return jsonb_build_object('error', 'not_registered'); end if;
+  if u.banned then return jsonb_build_object('error', 'banned'); end if;
+
+  if p_action in ('lookup', 'send') then
+    code := upper(regexp_replace(coalesce(p_data->>'code', ''), '[^A-Za-z0-9]', '', 'g'));
+    select * into r from public.users where xfer_code = code;
+    if not found or code = '' then return jsonb_build_object('error', 'no_user'); end if;
+    if r.id = uid then return jsonb_build_object('error', 'self'); end if;
+    if r.banned then return jsonb_build_object('error', 'no_user'); end if;
+  end if;
+
+  if p_action = 'me' then
+    null;
+
+  elsif p_action = 'lookup' then
+    res := jsonb_build_object('to', coalesce(r.name, 'Player'), 'code', r.xfer_code);
+
+  elsif p_action = 'send' then
+    amt := public._cx_num(p_data->>'amount');
+    if amt is null or amt <> floor(amt) or amt < 1 then return jsonb_build_object('error', 'bad_amount'); end if;
+    -- dono rows id ke order me lock
+    perform 1 from public.users where id in (uid, r.id) order by id for update;
+    select * into u from public.users where id = uid;
+    if exists (select 1 from public.xfers where from_id = uid and ts > now() - interval '1 second') then
+      return jsonb_build_object('error', 'too_fast');
+    end if;
+    if u.tokens < amt then return jsonb_build_object('error', 'insufficient'); end if;
+    update public.users set tokens = tokens - amt::bigint, last_active = now() where id = uid;
+    update public.users set tokens = tokens + amt::bigint where id = r.id;
+    insert into public.xfers(from_id, to_id, amount) values (uid, r.id, amt::bigint);
+    res := jsonb_build_object('sent', amt::bigint, 'to', coalesce(r.name, 'Player'));
+
+  else
+    return jsonb_build_object('error', 'unknown_action');
+  end if;
+
+  return jsonb_build_object('ok', true,
+    'code', public._xfer_code(uid),
+    'points', (select tokens from public.users where id = uid),
+    'hist', coalesce((select jsonb_agg(jsonb_build_object('id', q.id, 'dir', q.dir, 'name', q.name, 'amount', q.amount,
+                               't', (extract(epoch from q.ts) * 1000)::bigint) order by q.id desc)
+                        from (select x.id, case when x.from_id = uid then 'out' else 'in' end as dir,
+                                     coalesce(o.name, 'Player') as name, x.amount, x.ts
+                                from public.xfers x
+                                join public.users o on o.id = case when x.from_id = uid then x.to_id else x.from_id end
+                               where x.from_id = uid or x.to_id = uid
+                               order by x.id desc limit 30) q), '[]'::jsonb)
+  ) || res;
+exception when others then
+  return jsonb_build_object('error', 'db', 'msg', sqlerrm);
+end $$;
+revoke all on function public.xfer(text, text, jsonb) from public;
+grant execute on function public.xfer(text, text, jsonb) to anon, authenticated;
+
 -- ---------------------------------------------------------------- BACKGROUND JOB (har minute)
 -- Liquidation check, market stats, leaderboard aur purana data saaf — users ki requests se alag.
 create or replace function public.kx_tick() returns void
@@ -6025,6 +7344,15 @@ begin
   execute $q$select cron.unschedule(jobid) from cron.job where jobname = 'genz_kx_tick'$q$;
   execute $q$select cron.schedule('genz_kx_tick', '* * * * *', 'select public.kx_tick()')$q$;
   raise notice 'pg_cron job genz_kx_tick: har minute ✅';
+  -- Crypto futures: har 5 second price + orders (purana pg_cron ho to har minute)
+  execute $q$select cron.unschedule(jobid) from cron.job where jobname = 'genz_cx_tick'$q$;
+  begin
+    execute $q$select cron.schedule('genz_cx_tick', '5 seconds', 'select public.cx_tick()')$q$;
+    raise notice 'pg_cron job genz_cx_tick: har 5 second ✅';
+  exception when others then
+    execute $q$select cron.schedule('genz_cx_tick', '* * * * *', 'select public.cx_tick()')$q$;
+    raise notice 'pg_cron job genz_cx_tick: har minute (5 second wala support nahi)';
+  end;
 exception when others then
   raise notice 'pg_cron job set nahi hua: %', sqlerrm;
 end $$;
@@ -6046,10 +7374,12 @@ begin
       and p.proname in ('_urldecode','_verify_init','_reset_ts','_cpt','_ms','_state','_tg_member',
                         '_kx_bucket','_kx_candle_trg','_kx_cleanup','_kx_wallet_add','_kx_mark',
                         '_kx_close_px','_kx_liq','_kx_pos_json','_kx_logo','_kx_stats','_admin_ids',
-                        '_lb_refresh','kx_tick','game','kx','leaderboard')
+                        '_lb_refresh','kx_tick','game','kx','leaderboard',
+                        '_cx_num','_cx_liq','_cx_url','_cx_apply','_cx_fetch','_cx_fill','_cx_close','_cx_process','cx_tick','cx',
+                        '_xfer_code','xfer')
   loop
     execute format('alter function %s set search_path = public, extensions, pg_temp', r.sig);
-    if r.proname not in ('game', 'kx', 'leaderboard') then
+    if r.proname not in ('game', 'kx', 'leaderboard', 'cx', 'xfer') then
       execute format('revoke all on function %s from public, anon, authenticated', r.sig);
     end if;
   end loop;
