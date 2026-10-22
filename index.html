@@ -2320,7 +2320,8 @@
                 </div>
             </div>
             <div class="kx-card" style="padding:10px;">
-                <canvas id="kxChart"></canvas>
+                <div id="kxLw" style="width:100%;height:300px;"></div>
+                <canvas id="kxChart" style="display:none;"></canvas>
                 <div class="chips" id="kdIv" style="margin-top:8px;"></div>
             </div>
             <div class="kx-card" style="padding:10px 14px;">
@@ -4279,7 +4280,101 @@
             document.getElementById('kdIv').innerHTML = KX_IVS.map(([l, v]) =>
                 `<button class="chip ${v === kxIv ? 'on' : ''}" onclick="kxIv=${v};renderIvChips();drawChart();">${l}</button>`).join('');
         }
+        // ---- TradingView Lightweight Charts (TradingView ka open-source chart, hamare Keys ke data se) ----
+        const LWC_URL = 'https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+        let lwState = 'idle', lwChart = null, lwCandle = null, lwVol = null, lwLines = [], lwIv = null, lwKey = null, lwLastT = 0;
+        function lwLoad() {
+            if (lwState !== 'idle') return;
+            lwState = 'loading';
+            const s = document.createElement('script');
+            s.src = LWC_URL; s.async = true;
+            s.onload = () => { lwState = window.LightweightCharts ? 'ready' : 'failed'; drawChart(); };
+            s.onerror = () => { lwState = 'failed'; drawChart(); };
+            document.head.appendChild(s);
+        }
+        // candles (sec me time, phone ke local time zone me dikhane ke liye shift)
+        function kxBuildCandles() {
+            const civ = kxIv === 3600000 ? '1h' : kxIv === 86400000 ? '1d' : null;
+            let cds;
+            if (civ && kxCandles[civ].size) {
+                cds = [...kxCandles[civ].values()].map(d => ({ t: d.t, o: +d.o, h: +d.h, l: +d.l, c: +d.c, v: +(d.v || 0) }))
+                    .sort((a, b) => a.t - b.t);
+            } else {
+                const map = new Map();
+                kxTrades.forEach(t => {
+                    const b = Math.floor(t.t / kxIv) * kxIv, p0 = Number(t.p0), p1 = Number(t.p1), v = Number(t.pts) || 0;
+                    let d = map.get(b);
+                    if (!d) { d = { t: b, o: p0, h: Math.max(p0, p1), l: Math.min(p0, p1), c: p1, v: v }; map.set(b, d); }
+                    else { d.h = Math.max(d.h, p0, p1); d.l = Math.min(d.l, p0, p1); d.c = p1; d.v += v; }
+                });
+                cds = [...map.values()].sort((a, b) => a.t - b.t);
+            }
+            return cds;
+        }
+        function lwDraw() {
+            const box = document.getElementById('kxLw');
+            const L = window.LightweightCharts;
+            const off = -new Date().getTimezoneOffset() * 60;            // UTC → local time labels
+            if (!lwChart) {
+                box.innerHTML = '';
+                lwChart = L.createChart(box, {
+                    autoSize: true,
+                    layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#94a3b8', fontFamily: 'Outfit, sans-serif', fontSize: 11 },
+                    grid: { vertLines: { color: 'rgba(255,255,255,0.04)' }, horzLines: { color: 'rgba(255,255,255,0.06)' } },
+                    rightPriceScale: { borderColor: 'rgba(255,255,255,0.1)', scaleMargins: { top: 0.1, bottom: 0.25 } },
+                    timeScale: { borderColor: 'rgba(255,255,255,0.1)', timeVisible: true, secondsVisible: false, rightOffset: 4, barSpacing: 8 },
+                    crosshair: { mode: L.CrosshairMode.Normal },
+                    localization: { priceFormatter: p => fmtP(p) }
+                });
+                lwCandle = lwChart.addCandlestickSeries({
+                    upColor: '#4ade80', downColor: '#f87171', borderVisible: false, wickUpColor: '#4ade80', wickDownColor: '#f87171',
+                    priceFormat: { type: 'custom', formatter: p => fmtP(p), minMove: 0.000001 }
+                });
+                lwVol = lwChart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: 'vol', lastValueVisible: false, priceLineVisible: false });
+                lwChart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+                lwIv = null; lwKey = null;
+            }
+            let cds = kxBuildCandles();
+            const lp = Number(kxCur.price);
+            if (!cds.length) cds = [{ t: Math.floor(Date.now() / kxIv) * kxIv, o: lp, h: lp, l: lp, c: lp, v: 0 }];
+            const bars = cds.map(d => ({ time: Math.floor(d.t / 1000) + off, open: d.o, high: d.h, low: d.l, close: d.c }));
+            const vols = cds.map(d => ({ time: Math.floor(d.t / 1000) + off, value: d.v, color: d.c >= d.o ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.35)' }));
+            if (lwIv !== kxIv || lwKey !== kxCur.id) {
+                lwCandle.setData(bars); lwVol.setData(vols);
+                lwChart.timeScale().fitContent();
+                lwIv = kxIv; lwKey = kxCur.id;
+            } else {
+                // sirf naye / aakhri candles update (zoom aur scroll waise hi rahe)
+                bars.forEach((b, i) => { if (b.time >= lwLastT) { lwCandle.update(b); lwVol.update(vols[i]); } });
+            }
+            lwLastT = bars[bars.length - 1].time;
+            // Mark price + apni position ki Entry / Liquidation lines
+            lwLines.forEach(l => { try { lwCandle.removePriceLine(l); } catch (e) { } });
+            lwLines = [];
+            const line = (price, color, title, style) => { if (price > 0) lwLines.push(lwCandle.createPriceLine({ price: price, color: color, lineWidth: 1, lineStyle: style, axisLabelVisible: true, title: title })); };
+            if (kxMark > 0 && Math.abs(kxMark - lp) / lp > 0.0005) line(kxMark, '#f5c842', 'Mark', L.LineStyle.Dotted);
+            (kxPositions || []).forEach(p => {
+                line(Number(p.entry), '#38bdf8', (p.side === 'long' ? 'Long' : 'Short') + ' entry', L.LineStyle.Dashed);
+                line(Number(p.liq), '#fb923c', 'Liq.', L.LineStyle.Dashed);
+            });
+        }
         function drawChart() {
+            if (!kxCur) return;
+            if (lwState === 'idle') lwLoad();
+            if (lwState === 'ready') {
+                try {
+                    document.getElementById('kxLw').style.display = '';
+                    document.getElementById('kxChart').style.display = 'none';
+                    return lwDraw();
+                } catch (e) { lwState = 'failed'; try { lwChart && lwChart.remove(); } catch (e2) { } lwChart = null; }
+            }
+            if (lwState === 'loading') return;
+            // purana chart (library load na ho to)
+            document.getElementById('kxLw').style.display = 'none';
+            document.getElementById('kxChart').style.display = 'block';
+            drawChartCanvas();
+        }
+        function drawChartCanvas() {
             const cv = document.getElementById('kxChart');
             if (!cv || !kxCur) return;
             const dpr = window.devicePixelRatio || 1, W = cv.clientWidth || 320, H = cv.clientHeight || 210;
@@ -4337,7 +4432,7 @@
                 if (cds.length > 1 && cw - x0 > 90) c.fillText(tf(cds[0].t), x0, H - 3);   // labels overlap na ho
             }
         }
-        window.addEventListener('resize', () => { if (window.kxCurOpen()) drawChart(); });
+        window.addEventListener('resize', () => { if (window.kxCurOpen() && lwState !== 'ready') drawChart(); });
 
         // ---------- WALLET (Telegram-linked Ed25519 keypair) ----------
         const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -4763,8 +4858,19 @@
             } finally { xfBusy = false; }
         }
         window.xfCopy = xfCopy; window.xfSetAmt = xfSetAmt; window.xfHideConfirm = xfHideConfirm; window.xfCheck = xfCheck; window.xfSend = xfSend;
-        // game khulte hi (thodi der baad): kisi ne bheja ho to bata do
-        if (IN_TELEGRAM) setTimeout(() => { xfLoad(); }, 4000);
+        // game khulte hi + har 20 sec (app khula ho tab): kisi ne bheja ho to turant dikhao
+        async function xfChk() {
+            if (document.visibilityState !== 'visible' || xfBusy) return;
+            let seen = 0; try { seen = +localStorage.getItem('gz_xf_seen') || 0; } catch (e) { }
+            const j = await xfCall('chk');                      // points bhi update (HUD me naya balance)
+            if (j.error) return;
+            if (Number(j.lastIn) > seen) xfLoad();               // naya transfer: toast + history
+        }
+        if (IN_TELEGRAM) {
+            setTimeout(() => { xfLoad(); }, 4000);
+            setInterval(xfChk, 20000);
+            document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(xfChk, 800); });
+        }
     </script>
 
 
@@ -5806,10 +5912,11 @@ begin
       -- candles: pehli baar last 48 (1H + 1D), refresh pe sirf current wali
       'candles', coalesce((select jsonb_agg(jsonb_build_object('iv', cd.iv,
             't', (extract(epoch from cd.bucket) * 1000)::bigint,
-            'o', round(cd.o, 6), 'h', round(cd.h, 6), 'l', round(cd.l, 6), 'c', round(cd.c, 6)) order by cd.iv, cd.bucket)
+            'o', round(cd.o, 6), 'h', round(cd.h, 6), 'l', round(cd.l, 6), 'c', round(cd.c, 6), 'v', round(coalesce(cd.vol, 0))) order by cd.iv, cd.bucket)
           from (select * from (select x.*, row_number() over (partition by x.iv order by x.bucket desc) rn
                                  from public.kx_candles x where x.key_id = kid) z
-                 where z.rn <= case when coalesce(nullif(p_data->>'since', '')::bigint, 0) > 0 then 2 else 48 end) cd),
+                 where z.rn <= case when coalesce(nullif(p_data->>'since', '')::bigint, 0) > 0 then 2
+                                    when z.iv = '1h' then 168 else 90 end) cd),
           '[]'::jsonb));
 
   -- ------------------------------------------------------------ futures (vAMM)
@@ -6656,7 +6763,12 @@ begin
     if r.banned then return jsonb_build_object('error', 'no_user'); end if;
   end if;
 
-  if p_action = 'me' then
+  if p_action = 'chk' then
+    -- halka check (har ~20 sec): naya mila transfer? + abhi ke points
+    return jsonb_build_object('ok', true, 'points', u.tokens,
+      'lastIn', coalesce((select max(id) from public.xfers where to_id = uid), 0));
+
+  elsif p_action = 'me' then
     null;
 
   elsif p_action = 'lookup' then
