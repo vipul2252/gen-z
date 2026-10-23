@@ -4161,7 +4161,7 @@
             loadKey();
         }
         function closeKey() {
-            kxCur = null;
+            kxCur = null; lwKey = null;
             document.getElementById('mkDetailView').style.display = 'none';
             document.getElementById('mkListView').style.display = 'flex';
             loadMarket(true);
@@ -4317,7 +4317,8 @@
         const KX_IVS = [['1m', 60000], ['5m', 300000], ['1H', 3600000], ['1D', 86400000]];
         function renderIvChips() {
             document.getElementById('kdIv').innerHTML = KX_IVS.map(([l, v]) =>
-                `<button class="chip ${v === kxIv ? 'on' : ''}" onclick="kxIv=${v};renderIvChips();drawChart();">${l}</button>`).join('');
+                `<button class="chip ${v === kxIv ? 'on' : ''}" onclick="kxIv=${v};renderIvChips();drawChart();">${l}</button>`).join('') +
+                `<button class="chip" style="margin-left:auto;" onclick="lwReset()" title="Reset chart">⟲ Reset</button>`;
         }
         // ---- TradingView Lightweight Charts (TradingView ka open-source chart, hamare Keys ke data se) ----
         const LWC_URL = 'https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
@@ -4363,7 +4364,10 @@
                     rightPriceScale: { borderColor: 'rgba(255,255,255,0.1)', scaleMargins: { top: 0.1, bottom: 0.25 } },
                     timeScale: { borderColor: 'rgba(255,255,255,0.1)', timeVisible: true, secondsVisible: false, rightOffset: 4, barSpacing: 8 },
                     crosshair: { mode: L.CrosshairMode.Normal },
-                    localization: { priceFormatter: p => fmtP(p) }
+                    localization: { priceFormatter: p => fmtP(p) },
+                    // price wali side kheench ke scale bigad na jaye (time zoom/scroll chalta rahe)
+                    handleScale: { axisPressedMouseMove: { time: true, price: false }, mouseWheel: true, pinch: true, axisDoubleClickReset: true },
+                    handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false }
                 });
                 lwCandle = lwChart.addCandlestickSeries({
                     upColor: '#4ade80', downColor: '#f87171', borderVisible: false, wickUpColor: '#4ade80', wickDownColor: '#f87171',
@@ -4380,7 +4384,7 @@
             const vols = cds.map(d => ({ time: Math.floor(d.t / 1000) + off, value: d.v, color: d.c >= d.o ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.35)' }));
             if (lwIv !== kxIv || lwKey !== kxCur.id) {
                 lwCandle.setData(bars); lwVol.setData(vols);
-                lwChart.timeScale().fitContent();
+                lwReset();
                 lwIv = kxIv; lwKey = kxCur.id;
             } else {
                 // sirf naye / aakhri candles update (zoom aur scroll waise hi rahe)
@@ -4397,6 +4401,16 @@
                 line(Number(p.liq), '#fb923c', 'Liq.', L.LineStyle.Dashed);
             });
         }
+        // chart ko seedha karo: price auto-scale + saari candles screen me
+        function lwReset() {
+            if (!lwChart) return;
+            try {
+                lwChart.priceScale('right').applyOptions({ autoScale: true });
+                lwChart.timeScale().resetTimeScale();
+                lwChart.timeScale().fitContent();
+            } catch (e) { }
+        }
+        window.lwReset = lwReset;
         function drawChart() {
             if (!kxCur) return;
             if (lwState === 'idle') lwLoad();
