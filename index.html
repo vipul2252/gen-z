@@ -42,6 +42,8 @@
     <script src="https://libtl.com/sdk.js" data-zone="12007470" data-sdk="show_12007470" async></script> -->
     <!-- TADS SDK (main ad network: Fullscreen rewarded, gambling categories band) -->
     <script src="https://w.tads.me/widget.js" async></script>
+    <!-- Adsun SDK (backup: TADS me ad na ho tab) -->
+    <script src="https://api.adsun.io/sdk.js" async></script>
     <!-- Ed25519 keypair (wallet) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tweetnacl/1.0.3/nacl-fast.min.js"></script>
 
@@ -2598,10 +2600,11 @@
         const MASTER_ADMIN_ID = 5678080775;             // apna Telegram numeric user ID
         // >>> LAUNCH SE PEHLE ZAROOR BADLO <<<
         const BOT_USERNAME = 'Genz20_bot';      // bina @ ke, e.g. 'MyGameBot'
+        const ADSUN_BLOCK_ID = '50019';               // Adsun Reward block (backup). Khali = band
         const TADS_TGB_ID = '';                       // TADS TGB band. Wapas chalu: '12716'
         const TADS_WIDGET_ID = '12626';               // TADS → Widgets → #ID (Fullscreen). Khali = TADS band
         const TADS_DEBUG = false;                      // sabke liye test ads (live par false)
-        const TADS_DEBUG_ADMIN = false;                // true = sirf admin ko asli ad ke saath debug alert (wajah dikhe)
+        const TADS_DEBUG_ADMIN = true;                 // true = sirf admin ko asli ad ke saath debug alert (wajah dikhe)
         const MONETAG_ZONE_ID = '';                    // BAND (casino/adult ads). Wapas: '12007470' + <head> wali script chalu
                                                        // (zone badle to <head> wali libtl.com script ki dono values bhi badlo)
         const BOT_APP_SHORTNAME = 'play';                  // agar BotFather me Mini App ka short name hai to likho, warna khali chhodo
@@ -3080,7 +3083,7 @@
         // - Reward + limit SERVER deta/check karta hai (ad_start → ad poora → ad_reward)
         // - Pehli baar ek consent message
         // ==========================================
-        const ADS_ON = !!(TADS_WIDGET_ID || MONETAG_ZONE_ID);
+        const ADS_ON = !!(TADS_WIDGET_ID || MONETAG_ZONE_ID || ADSUN_BLOCK_ID);
         let adBusy = false, _adTimer = null;
         // ---- TADS fullscreen rewarded ----
         // showAd() button click se hi; reward sirf onShowReward (poora dekha) par. Click par kuch nahi.
@@ -3259,6 +3262,36 @@
                 to = setTimeout(() => { if (!shownAt) { _tadsLastErr = _tadsLastErr || 'TGB: 6s me ad nahi aaya'; finish('noad'); } }, 6000);
             });
         }
+        // ---- Adsun (Reward block): show() → then = poora dekha, catch = skip / ad nahi / error ----
+        let _adsunCtl = null;
+        function adsunCtl() {
+            if (_adsunCtl) return _adsunCtl;
+            if (!ADSUN_BLOCK_ID || !window.Adsun || typeof window.Adsun.init !== 'function') return null;
+            try { _adsunCtl = window.Adsun.init({ blockId: ADSUN_BLOCK_ID }); } catch (e) { _adsunCtl = null; }
+            return _adsunCtl;
+        }
+        function adsunShow() {
+            return new Promise(resolve => {
+                const c = adsunCtl();
+                if (!c || typeof c.show !== 'function') { _tadsLastErr += ' | Adsun: ' + (window.Adsun ? 'init fail' : 'script load nahi hua'); return resolve('noad'); }
+                const t0 = Date.now();
+                let done = false;
+                const fin = r => { if (!done) { done = true; clearTimeout(to); resolve(r); } };
+                const to = setTimeout(() => fin('skipped'), 180000);
+                try {
+                    Promise.resolve(c.show())
+                        .then(() => fin('watched'))
+                        .catch(res => {
+                            let why = '';
+                            try { why = typeof res === 'string' ? res : JSON.stringify(res); } catch (e) { }
+                            _tadsLastErr += ' | Adsun: ' + (why || 'catch').slice(0, 120);
+                            // jaldi (3 sec se pehle) fail = ad hi nahi mila; warna user ne beech me band kiya
+                            const noAd = /no.?ad|not.?found|empty|no_fill|nofill/i.test(why) || (Date.now() - t0 < 3000 && !/skip|clos/i.test(why));
+                            fin(noAd ? 'noad' : 'skipped');
+                        });
+                } catch (e) { _tadsLastErr += ' | Adsun: ' + (e && e.message); fin('noad'); }
+            });
+        }
         function monetagFn() {
             if (!MONETAG_ZONE_ID) return null;
             const f = window['show_' + MONETAG_ZONE_ID];
@@ -3323,7 +3356,7 @@
             if (adBusy) return;
             if (!IN_TELEGRAM) return apiErr({ error: 'not_telegram' });
             const mtShow = monetagFn();
-            if (!tadsController() && !mtShow && !(TADS_TGB_ID && window.tads)) {
+            if (!tadsController() && !mtShow && !(TADS_TGB_ID && window.tads) && !adsunCtl()) {
                 if (isTadsDebugAdmin()) return showToast('🛠 TADS (admin): ' + (window.tads ? 'tads.init fail' : 'TADS script load nahi hua (w.tads.me)'), '#fbbf24');
                 return showToast('⚠️ Ads are not available right now, try again later', '#f87171');
             }
@@ -3344,6 +3377,12 @@
                     _tadsLastErr = 'Fullscreen: ' + (fsErr || tr) + ' | TGB: ' + (_tadsLastErr || g);
                     if (g === 'watched') watched = true; else if (g === 'skipped') skipped = true;
                 }
+                // TADS me ad nahi → Adsun
+                if (!watched && !skipped && ADSUN_BLOCK_ID) {
+                    if (!/^Fullscreen:/.test(_tadsLastErr)) _tadsLastErr = 'Fullscreen: ' + (_tadsLastErr || tr);
+                    const a = await adsunShow();
+                    if (a === 'watched') watched = true; else if (a === 'skipped') skipped = true;
+                }
                 if (!watched && !skipped && mtShow) {
                     try {
                         const res = await mtShow({ ymid: String((tgUser && tgUser.id) || '') + '-' + Date.now() });
@@ -3354,7 +3393,7 @@
                     } catch (e) { }
                 }
                 if (!watched) {
-                    if (skipped && isTadsDebugAdmin() && _tadsDbg) { adminDebugAlert('🛠 TADS (admin): ' + _tadsDbg); return; }
+                    if (skipped && isTadsDebugAdmin() && (_tadsDbg || _tadsLastErr)) { adminDebugAlert('🛠 Ads (admin): skipped · ' + (_tadsLastErr || _tadsDbg)); return; }
                     if (!skipped && isTadsDebugAdmin() && _tadsLastErr) {          // sirf admin ko asli wajah
                         adminDebugAlert('🛠 TADS (admin): ' + _tadsLastErr);
                         return;
