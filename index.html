@@ -2643,6 +2643,7 @@
         const TADS_DEBUG = false;                      // sabke liye test ads (live par false)
         const TADS_DEBUG_ADMIN = true;                 // true = sirf admin ko asli ad ke saath debug alert (wajah dikhe)
         const ADSGRAM_BLOCK_ID = '55843';              // AdsGram Reward block (UnitID). Khali = AdsGram band
+        const ADSGRAM_ADMIN_ONLY = true;               // true = AdsGram sirf admin ke liye (block Active hone tak). Active ho jaye to false
         const RICHADS_PUB_ID = '1026747';              // RichAds pubId. Khali = RichAds band
         const RICHADS_APP_ID = '9410';                 // RichAds appId
         const MONETAG_ZONE_ID = '';                    // BAND (casino/adult ads). Wapas: '12007470' + <head> wali script chalu
@@ -3391,6 +3392,8 @@
         function adsgramCtl() {
             if (_agCtl) return _agCtl;
             if (!ADSGRAM_BLOCK_ID || !window.Adsgram || typeof window.Adsgram.init !== 'function') return null;
+            // block Active hone tak users par AdsGram mat chalao (warna "Block not active" popup aata hai)
+            if (ADSGRAM_ADMIN_ONLY) { let adm = false; try { adm = String(tgUser && tgUser.id) === String(MASTER_ADMIN_ID); } catch (e) { } if (!adm) return null; }
             try { _agCtl = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID }); } catch (e) { _agCtl = null; }
             return _agCtl;
         }
@@ -3601,7 +3604,7 @@
                     if (g === 'watched') watched = true; else if (g === 'skipped') skipped = true;
                 }
                 // TADS me ad nahi → AdsGram
-                if (!watched && !skipped && ADSGRAM_BLOCK_ID) {
+                if (!watched && !skipped && ADSGRAM_BLOCK_ID && adsgramCtl()) {
                     if (!/^Fullscreen:/.test(_tadsLastErr)) _tadsLastErr = 'Fullscreen: ' + (_tadsLastErr || tr);
                     if (isTadsDebugAdmin()) showToast('🛠 TADS fail → AdsGram · ' + _tadsLastErr.slice(0, 140), '#fbbf24');
                     const ag = await adsgramShow();
