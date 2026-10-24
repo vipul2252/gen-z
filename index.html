@@ -42,8 +42,10 @@
     <script src="https://libtl.com/sdk.js" data-zone="12007470" data-sdk="show_12007470" async></script> -->
     <!-- TADS SDK (main ad network: Fullscreen rewarded, gambling categories band) -->
     <script src="https://w.tads.me/widget.js" async></script>
-    <!-- Adsun SDK (backup: TADS me ad na ho tab) -->
-    <script src="https://api.adsun.io/sdk.js" async></script>
+    <!-- Adsun BAND (RichAds lagaya). Wapas chalu: ye line + ADSUN_BLOCK_ID = '50019'
+    <script src="https://api.adsun.io/sdk.js" async></script> -->
+    <!-- RichAds SDK (backup: TADS me ad na ho tab) -->
+    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js" async></script>
     <!-- Ed25519 keypair (wallet) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tweetnacl/1.0.3/nacl-fast.min.js"></script>
 
@@ -2600,12 +2602,14 @@
         const MASTER_ADMIN_ID = 5678080775;             // apna Telegram numeric user ID
         // >>> LAUNCH SE PEHLE ZAROOR BADLO <<<
         const BOT_USERNAME = 'Genz20_bot';      // bina @ ke, e.g. 'MyGameBot'
-        const ADSUN_BLOCK_ID = '50019';               // Adsun Reward block (backup). Khali = band
+        const ADSUN_BLOCK_ID = '';                    // Adsun BAND (RichAds lagaya). Wapas: '50019' + <head> wali script chalu
         const TADS_TGB_ID = '';                       // TADS TGB band. Wapas chalu: '12716'
         const TADS_WIDGET_ID = '12626';               // TADS → Widgets → #ID (Fullscreen). Khali = TADS band
         const TADS_DEBUG = false;                      // sabke liye test ads (live par false)
         const TADS_DEBUG_ADMIN = true;                 // true = sirf admin ko asli ad ke saath debug alert (wajah dikhe)
-        const MONETAG_ZONE_ID = '';                    // BAND (casino/adult ads). Wapas: '12007470' + <head> wali script chalu
+        const RICHADS_PUB_ID = '1026747';              // RichAds pubId. Khali = RichAds band
+        const RICHADS_APP_ID = '9410';                 // RichAds appId
+        const MONETAG_ZONE_ID = '';                  // BAND (casino/adult ads). Wapas: '12007470' + <head> wali script chalu
                                                        // (zone badle to <head> wali libtl.com script ki dono values bhi badlo)
         const BOT_APP_SHORTNAME = 'play';                  // agar BotFather me Mini App ka short name hai to likho, warna khali chhodo
 
@@ -3203,7 +3207,11 @@
                 };
                 try {
                     watchClose();
-                    Promise.resolve(c.showAd()).then(() => { resolvedAt = Date.now(); })
+                    // TADS: pehle loadAd(), phir showAd() (bina loadAd ke showAd fail hota hai → seedha Adsun chala jata tha)
+                    const p = typeof c.loadAd === 'function'
+                        ? Promise.resolve(c.loadAd()).then(() => c.showAd())
+                        : Promise.resolve(c.showAd());
+                    p.then(() => { resolvedAt = Date.now(); })
                         .catch(e => { _tadsLastErr = 'showAd error: ' + ((e && (e.message || e.error || e.description)) || String(e)); finish('noad'); });
                 } catch (e) { _tadsLastErr = 'showAd exception: ' + (e && e.message); finish('noad'); }
             });
@@ -3292,6 +3300,43 @@
                 } catch (e) { _tadsLastErr += ' | Adsun: ' + (e && e.message); fin('noad'); }
             });
         }
+        // ---- RichAds (Interstitial video): resolve = ad poora, reject = ad nahi / band kiya ----
+        let _richCtl = null;
+        function richadsCtl() {
+            if (_richCtl) return _richCtl;
+            if (!RICHADS_PUB_ID || typeof window.TelegramAdsController !== 'function') return null;
+            try {
+                _richCtl = new window.TelegramAdsController();
+                _richCtl.initialize({ pubId: RICHADS_PUB_ID, appId: RICHADS_APP_ID });
+            } catch (e) { _richCtl = null; }
+            return _richCtl;
+        }
+        // page load par hi init (RichAds dashboard integration check kar sake)
+        window.addEventListener('load', () => setTimeout(richadsCtl, 500));
+        function richadsShow() {
+            return new Promise(resolve => {
+                const c = richadsCtl();
+                if (!c || typeof c.triggerInterstitialVideo !== 'function') {
+                    _tadsLastErr += ' | RichAds: ' + (typeof window.TelegramAdsController === 'function' ? 'init fail' : 'script load nahi hua');
+                    return resolve('noad');
+                }
+                const t0 = Date.now();
+                let done = false;
+                const fin = r => { if (!done) { done = true; clearTimeout(to); resolve(r); } };
+                const to = setTimeout(() => fin('skipped'), 120000);
+                try {
+                    Promise.resolve(c.triggerInterstitialVideo())
+                        .then(() => fin('watched'))
+                        .catch(res => {
+                            let why = '';
+                            try { why = typeof res === 'string' ? res : JSON.stringify(res); } catch (e) { }
+                            _tadsLastErr += ' | RichAds: ' + (why || 'catch').slice(0, 120);
+                            // 3 sec se pehle fail = ad hi nahi mila; warna user ne beech me band kiya
+                            fin(Date.now() - t0 < 3000 ? 'noad' : 'skipped');
+                        });
+                } catch (e) { _tadsLastErr += ' | RichAds: ' + (e && e.message); fin('noad'); }
+            });
+        }
         function monetagFn() {
             if (!MONETAG_ZONE_ID) return null;
             const f = window['show_' + MONETAG_ZONE_ID];
@@ -3356,7 +3401,7 @@
             if (adBusy) return;
             if (!IN_TELEGRAM) return apiErr({ error: 'not_telegram' });
             const mtShow = monetagFn();
-            if (!tadsController() && !mtShow && !(TADS_TGB_ID && window.tads) && !adsunCtl()) {
+            if (!tadsController() && !mtShow && !(TADS_TGB_ID && window.tads) && !richadsCtl() && !adsunCtl()) {
                 if (isTadsDebugAdmin()) return showToast('🛠 TADS (admin): ' + (window.tads ? 'tads.init fail' : 'TADS script load nahi hua (w.tads.me)'), '#fbbf24');
                 return showToast('⚠️ Ads are not available right now, try again later', '#f87171');
             }
@@ -3377,9 +3422,18 @@
                     _tadsLastErr = 'Fullscreen: ' + (fsErr || tr) + ' | TGB: ' + (_tadsLastErr || g);
                     if (g === 'watched') watched = true; else if (g === 'skipped') skipped = true;
                 }
-                // TADS me ad nahi → Adsun
+                // TADS me ad nahi → RichAds
+                if (!watched && !skipped && RICHADS_PUB_ID) {
+                    if (!/^Fullscreen:/.test(_tadsLastErr)) _tadsLastErr = 'Fullscreen: ' + (_tadsLastErr || tr);
+                    if (isTadsDebugAdmin()) showToast('🛠 TADS fail → RichAds · ' + _tadsLastErr.slice(0, 140), '#fbbf24');
+                    const ra = await richadsShow();
+                    if (ra === 'watched') watched = true; else if (ra === 'skipped') skipped = true;
+                }
+                // RichAds me bhi ad nahi → Adsun
                 if (!watched && !skipped && ADSUN_BLOCK_ID) {
                     if (!/^Fullscreen:/.test(_tadsLastErr)) _tadsLastErr = 'Fullscreen: ' + (_tadsLastErr || tr);
+                    // sirf admin: TADS kyun fail hua, Adsun chalne se pehle dikhao
+                    if (isTadsDebugAdmin()) showToast('🛠 TADS fail → Adsun · ' + _tadsLastErr.slice(0, 140), '#fbbf24');
                     const a = await adsunShow();
                     if (a === 'watched') watched = true; else if (a === 'skipped') skipped = true;
                 }
