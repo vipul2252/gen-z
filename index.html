@@ -2163,6 +2163,23 @@
                 </div>
             </div>
 
+            <!-- 📅 Weekly Ad Challenge: Sunday → Sunday 80 ads = Sunday ko 1,00,000 -->
+            <div class="task-card" id="wkCard" style="display:none;">
+                <div class="task-row">
+                    <div class="task-icon icon-tg">📅</div>
+                    <div class="task-info">
+                        <div class="task-title">Weekly Ad Challenge</div>
+                        <div class="task-sub" id="wkSub">Watch 80 ads this week</div>
+                        <div class="task-reward">+100,000</div>
+                    </div>
+                    <button class="btn-action" id="btnWk" onclick="claimWeekly()" disabled>Sunday</button>
+                </div>
+                <div style="height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:10px;">
+                    <div id="wkBar" style="height:100%;width:0%;background:linear-gradient(90deg,#38bdf8,#a78bfa);"></div>
+                </div>
+                <div style="font-size:.68rem;color:var(--muted);margin-top:6px;" id="wkNote">Week: Sunday 7 AM → next Sunday 7 AM. Every rewarded ad counts.</div>
+            </div>
+
             <div class="task-card">
                 <div class="task-row">
                     <div class="task-icon icon-sub">📺</div>
@@ -2305,6 +2322,14 @@
                 <div class="wallet-h3">Key Futures</div>
                 <div class="wallet-p">Go Long or Short with G-Points, from 1x to 100x. Opening a Long pushes the price up, opening a Short pushes it down.</div>
             </div>
+            <div class="kx-card kxAdCard" id="kxAdCardL" style="display:none;align-items:center;gap:12px;">
+                <div style="font-size:1.6rem;">🎁</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:900;">Free Trading Credit <span style="color:var(--green);">+5,000</span></div>
+                    <div style="font-size:.72rem;color:var(--muted);" class="kxAdSub">Optional ad · 5 per day</div>
+                </div>
+                <button class="chip on kxAdBtn" style="padding:9px 14px;font-size:.8rem;" onclick="watchAd('cx')">📺 Watch</button>
+            </div>
             <div class="kx-list" id="mkList"><div class="kx-empty">Loading…</div></div>
             <div class="kx-note">Keys and G-Points are in-game only. They have no cash value and cannot be exchanged for money or crypto.</div>
         </div>
@@ -2335,6 +2360,14 @@
                 <div style="height:6px;border-radius:6px;background:rgba(248,113,113,.5);overflow:hidden;">
                     <div id="kdOiBar" style="height:100%;width:50%;background:var(--green);"></div>
                 </div>
+            </div>
+            <div class="kx-card kxAdCard" id="kxAdCardD" style="display:none;align-items:center;gap:12px;">
+                <div style="font-size:1.6rem;">🎁</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:900;">Free Trading Credit <span style="color:var(--green);">+5,000</span></div>
+                    <div style="font-size:.72rem;color:var(--muted);" class="kxAdSub">Optional ad · 5 per day</div>
+                </div>
+                <button class="chip on kxAdBtn" style="padding:9px 14px;font-size:.8rem;" onclick="watchAd('cx')">📺 Watch</button>
             </div>
             <div class="kx-card" style="display:flex;flex-direction:column;gap:10px;">
                 <div class="kx-side">
@@ -2609,7 +2642,7 @@
         const TADS_DEBUG_ADMIN = true;                 // true = sirf admin ko asli ad ke saath debug alert (wajah dikhe)
         const RICHADS_PUB_ID = '1026747';              // RichAds pubId. Khali = RichAds band
         const RICHADS_APP_ID = '9410';                 // RichAds appId
-        const MONETAG_ZONE_ID = '';                  // BAND (casino/adult ads). Wapas: '12007470' + <head> wali script chalu
+        const MONETAG_ZONE_ID = '';                    // BAND (casino/adult ads). Wapas: '12007470' + <head> wali script chalu
                                                        // (zone badle to <head> wali libtl.com script ki dono values bhi badlo)
         const BOT_APP_SHORTNAME = 'play';                  // agar BotFather me Mini App ka short name hai to likho, warna khali chhodo
 
@@ -2779,6 +2812,8 @@
             too_fast: '⏳ Too fast, please wait a moment',
             not_joined: '⚠️ Please join the Telegram channel first',
             ad_limit: '✅ Daily ad limit reached. Come back tomorrow!',
+            weekly_not_enough: '📅 You need 80 ads in a week to claim',
+            weekly_not_sunday: '📅 Weekly reward can be claimed on Sunday',
             social_wait: '🔍 Still checking. You can claim 1 hour after joining',
             social_not_started: '⚠️ Please tap Join / Subscribe first',
             ad_wait: '⏳ Next ad unlocks 1 hour after the last one',
@@ -3087,7 +3122,7 @@
         // - Reward + limit SERVER deta/check karta hai (ad_start → ad poora → ad_reward)
         // - Pehli baar ek consent message
         // ==========================================
-        const ADS_ON = !!(TADS_WIDGET_ID || MONETAG_ZONE_ID || ADSUN_BLOCK_ID);
+        const ADS_ON = !!(TADS_WIDGET_ID || MONETAG_ZONE_ID || ADSUN_BLOCK_ID || RICHADS_PUB_ID);
         let adBusy = false, _adTimer = null;
         // ---- TADS fullscreen rewarded ----
         // showAd() button click se hi; reward sirf onShowReward (poora dekha) par. Click par kuch nahi.
@@ -3117,7 +3152,7 @@
         // Reward kab: (1) TADS ka onShowReward aaye, YA (2) ad screen kam se kam TADS_MIN_VIEW_MS khuli rahi aur band hui.
         // Ad screen ka band hona: TADS jo naye element body me jodta hai, unke hatne/chhupne se pata chalta hai.
         const TADS_MIN_VIEW_MS = 5000;
-        const TADS_CLOSE_AFTER_MS = 15000;   // ad dikhne ke itne baad hamara apna "✕ Close" button (timer ke saath)
+        const TADS_CLOSE_AFTER_MS = 16000;   // ad dikhne ke itne baad hamara apna "✕ Close" button (timer ke saath) — sab ads par 16 sec
         let _tadsDbg = '';
         const _tadsAdRoots = new Set();      // jo ad screen hamne band ki (agli baar naya ad pakadne ke liye)
         function tadsNewRoots(known) {       // ad ke naye top-level elements (body/html ke seedhe bachche)
@@ -3207,7 +3242,7 @@
                 };
                 try {
                     watchClose();
-                    // TADS: pehle loadAd(), phir showAd() (bina loadAd ke showAd fail hota hai → seedha Adsun chala jata tha)
+                    // TADS: pehle loadAd(), phir showAd() (bina loadAd ke showAd fail hota hai)
                     const p = typeof c.loadAd === 'function'
                         ? Promise.resolve(c.loadAd()).then(() => c.showAd())
                         : Promise.resolve(c.showAd());
@@ -3278,13 +3313,61 @@
             try { _adsunCtl = window.Adsun.init({ blockId: ADSUN_BLOCK_ID }); } catch (e) { _adsunCtl = null; }
             return _adsunCtl;
         }
+        // Kisi bhi ad ke upar hamara ⏱ 16s timer + ✕ Close (ad screen pakad kar)
+        function ownCloseWatch(onClose) {
+            const roots = Array.from(_tadsAdRoots);
+            const known = new WeakSet(Array.from(document.querySelectorAll('*')).filter(e => !roots.some(r => r.contains(e))));
+            let shownAt = 0, pill = null, tick = null, stopped = false;
+            const overlayOpen = () => {
+                const W = window.innerWidth, H = window.innerHeight;
+                const pts = [[W / 2, H / 2], [W / 2, H * 0.3], [W / 2, H * 0.7], [W * 0.25, H / 2]];
+                let hits = 0;
+                for (const [x, y] of pts) {
+                    const el = document.elementFromPoint(x, y);
+                    if (el && !known.has(el) && !(el.closest && el.closest('#_toast,#_tadsClose'))) hits++;
+                }
+                return hits >= 2;
+            };
+            const stop = () => { stopped = true; clearInterval(poll); clearInterval(tick); if (pill) { pill.remove(); pill = null; } };
+            const showPill = () => {
+                pill = document.createElement('div'); pill.id = '_tadsClose';
+                pill.style.cssText = 'position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:10px;z-index:2147483647;' +
+                    'background:rgba(0,0,0,.72);color:#fff;font:700 14px/1 Inter,system-ui,sans-serif;padding:9px 13px;border-radius:999px;' +
+                    'border:1px solid rgba(255,255,255,.35);user-select:none;-webkit-user-select:none;pointer-events:none';
+                document.body.appendChild(pill);
+                const t = () => {
+                    const left = TADS_CLOSE_AFTER_MS - (Date.now() - shownAt);
+                    if (left > 0) { pill.textContent = '⏱ ' + Math.ceil(left / 1000) + 's'; return; }
+                    clearInterval(tick);
+                    pill.textContent = '✕ Close'; pill.style.pointerEvents = 'auto'; pill.style.cursor = 'pointer'; pill.style.background = 'rgba(0,0,0,.85)';
+                    pill.onclick = ev => {
+                        ev.preventDefault(); ev.stopPropagation();
+                        let rs = tadsNewRoots(known);
+                        if (!rs.length) {
+                            let el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+                            while (el && el.parentElement && !known.has(el.parentElement)) el = el.parentElement;
+                            if (el && !known.has(el)) rs = [el];
+                        }
+                        for (const el of rs) { _tadsAdRoots.add(el); el.remove(); }
+                        stop(); onClose();
+                    };
+                };
+                t(); tick = setInterval(t, 250);
+            };
+            const poll = setInterval(() => {
+                if (stopped) return;
+                if (!shownAt && overlayOpen()) { shownAt = Date.now(); showPill(); }
+            }, 400);
+            return stop;
+        }
         function adsunShow() {
             return new Promise(resolve => {
                 const c = adsunCtl();
                 if (!c || typeof c.show !== 'function') { _tadsLastErr += ' | Adsun: ' + (window.Adsun ? 'init fail' : 'script load nahi hua'); return resolve('noad'); }
                 const t0 = Date.now();
                 let done = false;
-                const fin = r => { if (!done) { done = true; clearTimeout(to); resolve(r); } };
+                const stopWatch = ownCloseWatch(() => { _tadsLastErr += ' | Adsun: ownClose'; fin('watched'); });
+                const fin = r => { if (!done) { done = true; clearTimeout(to); stopWatch(); resolve(r); } };
                 const to = setTimeout(() => fin('skipped'), 180000);
                 try {
                     Promise.resolve(c.show())
@@ -3322,7 +3405,9 @@
                 }
                 const t0 = Date.now();
                 let done = false;
-                const fin = r => { if (!done) { done = true; clearTimeout(to); resolve(r); } };
+                // hamara ⏱ 16s timer + ✕ Close (RichAds ki ad screen par bhi)
+                const stopWatch = ownCloseWatch(() => { _tadsLastErr += ' | RichAds: ownClose'; fin('watched'); });
+                const fin = r => { if (!done) { done = true; clearTimeout(to); stopWatch(); resolve(r); } };
                 const to = setTimeout(() => fin('skipped'), 120000);
                 try {
                     Promise.resolve(c.triggerInterstitialVideo())
@@ -3353,13 +3438,68 @@
                 maxPts: Number(a.maxPts) || 5, maxEn: Number(a.maxEn) || 5, gap: Number(a.gap) || 3600000, reward: Number(a.reward) || 5000
             };
         }
+        // 🎁 Free Trading Credit (Market/Keys page): +5000, din me 5, beech me 1 ghanta (server kind 'cx')
+        let _kxAdT = null;
+        function kxAdCardUI() {
+            const a = serverState && serverState.ads;
+            const show = ADS_ON && IN_TELEGRAM && !!a && a.maxCx !== undefined;
+            const cards = document.querySelectorAll('.kxAdCard');
+            cards.forEach(c => c.style.display = show ? 'flex' : 'none');
+            clearTimeout(_kxAdT);
+            if (!show) return;
+            const left = Math.max(0, (Number(a.maxCx) || 5) - (Number(a.cx) || 0));
+            const wait = Math.max(0, (Number(a.cxLast) || 0) + 3600000 - serverNow());
+            let txt, sub, dis;
+            if (left < 1) { dis = true; txt = '✓ Done'; sub = 'Daily limit reached · back tomorrow'; }
+            else if (wait > 0) { dis = true; txt = fmtWait(wait); sub = left + ' left today · next in ' + fmtWait(wait); _kxAdT = setTimeout(kxAdCardUI, 1000); }
+            else { dis = adBusy; txt = adBusy ? '…' : '📺 Watch'; sub = 'Optional ad · ' + left + ' left today'; }
+            document.querySelectorAll('.kxAdBtn').forEach(b => { b.disabled = dis; b.innerText = txt; });
+            document.querySelectorAll('.kxAdSub').forEach(s => { s.innerText = sub; });
+        }
+        // 📅 Weekly Ad Challenge card
+        let _wkT = null;
+        function updateWeeklyUI() {
+            const card = document.getElementById('wkCard');
+            const w = serverState && serverState.weekly;
+            if (!card) return;
+            card.style.display = (ADS_ON && IN_TELEGRAM && w) ? '' : 'none';
+            if (!w) return;
+            const n = Number(w.n) || 0, pn = Number(w.pn) || 0, need = Number(w.need) || 80;
+            const btn = document.getElementById('btnWk'), sub = document.getElementById('wkSub');
+            document.getElementById('wkBar').style.width = Math.min(100, n / need * 100) + '%';
+            const now = serverNow();
+            clearTimeout(_wkT);
+            if (w.canClaim) {
+                btn.disabled = false; btn.innerText = 'Claim';
+                sub.innerText = 'Last week: ' + pn + '/' + need + ' ✅ · claim before ' + fmtWait(Math.max(0, w.claimEnd - now)) + ' ends';
+            } else if (w.claimed && now < w.claimEnd) {
+                btn.disabled = true; btn.innerText = '✓ Claimed';
+                sub.innerText = 'This week: ' + n + '/' + need + ' ads';
+            } else {
+                btn.disabled = true;
+                const left = Math.max(0, w.end - now), d = Math.floor(left / 86400000);
+                btn.innerText = n >= need ? '✓ Done' : 'Sunday';
+                sub.innerText = 'This week: ' + n + '/' + need + ' ads · ' + (n >= need ? 'claim on Sunday 🎉' : 'ends in ' + (d > 0 ? d + 'd ' : '') + fmtWait(left % 86400000));
+            }
+            _wkT = setTimeout(updateWeeklyUI, 30000);
+        }
+        async function claimWeekly() {
+            const btn = document.getElementById('btnWk'); if (btn) btn.disabled = true;
+            const j = await api('weekly_claim');
+            if (j.error) { apiErr(j); updateWeeklyUI(); return; }
+            triggerHaptic('success');
+            try { showDailyPopup({ day: '📅 Weekly', type: 'token', amount: Number(j.weekly) || 100000 }, null); }
+            catch (e) { showToast('🎉 +100,000 G-Points!', '#4ade80'); }
+            updateWeeklyUI();
+        }
+        window.claimWeekly = claimWeekly;
         function updateAdUI() {
             const card = document.getElementById('adTaskCard'), eb = document.getElementById('btnAdEnergy');
             if (!card || !eb) return;
             const show = ADS_ON && IN_TELEGRAM && !!(serverState && serverState.ads);
             card.style.display = show ? '' : 'none';
             update2xButtons(show);
-            if (!show) { eb.style.display = 'none'; return; }
+            if (!show) { eb.style.display = 'none'; updateWeeklyUI(); kxAdCardUI(); return; }
             const a = adInfo(), left = Math.max(0, a.maxPts - a.pts);
             const wait = Math.max(0, a.last + a.gap - serverNow());   // server ki ghadi se
             const btn = document.getElementById('btnAdPts'), sub = document.getElementById('adTaskSub');
@@ -3370,7 +3510,8 @@
             clearTimeout(_adTimer);
             if (left > 0 && wait > 0) _adTimer = setTimeout(updateAdUI, 1000);   // countdown
             updateAdEnergyBtn();
-            if (window.cxAdCard) cxAdCard();
+            kxAdCardUI();
+            updateWeeklyUI();
         }
         // Daily Bonus 2x / Puzzle 2x: server batata hai kab mil sakta hai (d2 = kitna, p2 = haan/na)
         function update2xButtons(show) {
@@ -3465,7 +3606,7 @@
                 if (j.kind === 'energy') showToast('⚡ Energy refilled!', '#4ade80');
                 else if (j.kind === 'daily2x') showToast(`🎉 Daily bonus doubled! +${Number(j.amount).toLocaleString()} G-Points`, '#4ade80');
                 else if (j.kind === 'puzzle2x') showToast(`🧩 Puzzle reward doubled! +${Number(j.amount).toLocaleString()} G-Points`, '#4ade80');
-                else if (j.kind === 'cx') { showToast(`🎁 +${Number(j.amount).toLocaleString()} G-Points for trading!`, '#4ade80'); if (window.cxQuote) cxQuote(); }
+                else if (j.kind === 'cx') { showToast(`🎁 +${Number(j.amount).toLocaleString()} G-Points for trading!`, '#4ade80'); if (window.renderFQuote) try { renderFQuote(); } catch (e) { } }
                 else showToast(`✅ +${Number(j.amount).toLocaleString()} G-Points added`, '#4ade80');
             } finally {
                 adBusy = false; updateAdUI();
@@ -5178,6 +5319,34 @@ $$;
 create or replace function public._ms() returns bigint
 language sql stable as $$ select (extract(epoch from clock_timestamp()) * 1000)::bigint $$;
 
+-- ---------------------------------------------------------------- WEEKLY AD CHALLENGE
+-- Hafta: Sunday 7 AM IST → agla Sunday 7 AM. 80 ad poore dekhe → Sunday (7 AM se 24 ghante) +1,00,000 claim
+create or replace function public._wk_start(t timestamptz default now()) returns timestamptz
+language sql stable as $$
+  select ((((t at time zone 'Asia/Kolkata') - interval '7 hours')::date
+           - extract(dow from ((t at time zone 'Asia/Kolkata') - interval '7 hours'))::int)::timestamp
+          + interval '7 hours') at time zone 'Asia/Kolkata'
+$$;
+
+create or replace function public._wk_info(u public.users) returns jsonb
+language plpgsql stable as $$
+declare ws timestamptz := public._wk_start(); wk bigint; w jsonb; cn int := 0; pn int := 0; pw bigint;
+begin
+  wk := (extract(epoch from ws) * 1000)::bigint;
+  pw := wk - 604800000;
+  w := coalesce(u.tasks_done->'_wk', '{}'::jsonb);
+  if coalesce((w->>'w')::bigint, 0) = wk then
+    cn := coalesce((w->>'n')::int, 0);
+    if coalesce((w->>'pw')::bigint, 0) = pw then pn := coalesce((w->>'pn')::int, 0); end if;
+  elsif coalesce((w->>'w')::bigint, 0) = pw then
+    pn := coalesce((w->>'n')::int, 0);
+  end if;
+  return jsonb_build_object('n', cn, 'pn', pn, 'need', 80, 'reward', 100000,
+    'start', wk, 'end', wk + 604800000, 'claimEnd', wk + 86400000,
+    'claimed', coalesce((u.tasks_done->>'_wkc')::bigint, 0) = pw,
+    'canClaim', now() < ws + interval '1 day' and pn >= 80 and coalesce((u.tasks_done->>'_wkc')::bigint, 0) <> pw);
+end $$;
+
 create or replace function public._state(u public.users) returns jsonb
 language plpgsql stable as $$
 declare
@@ -5192,7 +5361,8 @@ begin
     'claimedToday', coalesce(u.last_daily = today, false),
     'puzzleDone',  coalesce(u.puzzle_at     >= rs, false),
     'puzzleTried', coalesce(u.puzzle_try_at >= rs, false),
-    'tasks', coalesce(u.tasks_done, '{}'::jsonb) - '_pz' - '_s_yt' - '_s_tg' - '_tp' - '_tb' - '_ad' - '_as' - '_dl',
+    'tasks', coalesce(u.tasks_done, '{}'::jsonb) - '_pz' - '_s_yt' - '_s_tg' - '_tp' - '_tb' - '_ad' - '_as' - '_dl' - '_wk' - '_wkc',
+    'weekly', public._wk_info(u),
     'nextReset', (extract(epoch from rs) * 1000)::bigint + 86400000,
     -- rewarded ads: aaj kitne dekhe (7 AM IST reset), aakhri reward kab mila
     'ads', jsonb_build_object(
@@ -5253,7 +5423,7 @@ declare
   rs timestamptz := public._reset_ts();
   gained int; res jsonb := '{}'::jsonb; fresh public.users%rowtype; bonus bigint;
   taps numeric; ms numeric; maxrate int; applied int;
-  idx int; amt bigint; k text; sp text; ref text;
+  idx int; amt bigint; k text; sp text; ref text; v_wk bigint; v_w jsonb; v_info jsonb;
   started bigint; took bigint; ok boolean;
   daily bigint[] := array[1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,0];
 begin
@@ -5319,6 +5489,17 @@ begin
           || jsonb_build_array(p_data->>'bid'));
       end if;
       res := jsonb_build_object('applied', applied);
+
+    when 'weekly_claim' then
+      v_info := public._wk_info(u);
+      if not (v_info->>'canClaim')::boolean then
+        return jsonb_build_object('error', case when (v_info->>'claimed')::boolean then 'already_claimed'
+                                                when (v_info->>'pn')::int < 80 then 'weekly_not_enough'
+                                                else 'weekly_not_sunday' end, 'state', public._state(u));
+      end if;
+      u.tokens := u.tokens + 100000;
+      u.tasks_done := coalesce(u.tasks_done, '{}'::jsonb) || jsonb_build_object('_wkc', (v_info->>'start')::bigint - 604800000);
+      res := jsonb_build_object('weekly', 100000);
 
     when 'daily_claim' then
       if u.last_daily = today then
@@ -5460,6 +5641,18 @@ begin
         end if;
         u.tasks_done := u.tasks_done - '_as';
         u.ads_total := coalesce(u.ads_total, 0) + 1;               -- leaderboard ke liye ginti
+        -- weekly challenge: is hafte ki ginti (naya hafta ho to pichhla 'pn' me)
+        v_wk := (extract(epoch from public._wk_start()) * 1000)::bigint;
+        v_w := coalesce(u.tasks_done->'_wk', '{}'::jsonb);
+        if coalesce((v_w->>'w')::bigint, 0) = v_wk then
+          v_w := v_w || jsonb_build_object('n', coalesce((v_w->>'n')::int, 0) + 1);
+        else
+          v_w := jsonb_build_object('w', v_wk, 'n', 1,
+                   'pw', v_wk - 604800000,
+                   'pn', case when coalesce((v_w->>'w')::bigint, 0) = v_wk - 604800000
+                              then coalesce((v_w->>'n')::int, 0) else 0 end);
+        end if;
+        u.tasks_done := u.tasks_done || jsonb_build_object('_wk', v_w);
         if k = 'daily2x' then
           bonus := (u.tasks_done->>'_dl')::bigint;
           u.tokens := u.tokens + bonus;
@@ -6992,7 +7185,7 @@ begin
                         '_kx_close_px','_kx_liq','_kx_pos_json','_kx_logo','_kx_stats','_admin_ids',
                         '_lb_refresh','kx_tick','game','kx','leaderboard',
                         '_cx_num','_cx_liq','_cx_url','_cx_apply','_cx_fetch','_cx_fill','_cx_close','_cx_process','cx_tick','cx',
-                        '_xfer_code','xfer')
+                        '_xfer_code','xfer','_wk_start','_wk_info')
   loop
     execute format('alter function %s set search_path = public, extensions, pg_temp', r.sig);
     if r.proname not in ('game', 'kx', 'leaderboard', 'cx', 'xfer') then
