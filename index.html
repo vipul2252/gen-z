@@ -44,6 +44,8 @@
     <script src="https://w.tads.me/widget.js" async></script>
     <!-- Adsun BAND (RichAds lagaya). Wapas chalu: ye line + ADSUN_BLOCK_ID = '50019'
     <script src="https://api.adsun.io/sdk.js" async></script> -->
+    <!-- AdsGram SDK (TADS ke baad 2nd) -->
+    <script src="https://sad.adsgram.ai/js/sad.min.js" async></script>
     <!-- RichAds SDK (backup: TADS me ad na ho tab) -->
     <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js" async></script>
     <!-- Ed25519 keypair (wallet) -->
@@ -2640,6 +2642,7 @@
         const TADS_WIDGET_ID = '12626';               // TADS → Widgets → #ID (Fullscreen). Khali = TADS band
         const TADS_DEBUG = false;                      // sabke liye test ads (live par false)
         const TADS_DEBUG_ADMIN = true;                 // true = sirf admin ko asli ad ke saath debug alert (wajah dikhe)
+        const ADSGRAM_BLOCK_ID = '55843';              // AdsGram Reward block (UnitID). Khali = AdsGram band
         const RICHADS_PUB_ID = '1026747';              // RichAds pubId. Khali = RichAds band
         const RICHADS_APP_ID = '9410';                 // RichAds appId
         const MONETAG_ZONE_ID = '';                    // BAND (casino/adult ads). Wapas: '12007470' + <head> wali script chalu
@@ -3122,7 +3125,7 @@
         // - Reward + limit SERVER deta/check karta hai (ad_start → ad poora → ad_reward)
         // - Pehli baar ek consent message
         // ==========================================
-        const ADS_ON = !!(TADS_WIDGET_ID || MONETAG_ZONE_ID || ADSUN_BLOCK_ID || RICHADS_PUB_ID);
+        const ADS_ON = !!(TADS_WIDGET_ID || MONETAG_ZONE_ID || ADSUN_BLOCK_ID || RICHADS_PUB_ID || ADSGRAM_BLOCK_ID);
         let adBusy = false, _adTimer = null;
         // ---- TADS fullscreen rewarded ----
         // showAd() button click se hi; reward sirf onShowReward (poora dekha) par. Click par kuch nahi.
@@ -3383,6 +3386,40 @@
                 } catch (e) { _tadsLastErr += ' | Adsun: ' + (e && e.message); fin('noad'); }
             });
         }
+        // ---- AdsGram (Reward): show() resolve = ad poora, reject = ad nahi / beech me band ----
+        let _agCtl = null;
+        function adsgramCtl() {
+            if (_agCtl) return _agCtl;
+            if (!ADSGRAM_BLOCK_ID || !window.Adsgram || typeof window.Adsgram.init !== 'function') return null;
+            try { _agCtl = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID }); } catch (e) { _agCtl = null; }
+            return _agCtl;
+        }
+        window.addEventListener('load', () => setTimeout(adsgramCtl, 400));
+        function adsgramShow() {
+            return new Promise(resolve => {
+                const c = adsgramCtl();
+                if (!c || typeof c.show !== 'function') {
+                    _tadsLastErr += ' | AdsGram: ' + (window.Adsgram ? 'init fail' : 'script load nahi hua');
+                    return resolve('noad');
+                }
+                const t0 = Date.now();
+                let done = false;
+                // hamara ⏱ 16s timer + ✕ Close (AdsGram ki ad screen par bhi)
+                const stopWatch = ownCloseWatch(() => { _tadsLastErr += ' | AdsGram: ownClose'; fin('watched'); });
+                const fin = r => { if (!done) { done = true; clearTimeout(to); stopWatch(); resolve(r); } };
+                const to = setTimeout(() => fin('skipped'), 120000);
+                try {
+                    Promise.resolve(c.show())
+                        .then(res => fin(res && res.done === false ? 'skipped' : 'watched'))
+                        .catch(res => {
+                            const why = (res && (res.description || res.state)) || 'catch';
+                            _tadsLastErr += ' | AdsGram: ' + String(why).slice(0, 120);
+                            // error ya 3 sec se pehle = ad hi nahi mila; warna user ne beech me band kiya
+                            fin((res && res.error) || Date.now() - t0 < 3000 ? 'noad' : 'skipped');
+                        });
+                } catch (e) { _tadsLastErr += ' | AdsGram: ' + (e && e.message); fin('noad'); }
+            });
+        }
         // ---- RichAds (Interstitial video): resolve = ad poora, reject = ad nahi / band kiya ----
         let _richCtl = null;
         function richadsCtl() {
@@ -3542,7 +3579,7 @@
             if (adBusy) return;
             if (!IN_TELEGRAM) return apiErr({ error: 'not_telegram' });
             const mtShow = monetagFn();
-            if (!tadsController() && !mtShow && !(TADS_TGB_ID && window.tads) && !richadsCtl() && !adsunCtl()) {
+            if (!tadsController() && !mtShow && !(TADS_TGB_ID && window.tads) && !adsgramCtl() && !richadsCtl() && !adsunCtl()) {
                 if (isTadsDebugAdmin()) return showToast('🛠 TADS (admin): ' + (window.tads ? 'tads.init fail' : 'TADS script load nahi hua (w.tads.me)'), '#fbbf24');
                 return showToast('⚠️ Ads are not available right now, try again later', '#f87171');
             }
@@ -3563,7 +3600,14 @@
                     _tadsLastErr = 'Fullscreen: ' + (fsErr || tr) + ' | TGB: ' + (_tadsLastErr || g);
                     if (g === 'watched') watched = true; else if (g === 'skipped') skipped = true;
                 }
-                // TADS me ad nahi → RichAds
+                // TADS me ad nahi → AdsGram
+                if (!watched && !skipped && ADSGRAM_BLOCK_ID) {
+                    if (!/^Fullscreen:/.test(_tadsLastErr)) _tadsLastErr = 'Fullscreen: ' + (_tadsLastErr || tr);
+                    if (isTadsDebugAdmin()) showToast('🛠 TADS fail → AdsGram · ' + _tadsLastErr.slice(0, 140), '#fbbf24');
+                    const ag = await adsgramShow();
+                    if (ag === 'watched') watched = true; else if (ag === 'skipped') skipped = true;
+                }
+                // AdsGram me bhi ad nahi → RichAds
                 if (!watched && !skipped && RICHADS_PUB_ID) {
                     if (!/^Fullscreen:/.test(_tadsLastErr)) _tadsLastErr = 'Fullscreen: ' + (_tadsLastErr || tr);
                     if (isTadsDebugAdmin()) showToast('🛠 TADS fail → RichAds · ' + _tadsLastErr.slice(0, 140), '#fbbf24');
